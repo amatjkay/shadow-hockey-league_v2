@@ -11,83 +11,115 @@ let countries = [
 ];
 
 let achievements = [
-    {
-        top1: `<img src="../img/cups/top1.svg" title="Shadow SK2K league-1 top1 s22/23"></img>`,
-        top2: `<img src="../img/cups/top2.svg" title="Shadow SK2K league-1 top2 s21/22"></img>`,
-        top3: `Shadow ${leagues[0]} league TOP3`,
-        bestRegPlayer: `Shadow ${leagues[0]} league Best regular player`,
-        round1: `Shadow ${leagues[0]} league Round 1`,
-        round2: `Shadow ${leagues[0]} league Round 2`,
-        round3: `Shadow ${leagues[0]} league Round 3`,
-    },
-    {
-        top1: `Shadow ${leagues[1]} league TOP1`,
-        top2: `Shadow ${leagues[1]} league TOP2`,
-        top3: `Shadow ${leagues[1]} league TOP3`,
-        bestRegPlayer: `Shadow ${leagues[1]} league Best regular player`,
-        round1: `Shadow ${leagues[1]} league Round 1`,
-        round2: `Shadow ${leagues[1]} league Round 2`,
-        round3: `Shadow ${leagues[1]} league Round 3`,
-    },
+    (Primary_league = {
+        top1_2122: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[0]} league TOP1 s21/22"></img>`,
+        top1_2223: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[0]} league TOP1 s22/23"></img>`,
+        top2_2122: `<img src="../img/cups/top2.svg" title="Shadow ${leagues[0]} league TOP2 s21/22"></img>`,
+        top2_2223: `<img src="../img/cups/top2.svg" title="Shadow ${leagues[0]} league TOP2 s22/23"></img>`,
+        top3_2122: `<img src="../img/cups/top3.svg" title="Shadow ${leagues[0]} league TOP3 s21/22"></img>`,
+        top3_2223: `<img src="../img/cups/top3.svg" title="Shadow ${leagues[0]} league TOP3 s22/23"></img>`,
+        bestRegPlayer_2122: `<img src="../img/cups/best-reg.svg" title="Shadow ${leagues[0]} league Best regular player s21/22"></img>`,
+        bestRegPlayer_2223: `<img src="../img/cups/best-reg.svg" title="Shadow ${leagues[0]} league Best regular player s22/23"></img>`,
+        round1_2122: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[0]} league Round 1 s21/22"></img>`,
+        round1_2223: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[0]} league Round 1 s22/23"></img>`,
+        round2_2122: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[0]} league Round 2 s21/22"></img>`,
+        round2_2223: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[0]} league Round 2 s22/23"></img>`,
+        round3_2122: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[0]} league Round 3 s21/22"></img>`,
+        round3_2223: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[0]} league Round 3 s22/23"></img>`,
+    }),
+    (Second_league = {
+        top1_2122: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[1]} league TOP1 s21/22"></img>`,
+        top1_2223: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[1]} league TOP1 s22/23"></img>`,
+        top2_2122: `<img src="../img/cups/top2.svg" title="Shadow ${leagues[1]} league TOP2 s21/22"></img>`,
+        top2_2223: `<img src="../img/cups/top2.svg" title="Shadow ${leagues[1]} league TOP2 s22/23"></img>`,
+        top3_2122: `<img src="../img/cups/top3.svg" title="Shadow ${leagues[1]} league TOP3 s21/22"></img>`,
+        top3_2223: `<img src="../img/cups/top3.svg" title="Shadow ${leagues[1]} league TOP3 s22/23"></img>`,
+        bestRegPlayer_2122: `<img src="../img/cups/best-reg.svg" title="Shadow ${leagues[1]} league Best regular player s21/22"></img>`,
+        bestRegPlayer_2223: `<img src="../img/cups/best-reg.svg" title="Shadow ${leagues[1]} league Best regular player s22/23"></img>`,
+        round1_2122: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[1]} league Round 1 s21/22"></img>`,
+        round1_2223: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[1]} league Round 1 s22/23"></img>`,
+        round2_2122: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[1]} league Round 2 s21/22"></img>`,
+        round2_2223: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[1]} league Round 2 s22/23"></img>`,
+        round3_2122: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[1]} league Round 3 s21/22"></img>`,
+        round3_2223: `<img src="../img/cups/clap.svg" title="Shadow ${leagues[1]} league Round 3 s22/23"></img>`,
+    }),
 ];
-
-let seasons = {
-    s2122: "21/22",
-    s2223: "22/23",
-    s2324: "23/24",
-    s2425: "24/25",
-};
 
 let managers = [
     {
         name: "Feel Good",
         country: countries[0],
-        achievement: [achievements[0].top1, achievements[0].top2],
+        achievement: [achievements[0].top1_2223, achievements[0].top2_2122],
     },
     {
         name: "Alex Galuza",
         country: countries[1],
+        achievement: [
+            achievements[0].top2_2223,
+            achievements[0].bestRegPlayer_2223,
+            achievements[0].round1_2122,
+        ],
     },
     {
         name: "Nurzhan Yessengaliev",
         country: countries[2],
+        achievement: [achievements[0].top3_2223, achievements[0].round1_2122],
     },
     {
         name: "Sumzair San",
         country: countries[0],
+        achievement: [achievements[1].top1_2223],
     },
     {
         name: "AleX TiiKii",
         country: countries[0],
+        achievement: [achievements[1].top2_2223, achievements[0].round1_2122],
     },
     {
-        name: " Vlad V",
+        name: "Vlad V",
         country: countries[0],
     },
     {
         name: "whiplash 92",
         country: countries[0],
+        achievement: [achievements[0].top3_2122, achievements[0].round1_2223],
+    },
+    {
+        name: "Tandem: Vlad, whiplash 92",
+        country: countries[0],
+        achievement: [achievements[1].top3_2223],
     },
     {
         name: "Vladislav Belov",
         country: countries[3],
-        achievement: [achievements[0].bestRegPlayer],
+        achievement: [
+            achievements[1].bestRegPlayer_2122,
+            achievements[1].round1_2122,
+        ],
     },
     {
         name: "Cole CaufieldTeamNePobedim",
         country: countries[2],
+        achievement: [achievements[0].top1_2122],
     },
     {
         name: "Sousse Sousse",
         country: countries[0],
+        achievement: [achievements[0].round2_2223],
     },
     {
         name: "Sergey Kharlanov",
         country: countries[1],
+        achievement: [achievements[0].round1_2223],
     },
     {
         name: "Евгений Иванов",
         country: countries[0],
+        achievement: [
+            achievements[0].bestRegPlayer_2122,
+            achievements[0].round1_2122,
+            achievements[0].round1_2223,
+        ],
     },
     {
         name: "Max Trufanov",
