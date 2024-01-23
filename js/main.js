@@ -124,10 +124,12 @@ let managers = [
     {
         name: "Max Trufanov",
         country: countries[4],
+        achievement: [achievements[0].round2_2122, achievements[0].round1_2223],
     },
     {
         name: "Denis Sanzharevskyi",
         country: countries[4],
+        achievement: [achievements[0].round1_2122],
     },
     {
         name: "Евгений Медведев",
