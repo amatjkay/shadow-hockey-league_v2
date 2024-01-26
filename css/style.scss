@@ -14,39 +14,6 @@
 	box-sizing: border-box;
 }
 
-:root {
-	--scrollbarBgColor: rgba(0, 0, 0, 0.05);
-	--scrollbarThumbColor: rgba(0, 0, 0, 0.15);
-	--scrollbarThumbColorSecond: rgba(135, 206, 235, 0.7);
-	--scrollbarWidth: 14px;
-	--scrollbarBorder: 0 solid var(--scrollbarBgColor);
-	--scrollbarBorderRadius: calc(var(--scrollbarWidth) / 4);
-}
-
-.container {
-	overflow: auto;
-	width: 100%;
-	scrollbar-width: var(--scrollbarWidth);
-	scrollbar-color: var(--scrollbarThumbColor) var(--scrollbarBgColor);
-
-	&::-webkit-scrollbar {
-		width: var(--scrollbarWidth);
-	}
-
-	&::-webkit-scrollbar-track {
-		margin: 100px 0 50px;
-		background: var(--scrollbarBgColor);
-		border-radius: var(--scrollbarBorderRadius);
-	}
-
-	&::-webkit-scrollbar-thumb {
-		background-color: var(--scrollbarThumbColor);
-		border-radius: var(--scrollbarBorderRadius);
-		border: var(--scrollbarBorder);
-		background-image: linear-gradient(-90deg, var(--scrollbarThumbColor) 0%, var(--scrollbarThumbColorSecond) 95%);
-	}
-}
-
 a {
 	text-decoration: none;
 	outline: none;
@@ -209,4 +176,15 @@ tbody {
 	color: #fff;
 	font-size: 14px;
 	text-decoration: none;
+}
+
+.scroll-block::-webkit-scrollbar {
+	background-color: skyblue;
+	width: 5px;
+}
+.scroll-block::-webkit-scrollbar-thumb {
+	background: #092350;
+}
+.scroll-block:hover::-webkit-scrollbar-thumb {
+	background: #092350;
 }
