@@ -75,6 +75,7 @@ body {
 	background-repeat: no-repeat;
 	background-size: cover;
 	font-family: "Ubuntu", sans-serif;
+	user-select: none;
 }
 
 h1 {
@@ -87,6 +88,10 @@ h1 {
 ul,
 ol {
 	padding-inline-start: 0;
+}
+
+tbody {
+	vertical-align: middle;
 }
 
 .header {
@@ -122,18 +127,35 @@ ol {
 	--bs-table-color: none;
 	background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.1294117647));
 
+	&-header {
+		vertical-align: middle !important;
+	}
+
 	&-col-right {
 		font-size: 0;
 	}
 
 	&-row {
 		text-align: start;
+
+		&__countries {
+			transform: translate(5px, -1px);
+		}
 	}
 
-	&-items img {
-		max-height: 30px;
-		cursor: help;
-		margin: 2px;
+	&-row:nth-child(-n + 10) {
+		background: -webkit-linear-gradient(red, yellow);
+		@include text_transparent;
+		font-size: 18px;
+	}
+
+	&-items {
+		vertical-align: middle !important;
+		& img {
+			max-height: 30px;
+			cursor: help;
+			margin: 0 2px;
+		}
 	}
 
 	&-header {
@@ -144,9 +166,6 @@ ol {
 
 	&-geoloc__img {
 		max-height: 30px;
-	}
-	&-countries {
-		transform: translateX(3%);
 	}
 }
 

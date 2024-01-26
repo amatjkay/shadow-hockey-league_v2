@@ -52,6 +52,16 @@ let managers = [
         achievement: [achievements[0].top1_2223, achievements[0].top2_2122],
     },
     {
+        name: "Cole CaufieldTeamNePobedim",
+        country: countries[2],
+        achievement: [achievements[0].top1_2122],
+    },
+    {
+        name: "Sumzair San",
+        country: countries[0],
+        achievement: [achievements[1].top1_2223],
+    },
+    {
         name: "Alex Galuza",
         country: countries[1],
         achievement: [
@@ -61,23 +71,14 @@ let managers = [
         ],
     },
     {
-        name: "Nurzhan Yessengaliev",
-        country: countries[2],
-        achievement: [achievements[0].top3_2223, achievements[0].round1_2122],
-    },
-    {
-        name: "Sumzair San",
-        country: countries[0],
-        achievement: [achievements[1].top1_2223],
-    },
-    {
         name: "AleX TiiKii",
         country: countries[0],
         achievement: [achievements[1].top2_2223, achievements[0].round1_2122],
     },
     {
-        name: "Vlad V",
-        country: countries[0],
+        name: "Nurzhan Yessengaliev",
+        country: countries[2],
+        achievement: [achievements[0].top3_2223, achievements[0].round1_2122],
     },
     {
         name: "whiplash 92",
@@ -90,6 +91,15 @@ let managers = [
         achievement: [achievements[1].top3_2223],
     },
     {
+        name: "Евгений Иванов",
+        country: countries[0],
+        achievement: [
+            achievements[0].bestRegPlayer_2122,
+            achievements[0].round1_2122,
+            achievements[0].round1_2223,
+        ],
+    },
+    {
         name: "Vladislav Belov",
         country: countries[3],
         achievement: [
@@ -98,9 +108,9 @@ let managers = [
         ],
     },
     {
-        name: "Cole CaufieldTeamNePobedim",
-        country: countries[2],
-        achievement: [achievements[0].top1_2122],
+        name: "Max Trufanov",
+        country: countries[4],
+        achievement: [achievements[0].round2_2122, achievements[0].round1_2223],
     },
     {
         name: "Sousse Sousse",
@@ -113,23 +123,13 @@ let managers = [
         achievement: [achievements[0].round1_2223],
     },
     {
-        name: "Евгений Иванов",
-        country: countries[0],
-        achievement: [
-            achievements[0].bestRegPlayer_2122,
-            achievements[0].round1_2122,
-            achievements[0].round1_2223,
-        ],
-    },
-    {
-        name: "Max Trufanov",
-        country: countries[4],
-        achievement: [achievements[0].round2_2122, achievements[0].round1_2223],
-    },
-    {
         name: "Denis Sanzharevskyi",
         country: countries[4],
         achievement: [achievements[0].round1_2122],
+    },
+    {
+        name: "Vlad V",
+        country: countries[0],
     },
     {
         name: "Евгений Медведев",
@@ -208,7 +208,7 @@ let managers = [
 for (let key in managers) {
     document.querySelector(".table-items").innerHTML += `
 <tr class="table-row">
-		<th class="table-countries" scope="row">
+		<th class="table-row__countries" scope="row">
 		<img src="${managers[key].country}" alt="" /></th>
 		<td>${managers[key].name}</td>
 		<td class="table-col-right">${managers[key].achievement}</td>

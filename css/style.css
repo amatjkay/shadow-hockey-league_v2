@@ -62,6 +62,7 @@ body {
   background-repeat: no-repeat;
   background-size: cover;
   font-family: "Ubuntu", sans-serif;
+  user-select: none;
 }
 
 h1 {
@@ -75,6 +76,10 @@ h1 {
 ul,
 ol {
   padding-inline-start: 0;
+}
+
+tbody {
+  vertical-align: middle;
 }
 
 .header {
@@ -108,16 +113,31 @@ ol {
   --bs-table-color: none;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.1294117647));
 }
+.table-header {
+  vertical-align: middle !important;
+}
 .table-col-right {
   font-size: 0;
 }
 .table-row {
   text-align: start;
 }
+.table-row__countries {
+  transform: translate(5px, -1px);
+}
+.table-row:nth-child(-n+10) {
+  background: -webkit-linear-gradient(red, yellow);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 18px;
+}
+.table-items {
+  vertical-align: middle !important;
+}
 .table-items img {
   max-height: 30px;
   cursor: help;
-  margin: 2px;
+  margin: 0 2px;
 }
 .table-header {
   background: -webkit-linear-gradient(#00a6ff, #ffc2c2);
@@ -127,9 +147,6 @@ ol {
 }
 .table-geoloc__img {
   max-height: 30px;
-}
-.table-countries {
-  transform: translateX(3%);
 }
 
 .top1 {
