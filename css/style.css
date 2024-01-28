@@ -175,4 +175,16 @@ tbody {
 
 .scroll-block:hover::-webkit-scrollbar-thumb {
   background: #092350;
+}
+
+@media screen and (max-width: 768px) {
+  .header-partners {
+    display: none;
+  }
+  .header-tabs {
+    display: none;
+  }
+  .header-social {
+    display: none;
+  }
 }/*# sourceMappingURL=style.css.map */
