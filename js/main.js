@@ -48,7 +48,7 @@ let achievements = [
 let managers = [
     {
         name: "Feel Good",
-        country: countries[0],
+        country: countries[1],
         achievement: [achievements[0].top1_2223, achievements[0].top2_2122],
     },
     {
