@@ -1,6 +1,6 @@
-let leagues = ["Primary", "Second"];
+const leagues = ["Primary", "Second"];
 
-let countries = [
+const countries = [
     "../img/flags/rus.png",
     "../img/flags/bel.png",
     "../img/flags/kz.png",
@@ -10,7 +10,7 @@ let countries = [
     "../img/flags/pol.png",
 ];
 
-let achievements = [
+const achievements = [
     (Primary_league = {
         top1_2122: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[0]} league TOP1 s21/22"></img>`,
         top1_2223: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[0]} league TOP1 s22/23"></img>`,
@@ -205,8 +205,10 @@ let managers = [
     },
 ];
 
+const table_items = document.querySelector(".table-items");
+
 for (let key in managers) {
-    document.querySelector(".table-items").innerHTML += `
+    table_items.innerHTML += `
 <tr class="table-row">
 		<th class="table-row__countries" scope="row">
 		<img src="${managers[key].country}" alt="" /></th>
