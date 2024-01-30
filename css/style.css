@@ -7,19 +7,11 @@
 a {
   text-decoration: none;
   outline: none;
-  transition: 0.5 all;
+  transition: color 0.3s ease-in-out;
 }
 a:hover {
-  background: -webkit-linear-gradient(#ffd1d1, #00a6ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #00a6ff;
   cursor: pointer;
-}
-a:focus {
-  background: -webkit-linear-gradient(#ffd1d1, #00a6ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  outline: none;
 }
 
 html {

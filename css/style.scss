@@ -17,18 +17,11 @@
 a {
 	text-decoration: none;
 	outline: none;
-	transition: 0.5 all;
+	transition: color 0.3s ease-in-out;
 
 	&:hover {
-		background: -webkit-linear-gradient(#ffd1d1, #00a6ff);
-		@include text_transparent;
+		color: #00a6ff;
 		cursor: pointer;
-	}
-
-	&:focus {
-		background: -webkit-linear-gradient(#ffd1d1, #00a6ff);
-		@include text_transparent;
-		outline: none;
 	}
 }
 
