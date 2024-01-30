@@ -3,11 +3,6 @@
 	-webkit-text-fill-color: transparent;
 }
 
-@mixin gray_text {
-	background: -webkit-linear-gradient(#092350, #cfe1eb);
-	@include text_transparent;
-}
-
 *,
 *::before,
 *::after {
@@ -91,6 +86,7 @@ tbody {
 
 	&-header {
 		vertical-align: middle !important;
+		text-transform: uppercase;
 	}
 
 	&-col-right {
@@ -108,7 +104,14 @@ tbody {
 	&-row:nth-child(-n + 10) {
 		background: -webkit-linear-gradient(red, yellow);
 		@include text_transparent;
-		font-size: 18px;
+		animation: background 3s infinite;
+		text-transform: uppercase;
+		@keyframes background {
+			50% {
+				background: -webkit-linear-gradient(yellow, red);
+				@include text_transparent;
+			}
+		}
 	}
 
 	&-items {

@@ -83,6 +83,7 @@ tbody {
 }
 .table-header {
   vertical-align: middle !important;
+  text-transform: uppercase;
 }
 .table-col-right {
   font-size: 0;
@@ -97,7 +98,15 @@ tbody {
   background: -webkit-linear-gradient(red, yellow);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-size: 18px;
+  animation: background 3s infinite;
+  text-transform: uppercase;
+}
+@keyframes background {
+  50% {
+    background: -webkit-linear-gradient(yellow, red);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 .table-items {
   vertical-align: middle !important;
