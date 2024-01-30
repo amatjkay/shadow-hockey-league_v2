@@ -5,13 +5,23 @@
 }
 
 a {
+  position: relative;
+  display: inline-block;
+  color: #00a6ff;
+  overflow: hidden;
+  background: linear-gradient(to right, #00a6ff, #fff 50%, #00a6ff 50%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  background-position: 100%;
+  transition: background-position 275ms ease;
   text-decoration: none;
-  outline: none;
-  transition: color 0.3s ease-in-out;
+  margin: 0 2px;
 }
 a:hover {
-  color: #00a6ff;
-  cursor: pointer;
+  background-position: 0 100%;
+  font-weight: bold;
 }
 
 html {
@@ -108,30 +118,6 @@ tbody {
   transform: translate(7px, -1px);
 }
 
-.top1 {
-  background: -webkit-linear-gradient(#ae8419, #ffce6b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.top2 {
-  background: -webkit-linear-gradient(#bababa, #fff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.top3 {
-  background: -webkit-linear-gradient(#9c5221, #fcb48c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.best-regular {
-  background: -webkit-linear-gradient(rgb(137, 7, 224), rgb(221, 182, 248));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
 .clap {
   height: 25px !important;
 }
@@ -142,12 +128,11 @@ tbody {
   letter-spacing: 1px;
   margin-top: 155px;
 }
-.footer a {
-  text-decoration: none;
-  color: #fff;
-}
 
 .copyright {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   color: #fff;
   font-size: 14px;
   text-decoration: none;
@@ -166,6 +151,16 @@ tbody {
   background: #092350;
 }
 
+.container {
+  --bs-gutter-x: 0;
+}
+
+.footer {
+  margin-top: 100px;
+  margin-right: -3px;
+  letter-spacing: 0;
+}
+
 @media screen and (max-width: 768px) {
   .header-partners {
     display: none;
@@ -175,13 +170,5 @@ tbody {
   }
   .header-social {
     display: none;
-  }
-  .container {
-    --bs-gutter-x: 0;
-  }
-  .footer {
-    margin-top: 100px;
-    margin-right: -3px;
-    letter-spacing: 0;
   }
 }/*# sourceMappingURL=style.css.map */
