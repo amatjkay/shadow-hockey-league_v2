@@ -22,9 +22,9 @@ a {
 	transition: background-position 275ms ease;
 	text-decoration: none;
 	margin: 0 2px;
+
 	&:hover {
 		background-position: 0 100%;
-		font-weight: bold;
 	}
 }
 
@@ -106,6 +106,7 @@ tbody {
 		@include text_transparent;
 		animation: background 3s infinite;
 		text-transform: uppercase;
+
 		@keyframes background {
 			50% {
 				background: -webkit-linear-gradient(yellow, red);
