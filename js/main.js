@@ -4,10 +4,11 @@ const countries = [
     "../img/flags/rus.png",
     "../img/flags/bel.png",
     "../img/flags/kz.png",
-    "../img/flags/vietnam.svg",
+    "../img/flags/vietnam.png",
     "../img/flags/ua.png",
     "../img/flags/mexico.png",
     "../img/flags/pol.png",
+    "../img/flags/china.png",
 ];
 
 const achievements = [
@@ -201,7 +202,7 @@ let managers = [
     },
     {
         name: "Yoze Marino",
-        country: countries[0],
+        country: countries[7],
     },
 ];
 
