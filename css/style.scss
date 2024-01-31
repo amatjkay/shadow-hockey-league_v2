@@ -102,16 +102,28 @@ tbody {
 	}
 
 	&-row:nth-child(-n + 10) {
-		background: -webkit-linear-gradient(red, yellow);
-		@include text_transparent;
-		animation: background 3s infinite;
+		color: rgba(225, 225, 225, 0.01);
+		background-image: url("https://static.vecteezy.com/system/resources/previews/004/269/022/non_2x/gold-background-with-texture-vector.jpg");
+		background-repeat: repeat;
+		-webkit-background-clip: text;
+		animation: animate 60s ease-in infinite;
+		text-align: start;
 		text-transform: uppercase;
+	}
 
-		@keyframes background {
-			50% {
-				background: -webkit-linear-gradient(yellow, red);
-				@include text_transparent;
-			}
+	@keyframes animate {
+		0%,
+		100% {
+			background-position: left top;
+		}
+		25% {
+			background-position: right bottom;
+		}
+		50% {
+			background-position: left bottom;
+		}
+		75% {
+			background-position: right top;
 		}
 	}
 
