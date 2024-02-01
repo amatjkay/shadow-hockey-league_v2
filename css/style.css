@@ -67,7 +67,6 @@ tbody {
 }
 .header img {
   max-height: 50px;
-  margin: 10px;
 }
 @media screen and (max-width: 768px) {
   .header .header-partners {
