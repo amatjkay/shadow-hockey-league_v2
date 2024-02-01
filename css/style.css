@@ -69,6 +69,17 @@ tbody {
   max-height: 50px;
   margin: 10px;
 }
+@media screen and (max-width: 768px) {
+  .header .header-partners {
+    display: none;
+  }
+  .header .header-tabs {
+    display: none;
+  }
+  .header .header-social {
+    display: none;
+  }
+}
 
 .table {
   width: 70%;
@@ -101,6 +112,14 @@ tbody {
   animation: animate 60s ease-in infinite;
   text-align: start;
   text-transform: uppercase;
+}
+@media screen and (max-width: 768px) {
+  .table-row:nth-child(-n+10) {
+    color: rgba(225, 225, 225, 0.01);
+    background-color: orangered;
+    background-image: none;
+    text-transform: capitalize;
+  }
 }
 @keyframes animate {
   0%, 100% {
@@ -176,16 +195,4 @@ tbody {
   margin-top: 100px;
   margin-right: -3px;
   letter-spacing: 0;
-}
-
-@media screen and (max-width: 768px) {
-  .header-partners {
-    display: none;
-  }
-  .header-tabs {
-    display: none;
-  }
-  .header-social {
-    display: none;
-  }
 }/*# sourceMappingURL=style.css.map */

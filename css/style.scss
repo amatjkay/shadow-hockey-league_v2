@@ -72,6 +72,20 @@ tbody {
 		max-height: 50px;
 		margin: 10px;
 	}
+
+	@media screen and (max-width: 768px) {
+		.header {
+			&-partners {
+				display: none;
+			}
+			&-tabs {
+				display: none;
+			}
+			&-social {
+				display: none;
+			}
+		}
+	}
 }
 
 .table {
@@ -109,6 +123,12 @@ tbody {
 		animation: animate 60s ease-in infinite;
 		text-align: start;
 		text-transform: uppercase;
+		@media screen and (max-width: 768px) {
+			color: rgba(225, 225, 225, 0.01);
+			background-color: orangered;
+			background-image: none;
+			text-transform: capitalize;
+		}
 	}
 
 	@keyframes animate {
@@ -187,18 +207,4 @@ tbody {
 	margin-top: 100px;
 	margin-right: -3px;
 	letter-spacing: 0;
-}
-
-@media screen and (max-width: 768px) {
-	.header {
-		&-partners {
-			display: none;
-		}
-		&-tabs {
-			display: none;
-		}
-		&-social {
-			display: none;
-		}
-	}
 }
