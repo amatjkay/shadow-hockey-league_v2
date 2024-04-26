@@ -82,6 +82,21 @@ let managers = [
         achievement: [achievements[0].top3_2324],
     },
     {
+        name: "Max Bumble",
+        country: countries[0],
+        achievement: [achievements[1].top1_2324],
+    },
+    {
+        name: "Сергей Стрельченко",
+        country: countries[1],
+        achievement: [achievements[1].top2_2324],
+    },
+    {
+        name: "Yoze Marino",
+        country: countries[7],
+        achievement: [achievements[1].top3_2324],
+    },
+    {
         name: "Feel Good",
         country: countries[1],
         achievement: [
@@ -134,16 +149,6 @@ let managers = [
         achievement: [achievements[1].top3_2223],
     },
     {
-        name: "Евгений Медведев",
-        country: countries[0],
-        achievement: achievements[0].round3_2324,
-    },
-    {
-        name: "Vyacheslav Shamanov",
-        country: countries[0],
-        achievement: achievements[0].round1_2324,
-    },
-    {
         name: "Евгений Иванов",
         country: countries[0],
         achievement: [
@@ -165,6 +170,21 @@ let managers = [
         country: countries[4],
         achievement: [achievements[0].round1_2223, achievements[0].round3_2122],
     },
+    {
+        name: "Евгений Медведев",
+        country: countries[0],
+        achievement: achievements[0].round3_2324,
+    },
+    {
+        name: "Aleks Lang",
+        country: countries[0],
+        achievement: [achievements[1].round3_2324],
+    },
+    {
+        name: "Vyacheslav Shamanov",
+        country: countries[0],
+        achievement: achievements[0].round1_2324,
+    },
 
     {
         name: "Sergey Kharlanov",
@@ -177,10 +197,25 @@ let managers = [
         achievement: [achievements[0].round1_2122],
     },
     {
+        name: "Don Georgio",
+        country: countries[0],
+        achievement: [achievements[1].round1_2324],
+    },
+    {
+        name: "Юрий Shestakov",
+        country: countries[0],
+        achievement: [achievements[1].round1_2324],
+    },
+    {
         name: "Vlad V",
         country: countries[0],
+        achievement: [achievements[1].round1_2324],
     },
-
+    {
+        name: "Tandem: Sergey Dorokhov, Maxim Shvetsov",
+        country: countries[0],
+        achievement: [achievements[1].round1_2324],
+    },
     {
         name: "Павел Роевнев",
         country: countries[0],
@@ -192,10 +227,6 @@ let managers = [
     {
         name: "Oleg Karandashov",
         country: countries[4],
-    },
-    {
-        name: "Don Georgio",
-        country: countries[0],
     },
     {
         name: "Andrii Korniichuk",
@@ -223,28 +254,12 @@ let managers = [
         country: countries[0],
     },
     {
-        name: "Сергей Стрельченко",
-        country: countries[1],
-    },
-    {
         name: "Zhanabil Au",
         country: countries[2],
     },
     {
-        name: "Юрий Shestakov",
-        country: countries[0],
-    },
-    {
         name: "xMoneyMaker 1",
         country: countries[0],
-    },
-    {
-        name: "Max Bumble",
-        country: countries[0],
-    },
-    {
-        name: "Yoze Marino",
-        country: countries[7],
     },
 ];
 
