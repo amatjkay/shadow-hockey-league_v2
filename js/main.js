@@ -9,6 +9,7 @@ const countries = [
     "../img/flags/mexico.png",
     "../img/flags/pol.png",
     "../img/flags/china.png",
+    "../img/flags/shit.png",
 ];
 
 const achievements = [
@@ -34,6 +35,7 @@ const achievements = [
         round3_2122: `<img src="../img/cups/clap-b.svg" title="Shadow ${leagues[0]} league Round 3 s21/22"></img>`,
         round3_2223: `<img src="../img/cups/clap-b.svg" title="Shadow ${leagues[0]} league Round 3 s22/23"></img>`,
         round3_2324: `<img src="../img/cups/clap-b.svg" title="Shadow ${leagues[0]} league Round 3 s23/24"></img>`,
+        toxic: `<img src="../img/cups/toxic.png" title="toxic and unpleasant person"></img>`,
     }),
     (Second_league = {
         top1_2122: `<img src="../img/cups/top1.svg" title="Shadow ${leagues[1]} league TOP1 s21/22"></img>`,
@@ -159,8 +161,9 @@ let managers = [
     },
     {
         name: "Vladislav Belov",
-        country: countries[3],
+        country: countries[8],
         achievement: [
+            achievements[0].toxic,
             achievements[1].bestRegPlayer_2122,
             achievements[1].round1_2122,
         ],
