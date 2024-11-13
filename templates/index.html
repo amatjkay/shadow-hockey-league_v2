@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon/favicon.ico') }}">
+    <title>Shadow Hockey League</title>
+</head>
+
+<body class="scroll-block">
+    <header class="header navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="header-items">
+                    <li><a title="Домашняя страница" href="#">
+                            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="logo" class="hockey-league-logo" />
+                        </a></li>
+                    <li><a target="_blank" href="https://www.nhl.com/">
+                            <img src="{{ url_for('static', filename='img/logo_nhl.png') }}" alt="logo nhl" class="logo-nhl" />
+                        </a></li>
+                    <li><a target="_blank" href="https://www.espn.com/fantasy/hockey/">
+                            <img class="logo-espn" alt="ESPN logos"
+                                src="https://upload.wikimedia.org/wikipedia/commons/6/60/ESPN_logos.png" />
+                        </a></li>
+                    <li><a href="https://t.me/+JSL3YgGXHRBjNzIy" target="_blank">
+                            <img class="telegram" src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="telegram" /></a></li>
+                    <li><a download href="{{ url_for('static', filename='files/ESPN_v1.3.docx') }}">Download rules</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <section class="main scroll-block">
+        <div class="container">
+            <h1 class="table-title">Leaderboard</h1>
+            <table class="table">
+                <thead class="table-header">
+                    <tr class="table-row__header">
+                        <th scope="col">
+                            <img class="table-geoloc__img" src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="">
+                        </th>
+                        <th scope="col">Managers</th>
+                        <th scope="col">Achievements</th>
+                    </tr>
+                </thead>
+                <tbody class="table-items">
+                    {% for manager in managers %}
+                    <tr class="table-row">
+                        <th class="table-row__countries" scope="row">
+                            <img src="{{ url_for('static', filename=manager.country) }}" alt="">
+                        </th>
+                        <td>{{manager.name}}</td>
+                        <td class="table-col-right">
+                            {% for achievement in manager.achievement %}
+                                {{achievement|safe}}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <!-- Ваш код для footer -->
+        <div class="copyright">© Hockey Shadow League - Создано в 2021 году
+            <a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
+            <a target="_blank" href="https://t.me/whiplash92">@Константином</a>
+        </div>
+    </footer>
+
+    <!-- Подключение Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>
