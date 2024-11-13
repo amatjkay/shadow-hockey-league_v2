@@ -3,19 +3,19 @@ from flask import url_for
 leagues = ["1", "2"]
 
 countries = [
-    "img/flags/rus.png",
-    "img/flags/bel.png",
-    "img/flags/kz.png",
-    "img/flags/vietnam.png",
-    "img/flags/ua.png",
-    "img/flags/mexico.png",
-    "img/flags/pol.png",
-    "img/flags/china.png",
-    "img/flags/shit.png",
+    "static/img/flags/rus.png",
+    "static/img/flags/bel.png",
+    "static/img/flags/kz.png",
+    "static/img/flags/vietnam.png",
+    "static/img/flags/ua.png",
+    "static/img/flags/mexico.png",
+    "static/img/flags/pol.png",
+    "static/img/flags/china.png",
+    "static/img/flags/shit.png",
 ]
 
 def create_achievement(league, cup, season, title):
-    return f'<img src="{{{{ url_for("static", filename="img/cups/{cup}.svg") }}}}" title="Shadow {league} league {title} {season}">'
+    return f'<img src="/static/img/cups/{cup}.svg" title="Shadow {league} league {title} {season}">'
 
 achievements = {
     "Primary_league": {
@@ -40,7 +40,7 @@ achievements = {
         "round3_2122": create_achievement(leagues[0], "clap-b", "s21/22", "Round 3"),
         "round3_2223": create_achievement(leagues[0], "clap-b", "s22/23", "Round 3"),
         "round3_2324": create_achievement(leagues[0], "clap-b", "s23/24", "Round 3"),
-        "toxic": '<img src="{{url_for("static", filename="img/cups/toxic.png")}}" title="toxic and unpleasant person">',
+        "toxic": '<img src="/static/img/cups/toxic.png" title="toxic and unpleasant person">',
     },
     "Second_league": {
         "top1_2122": create_achievement(leagues[1], "top1", "s21/22", "TOP1"),

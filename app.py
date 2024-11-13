@@ -5,7 +5,11 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html', managers=managers, countries=countries)
+    try:
+        return render_template('index.html', managers=managers, countries=countries)
+    except Exception as e:
+        app.logger.error(f"Ошибка при рендеринге главной страницы: {str(e)}")
+        return render_template('error.html'), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
