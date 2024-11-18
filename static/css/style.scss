@@ -61,6 +61,7 @@ tbody {
 .header {
 	margin-bottom: 50px;
 	display: flex;
+	justify-content: left;
 	background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
 	&-items {
 		display: flex;
@@ -70,6 +71,7 @@ tbody {
 	}
 	& img {
 		max-height: 50px;
+		margin: 0 5px;
 	}
 
 	@media screen and (max-width: 768px) {
@@ -89,17 +91,40 @@ tbody {
 
 .table {
 	width: 70%;
-	margin-left: auto;
-	margin-right: auto;
+	margin: 0 auto;
+	text-align: center;
 	font-weight: bold;
 	border: 3px solid skyblue;
+	border-collapse: collapse;
 	--bs-table-bg: none;
 	--bs-table-color: none;
 	background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.1294117647));
 
+	td,
+	th {
+		padding: 10px;
+		border: 1px solid skyblue;
+		text-align: left;
+		vertical-align: middle;
+	}
+
 	&-header {
-		vertical-align: middle !important;
 		text-transform: uppercase;
+		width: auto;
+		text-align: left;
+		vertical-align: middle;
+
+		&:first-child {
+			width: 10%;
+		}
+
+		&:nth-child(2) {
+			width: 40%;
+		}
+
+		&:last-child {
+			width: 50%;
+		}
 	}
 
 	&-col-right {
@@ -107,10 +132,10 @@ tbody {
 	}
 
 	&-row {
-		text-align: start;
+		text-align: center;
 
 		&__countries {
-			transform: translate(5px, -1px);
+			vertical-align: middle;
 		}
 	}
 
@@ -145,23 +170,19 @@ tbody {
 	}
 
 	&-items {
-		vertical-align: middle !important;
-		& img {
+		white-space: nowrap;
+		text-align: center;
+
+		img {
 			max-height: 30px;
 			cursor: help;
-			margin: 0 2px;
+			vertical-align: middle;
 		}
-	}
-
-	&-header {
-		background: -webkit-linear-gradient(#00a6ff, #ffc2c2);
-		@include text_transparent;
-		font-size: 18px;
 	}
 
 	&-geoloc__img {
 		max-height: 30px;
-		transform: translate(7px, -1px);
+		vertical-align: middle;
 	}
 }
 
@@ -171,7 +192,7 @@ tbody {
 
 .footer {
 	background: #092350;
-	text-align: center;
+	text-align: left;
 	letter-spacing: 1px;
 	margin-top: 155px;
 }
@@ -198,6 +219,8 @@ tbody {
 
 .container {
 	--bs-gutter-x: 0;
+	margin: 0 auto;
+	text-align: center;
 }
 
 .footer {

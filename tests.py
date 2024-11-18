@@ -1,6 +1,6 @@
 import unittest
 from app import app
-from data.managers_data import managers, countries
+from data.managers_data import Manager, managers, countries
 
 class TestApp(unittest.TestCase):
     def setUp(self):
