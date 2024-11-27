@@ -12,7 +12,7 @@ def verify_static_files():
             missing_files.append(f'cups/{cup}.{ext}')
     
     # Проверка флагов
-    for flag in ['rus', 'bel', 'kz', 'vietnam', 'ua', 'mexico', 'pol', 'china', 'shit']:
+    for flag in ['rus', 'bel', 'kz', 'vietnam', 'ua', 'mexico', 'pol', 'china']:
         if not (static_dir / 'img' / 'flags' / f'{flag}.png').exists():
             missing_files.append(f'flags/{flag}.png')
     

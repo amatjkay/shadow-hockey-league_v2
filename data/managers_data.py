@@ -68,7 +68,7 @@ managers = [
         '<img src="/static/img/cups/clap.svg" title="Shadow 1 league Round 1 s22/23">',
         '<img src="/static/img/cups/clap.svg" title="Shadow 1 league Round 1 s21/22">'
     ]),
-    Manager("Vladislav Belov", "/static/img/flags/shit.png", [
+    Manager("Vladislav Belov", "/static/img/flags/vietnam.png", [
         '<img src="/static/img/cups/best-reg.svg" title="Shadow 2 league Best regular player s21/22">',
         '<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s21/22">',
         '<img src="/static/img/cups/toxic.png" title="toxic and unpleasant person">'

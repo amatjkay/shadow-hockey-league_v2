@@ -1,7 +1,6 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+*, *::before, *::after {
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
 }
 
 a {
@@ -9,16 +8,19 @@ a {
   display: inline-block;
   color: #00a6ff;
   overflow: hidden;
+  background: -webkit-gradient(linear, left top, right top, from(#00a6ff), color-stop(50%, #fff), color-stop(50%, #00a6ff));
   background: linear-gradient(to right, #00a6ff, #fff 50%, #00a6ff 50%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-size: 200% 100%;
   background-position: 100%;
+  -webkit-transition: background-position 275ms ease;
   transition: background-position 275ms ease;
   text-decoration: none;
   margin: 0 2px;
 }
+
 a:hover {
   background-position: 0 100%;
 }
@@ -33,9 +35,17 @@ body {
   background-repeat: no-repeat;
   background-size: cover;
   font-family: "Ubuntu", sans-serif;
-  user-select: none;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
   color: #fff;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {
@@ -45,44 +55,17 @@ h1 {
   text-align: center;
   font-size: 60px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin: 30px 0;
 }
 
-ul,
-ol {
-  padding-inline-start: 0;
+ul, ol {
+  -webkit-padding-start: 0;
+          padding-inline-start: 0;
   list-style-type: none;
 }
 
 tbody {
   vertical-align: middle;
-}
-
-.header {
-  margin-bottom: 50px;
-  display: flex;
-  justify-content: left;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
-}
-.header-items {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.header img {
-  max-height: 50px;
-  margin: 0 5px;
-}
-@media screen and (max-width: 768px) {
-  .header .header-partners {
-    display: none;
-  }
-  .header .header-tabs {
-    display: none;
-  }
-  .header .header-social {
-    display: none;
-  }
 }
 
 .table {
@@ -94,396 +77,103 @@ tbody {
   border-collapse: collapse;
   --bs-table-bg: none;
   --bs-table-color: none;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.1294117647));
+  background: -webkit-gradient(linear, left top, right top, from(rgba(255, 255, 255, 0.5)), to(rgba(99, 100, 100, 0.13)));
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.13));
 }
-.table td,
-.table th {
+
+.table td, .table th {
   padding: 10px;
   border: 1px solid skyblue;
   text-align: left;
   vertical-align: middle;
 }
+
 .table-header {
   text-transform: uppercase;
   width: auto;
   text-align: left;
   vertical-align: middle;
 }
+
 .table-header:first-child {
   width: 10%;
 }
+
 .table-header:nth-child(2) {
   width: 40%;
 }
+
 .table-header:last-child {
   width: 50%;
 }
-.table-col-right {
-  font-size: 0;
-}
+
 .table-row {
   text-align: center;
 }
+
 .table-row__countries {
   vertical-align: middle;
 }
+
 .table-row:nth-child(-n+10) .table-items:nth-child(2) {
   background: -webkit-linear-gradient(red, yellow);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: background 3s infinite;
+  -webkit-animation: background 3s infinite;
+          animation: background 3s infinite;
   text-transform: uppercase;
   text-shadow: none;
 }
-@keyframes background {
-  50% {
-    background: -webkit-linear-gradient(yellow, red);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-}
-@keyframes animate {
-  0%, 100% {
-    background-position: left top;
-  }
-  25% {
-    background-position: right bottom;
-  }
-  50% {
-    background-position: left bottom;
-  }
-  75% {
-    background-position: right top;
-  }
-}
+
 .table-items {
   white-space: nowrap;
   text-align: center;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
+
 .table-items img {
-  max-height: 30px;
+  width: 30px;
+  height: 30px;
   cursor: help;
   vertical-align: middle;
-}
-.table-geoloc__img {
-  max-height: 30px;
-  vertical-align: middle;
+  object-fit: contain;
 }
 
-.clap {
-  height: 25px !important;
-}
-
-.footer {
-  background: #092350;
-  text-align: left;
-  letter-spacing: 1px;
-  margin-top: 155px;
-}
-
-.copyright {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #fff;
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.scroll-block::-webkit-scrollbar {
-  background-color: skyblue;
-  width: 5px;
-}
-
-.scroll-block::-webkit-scrollbar-thumb {
-  background: #092350;
-}
-
-.scroll-block:hover::-webkit-scrollbar-thumb {
-  background: #092350;
-}
-
-.container {
-  --bs-gutter-x: 0;
-  margin: 0 auto;
-  text-align: center;
-}
-
-.footer {
-  margin-top: 100px;
-  margin-right: -3px;
-  letter-spacing: 0;
+.mobile-menu {
+  display: none;
 }
 
 @media screen and (max-width: 600px) {
-  /* Улучшенный фон для мобильных устройств */
-  body {
-    background: linear-gradient(to bottom, 
-      rgba(9, 35, 80, 0.95), 
-      rgba(0, 0, 0, 0.98)
-    );
-  }
-
-  /* Стилизация карточек */
-  .table tr {
-    background: linear-gradient(145deg, 
-      rgba(255, 255, 255, 0.05), 
-      rgba(9, 35, 80, 0.5)
-    );
-    border: 1px solid rgba(135, 206, 235, 0.1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
-    margin-bottom: 15px;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: transform 0.3s ease;
-  }
-
-  .table tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Обновленный футер */
-  .footer {
-    background: linear-gradient(to bottom,
-      rgba(9, 35, 80, 0.8),
-      rgba(9, 35, 80, 0.95)
-    );
-    margin-top: 40px;
-    padding: 20px 15px;
-    border-top: 1px solid rgba(135, 206, 235, 0.2);
-    backdrop-filter: blur(8px);
-  }
-
-  .copyright {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.9);
-    text-align: center;
-    line-height: 1.5;
-  }
-
-  .copyright a {
-    color: #00a6ff;
-    text-decoration: none;
-    padding: 5px 10px;
-    border-radius: 15px;
-    background: rgba(0, 166, 255, 0.1);
-    transition: all 0.3s ease;
-  }
-
-  .copyright a:hover {
-    background: rgba(0, 166, 255, 0.2);
-    transform: translateY(-2px);
-  }
-
-  /* Добавляем разделитель перед футером */
-  .footer::before {
-    content: '';
+  .mobile-menu {
     display: block;
-    width: 80%;
-    height: 2px;
-    margin: 0 auto 20px;
-    background: linear-gradient(to right,
-      transparent,
-      rgba(0, 166, 255, 0.3),
-      transparent
-    );
   }
-
-  /* Улучшаем отображение контейнера */
-  .container {
-    padding: 15px;
-    min-height: calc(100vh - 100px); /* Учитываем высоту футера */
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* Добавляем плавный переход между секциями */
-  .table {
-    flex: 1;
-    margin-bottom: 30px;
-  }
-
-  /* Улучшаем заголовок */
-  h1 {
-    margin: 25px 0 35px;
-    font-size: 32px;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 10px rgba(0, 166, 255, 0.3);
-  }
-
-  .header-items {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .header-items img {
-    max-height: 30px;
-  }
-
-  h1 {
-    font-size: 28px;
-    margin: 20px 0;
-  }
-
-  .table {
-    width: 100%;
-    margin: 0;
-    border: none;
-    background: none;
-  }
-
-  .table thead {
-    display: none;
-  }
-
-  .table tr {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 10px;
-  }
-
-  .table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px;
-    text-align: left;
-    border: none;
-    border-bottom: 1px solid rgba(135, 206, 235, 0.2);
-  }
-
-  .table td:last-child {
-    border-bottom: none;
-  }
-
-  .table td::before {
-    content: attr(data-label);
-    font-weight: bold;
-    margin-right: 10px;
-  }
-
-  .table-items {
-    white-space: normal;
-  }
-
-  .table-items img {
-    max-height: 20px;
-  }
-
-  .table-row:nth-child(-n+10) {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .footer {
-    margin-top: 30px;
-    padding: 15px;
-  }
-
-  .copyright {
-    flex-direction: column;
-    gap: 5px;
-    font-size: 12px;
-    text-align: center;
-  }
-
-  /* Улучшаем отображение достижений */
-  td[data-label="Achievements"] {
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-
-  td[data-label="Achievements"] img {
-    margin: 2px;
-  }
-
-  /* Добавляем отступы между строками */
-  .table-row {
-    margin-bottom: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Улучшаем читаемость текста */
-  .table-items {
-    color: #fff;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Скрываем текстовый лейбл и показываем иконку для Country */
-  td[data-label="Country"]::before {
-    content: '';
-    width: 20px;
-    height: 20px;
-    background: url('../img/geoloc.svg') no-repeat center;
-    background-size: contain;
-    margin-right: 10px;
-  }
-
-  /* Стиль для лейбла Manager */
-  td[data-label="Manager"]::before {
-    content: 'GM';
-    font-weight: bold;
-    margin-right: 10px;
-    color: #fff;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Анимация только для имени менеджера, не для GM */
-  .table-row:nth-child(-n+10) td[data-label="Manager"] span {
-    background: -webkit-linear-gradient(red, yellow);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: background 3s infinite;
-    text-transform: uppercase;
-    text-shadow: none;
-  }
-
-  /* Обычный стиль для GM и других элементов */
-  .table-row:nth-child(-n+10) td[data-label="Manager"]::before {
-    color: #fff;
-    -webkit-text-fill-color: initial;
-    animation: none;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Убираем старый футер на мобильных устройствах */
-  .footer {
-    display: none;
-  }
-
-  /* Обновляем стили мобильного меню */
   .mobile-menu-content {
-    display: block;
+    background: -webkit-gradient(linear, left top, left bottom, from(rgba(135, 206, 235, 0.15)), to(rgba(176, 224, 230, 0.12)));
+    background: linear-gradient(180deg, rgba(135, 206, 235, 0.15), rgba(176, 224, 230, 0.12));
+    border-right: 2px solid rgba(135, 206, 235, 0.5);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    -webkit-box-shadow: 5px 0 15px rgba(0, 166, 255, 0.2);
+            box-shadow: 5px 0 15px rgba(0, 166, 255, 0.2);
     position: fixed;
     top: 0;
     left: -100%;
     width: 280px;
     height: 100vh;
-    background: linear-gradient(180deg, 
-      rgba(0, 20, 40, 0.98),
-      rgba(0, 0, 0, 0.98)
-    );
-    border-right: 2px solid #00a6ff;
-    padding: 60px 25px 30px;
-    transition: all 0.3s ease-in-out;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+    -webkit-transition: all 0.3s ease;
+    transition: all 0.3s ease;
     z-index: 1000;
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
   }
-
   .mobile-menu-content.active {
     left: 0;
   }
-
-  /* Бургер-кнопка */
   .mobile-menu-button {
     position: fixed;
     top: 20px;
@@ -496,84 +186,107 @@ tbody {
     font-size: 24px;
     padding: 8px 12px;
     cursor: pointer;
-    box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+    -webkit-box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+    -webkit-transition: all 0.3s ease;
     transition: all 0.3s ease;
     opacity: 1;
     visibility: visible;
   }
-
-  /* Важно: меняем селектор для скрытия кнопки */
-  .mobile-menu-content.active + .mobile-menu-button,
-  .mobile-menu-content.active ~ .mobile-menu-button {
+  .mobile-menu-button.hidden {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
   }
-
-  .mobile-menu-content {
-    position: fixed;
-    top: 0;
-    left: -100%;
-    width: 280px;
-    height: 100vh;
+  .close-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    background: rgba(135, 206, 235, 0.15);
+    border: 2px solid rgba(135, 206, 235, 0.6);
+    border-radius: 50%;
+    color: #00a6ff;
+    font-size: 28px;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
-    background: linear-gradient(180deg, 
-      rgba(0, 20, 40, 0.98),
-      rgba(0, 0, 0, 0.98)
-    );
-    border-right: 2px solid #00a6ff;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
+    cursor: pointer;
+    -webkit-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    z-index: 1000;
+    -webkit-box-shadow: 0 0 15px rgba(0, 166, 255, 0.3), inset 0 0 15px rgba(135, 206, 235, 0.2);
+            box-shadow: 0 0 15px rgba(0, 166, 255, 0.3), inset 0 0 15px rgba(135, 206, 235, 0.2);
+    text-shadow: 0 0 8px #00a6ff;
   }
-
-  .mobile-menu-content.active {
-    left: 0;
+  .close-button:hover {
+    -webkit-transform: rotate(90deg);
+            transform: rotate(90deg);
+    -webkit-box-shadow: 0 0 25px rgba(0, 166, 255, 0.4), inset 0 0 20px rgba(135, 206, 235, 0.3);
+            box-shadow: 0 0 25px rgba(0, 166, 255, 0.4), inset 0 0 20px rgba(135, 206, 235, 0.3);
+    background: rgba(135, 206, 235, 0.25);
   }
-
-  /* Логотипы */
   .mobile-menu-logos {
-    flex: 1;
+    -webkit-box-flex: 1;
+        -ms-flex: 1;
+            flex: 1;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
     gap: 50px;
     padding: 60px 0;
   }
-
   .mobile-menu-logos img {
     height: 35px;
+    -webkit-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    filter: drop-shadow(0 0 10px rgba(0, 166, 255, 0.3));
+    -webkit-filter: drop-shadow(0 0 10px rgba(0, 166, 255, 0.3));
+            filter: drop-shadow(0 0 10px rgba(0, 166, 255, 0.3));
   }
-
   .mobile-menu-logos img:hover {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 15px rgba(0, 166, 255, 0.5));
+    -webkit-transform: scale(1.1);
+            transform: scale(1.1);
+    -webkit-filter: drop-shadow(0 0 15px rgba(0, 166, 255, 0.5));
+            filter: drop-shadow(0 0 15px rgba(0, 166, 255, 0.5));
   }
-
-  /* Футер в меню */
   .mobile-menu-footer {
     padding: 30px 20px;
     text-align: center;
     background: rgba(0, 20, 40, 0.5);
     border-top: 2px solid rgba(0, 166, 255, 0.2);
   }
-
   .mobile-menu-footer .copyright {
     color: rgba(255, 255, 255, 0.9);
     font-size: 14px;
     line-height: 1.6;
     margin-bottom: 15px;
   }
-
   .mobile-menu-creators {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
     gap: 10px;
   }
-
   .mobile-menu-creators a {
     display: inline-block;
     color: #00a6ff;
@@ -582,291 +295,236 @@ tbody {
     background: rgba(0, 166, 255, 0.1);
     border: 1px solid rgba(0, 166, 255, 0.3);
     border-radius: 4px;
+    -webkit-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    box-shadow: 0 0 10px rgba(0, 166, 255, 0.2);
+    -webkit-box-shadow: 0 0 10px rgba(0, 166, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 166, 255, 0.2);
   }
-
   .mobile-menu-creators a:hover {
     background: rgba(0, 166, 255, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+    -webkit-transform: translateY(-2px);
+            transform: translateY(-2px);
+    -webkit-box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
   }
+}
 
-  /* Кнопка закрытия */
-  .close-button {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 20, 40, 0.8);
-    border: 2px solid #00a6ff;
-    border-radius: 50%;
-    color: #00a6ff;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 10px rgba(0, 166, 255, 0.3),
-                inset 0 0 10px rgba(0, 166, 255, 0.2);
-    text-shadow: 0 0 5px #00a6ff;
+@-webkit-keyframes background {
+  50% {
+    background: -webkit-linear-gradient(yellow, red);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
+}
 
-  .close-button:hover {
-    transform: rotate(90deg);
-    box-shadow: 0 0 20px rgba(0, 166, 255, 0.5),
-                inset 0 0 15px rgba(0, 166, 255, 0.3);
+@keyframes background {
+  50% {
+    background: -webkit-linear-gradient(yellow, red);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
+}
 
-  /* Оверлей */
-  .overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(3px);
+@-webkit-keyframes fadeIn {
+  from {
     opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 999;
+    -webkit-transform: translateY(10px);
+            transform: translateY(10px);
   }
-
-  .overlay.active {
-    display: block;
+  to {
     opacity: 1;
+    -webkit-transform: translateY(0);
+            transform: translateY(0);
   }
 }
 
-/* Добавляем стили для средних экранов */
-@media screen and (min-width: 601px) and (max-width: 1024px) {
-  .table {
-    width: 90%;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    -webkit-transform: translateY(10px);
+            transform: translateY(10px);
   }
-
-  .header-items {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 15px;
+  to {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+            transform: translateY(0);
   }
 }
 
-/* Стили для мобильного меню */
-.mobile-menu {
-  display: none;
+/* Стили для шапки в десктопной версии */
+.header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 30px;
+  background: linear-gradient(180deg, rgba(0, 20, 40, 0.8), transparent);
+  border-bottom: 1px solid rgba(135, 206, 235, 0.2);
+  backdrop-filter: blur(5px);
 }
 
+.header-items {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.header img {
+  max-height: 40px;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 0 10px rgba(0, 166, 255, 0.2));
+}
+
+.header img:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 15px rgba(0, 166, 255, 0.4));
+}
+
+/* Стили для футера */
+.footer {
+  position: relative;
+  padding: 5px 0;
+  background: linear-gradient(0deg, 
+    rgba(0, 20, 40, 0.95) 0%,
+    rgba(9, 35, 80, 0.85) 100%
+  );
+  backdrop-filter: blur(8px);
+  border-top: 2px solid rgba(0, 166, 255, 0.2);
+  text-align: center;
+  margin: 40px 0 0 0;
+  box-shadow: 0 -5px 15px rgba(0, 166, 255, 0.1);
+  width: 100%;
+}
+
+.footer .copyright {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+}
+
+.footer a {
+  color: #00a6ff;
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  background: rgba(0, 166, 255, 0.1);
+  border: 1px solid rgba(0, 166, 255, 0.2);
+  display: inline-block;
+  font-weight: 500;
+  -webkit-text-fill-color: #00a6ff;
+  background-clip: unset;
+  -webkit-background-clip: unset;
+  background-image: none;
+}
+
+.footer a:hover {
+  background: rgba(0, 166, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 166, 255, 0.2);
+  border-color: rgba(0, 166, 255, 0.3);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+/* Медиа-запрос для мобильных устройств */
 @media screen and (max-width: 600px) {
-  .header-items {
+  h1 {
+    font-size: 36px;
+    margin: 20px 0;
+    padding: 0 15px;
+  }
+
+  .header {
     display: none;
   }
 
-  .mobile-menu {
-    display: block;
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
+  .container {
+    padding-top: 60px; /* Добавляем отступ сверху для мобильной версии */
   }
 
-  /* Обновленный стиль бургер-меню */
   .mobile-menu-button {
-    background: rgba(0, 0, 0, 0.7);
-    border: 2px solid #00a6ff;
-    border-radius: 8px;
-    color: #00a6ff;
-    font-size: 24px;
-    padding: 8px 12px;
-    box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
-    backdrop-filter: blur(5px);
-    transition: all 0.3s ease;
+    position: fixed;
+    top: 15px; /* Уменьшаем отступ сверху */
+    left: 15px;
   }
 
-  .mobile-menu-button:hover {
-    background: rgba(0, 0, 0, 0.8);
-    box-shadow: 0 0 20px rgba(0, 166, 255, 0.5);
+  .table {
+    width: 95%; /* Увеличиваем ширину таблицы на мобильных */
+    margin: 0 auto;
   }
 
-  /* Стилизация бокового меню */
-  .mobile-menu-content {
-    background: linear-gradient(to bottom, 
-      rgba(0, 0, 0, 0.95),
-      rgba(0, 20, 40, 0.98)
-    );
-    border-right: 2px solid #00a6ff;
-    padding: 50px 25px;
+  .footer {
+    display: none;
   }
 
-  /* Стилизация логотипов */
-  .mobile-menu-logos {
-    position: relative;
-    padding: 20px 0;
-  }
-
-  .mobile-menu-logos::after {
-    content: '';
+  .mobile-menu-footer {
+    display: block;
     position: absolute;
     bottom: 0;
-    left: 10%;
-    width: 80%;
-    height: 1px;
-    background: linear-gradient(to right,
-      transparent,
-      #00a6ff,
-      transparent
+    left: 0;
+    right: 0;
+    padding: 10px 0;
+    background: linear-gradient(0deg, 
+      rgba(0, 20, 40, 0.95) 0%,
+      rgba(9, 35, 80, 0.85) 100%
     );
+    backdrop-filter: blur(8px);
+    border-top: 2px solid rgba(0, 166, 255, 0.2);
+    text-align: center;
+    box-shadow: 0 -5px 15px rgba(0, 166, 255, 0.1);
   }
+}
 
-  .mobile-menu-logos img {
-    max-height: 35px;
+/* Медиа-запрос для очень маленьких экранов */
+@media screen and (max-width: 360px) {
+  h1 {
+    font-size: 32px;
     margin: 15px 0;
-    opacity: 0.8;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 0 8px rgba(0, 166, 255, 0.3));
   }
 
-  .mobile-menu-logos img:hover {
-    opacity: 1;
-    transform: scale(1.05);
-    filter: drop-shadow(0 0 12px rgba(0, 166, 255, 0.5));
+  .container {
+    padding-top: 50px;
   }
-
-  /* Стилизация футера в меню */
-  .mobile-menu-footer {
-    margin-top: auto;
-    padding-top: 30px;
-    position: relative;
-  }
-
-  .mobile-menu-footer::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 10%;
-    width: 80%;
-    height: 1px;
-    background: linear-gradient(to right,
-      transparent,
-      #00a6ff,
-      transparent
-    );
-  }
-
-  .mobile-menu-footer .copyright {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.8;
-  }
-
-  .mobile-menu-footer a {
-    color: #00a6ff;
-    text-decoration: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-    background: rgba(0, 166, 255, 0.1);
-  }
-
-  .mobile-menu-footer a:hover {
-    background: rgba(0, 166, 255, 0.2);
-    color: #fff;
-  }
-
-  /* Стилизация кнопки закрытия */
-  .close-button {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 30px;
-    height: 30px;
-    background: none;
-    border: none;
-    color: #00a6ff;
-    font-size: 24px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  .close-button:hover {
-    transform: rotate(90deg);
-    color: #fff;
-  }
-
-  /* Стилизация оверлея */
-  .overlay {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(3px);
-  }
-
-  /* Анимация появления меню */
-  .mobile-menu-content.active {
-    animation: slideIn 0.3s ease forwards;
-  }
-
-  @keyframes slideIn {
-    from {
-      left: -100%;
-      opacity: 0;
-    }
-    to {
-      left: 0;
-      opacity: 1;
-    }
-  }
-
-  /* Анимация для логотипов */
-  .mobile-menu-content.active .mobile-menu-logos img {
-    animation: fadeIn 0.5s ease forwards;
-    opacity: 0;
-  }
-
-  @keyframes fadeIn {
-    to {
-      opacity: 0.8;
-    }
-  }
-
-  .mobile-menu-content.active .mobile-menu-logos img:nth-child(1) { animation-delay: 0.1s; }
-  .mobile-menu-content.active .mobile-menu-logos img:nth-child(2) { animation-delay: 0.2s; }
-  .mobile-menu-content.active .mobile-menu-logos img:nth-child(3) { animation-delay: 0.3s; }
-  .mobile-menu-content.active .mobile-menu-logos img:nth-child(4) { animation-delay: 0.4s; }
-  .mobile-menu-content.active .mobile-menu-logos img:nth-child(5) { animation-delay: 0.5s; }
 }
 
-/* Добавляем затемнение фона при открытом меню */
-.overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
+/* Обновляем стили контейнера */
+.container {
+  min-height: calc(100vh - 42px);
+  padding-bottom: 0;
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 999;
+  margin: 0;
 }
 
-.overlay.active {
-  display: block;
-  opacity: 1;
+/* Стили для иконок в таблице */
+.table-row__countries {
+  width: 30px;
+  height: 30px;
+  vertical-align: middle;
+  object-fit: contain;
 }
 
-/* Добавляем стили для крестика закрытия */
-.close-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+.table-header img {
+  width: 30px;
+  height: 30px;
+  vertical-align: middle;
+  object-fit: contain;
 }
 
+.table-geoloc__img {
+  width: 30px !important;
+  height: 30px !important;
+  vertical-align: middle;
+  object-fit: contain;
+}
 /*# sourceMappingURL=style.css.map */

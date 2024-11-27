@@ -3,14 +3,27 @@
 
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 	<title>Shadow Hockey League</title>
 	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
 	<div class="container">
+		<!-- Шапка для десктопной версии -->
+		<div class="header">
+			<div class="header-items">
+				<a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
+					<img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="telegram">
+				</a>
+				<img src="{{ url_for('static', filename='img/logo.png') }}" alt="logo" class="img-fluid">
+				<img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="espn">
+			</div>
+		</div>
+		
+		<!-- Мобильное меню -->
 		<div class="mobile-menu">
+			<button class="mobile-menu-button">☰</button>
 			<div class="mobile-menu-content">
 				<button class="close-button" aria-label="Close menu">&times;</button>
 				
@@ -35,7 +48,6 @@
 					</div>
 				</div>
 			</div>
-			<button class="mobile-menu-button">☰</button>
 		</div>
 
 		<h1>Leaderboard</h1>
@@ -71,17 +83,11 @@
 	</div>
 
 	<footer class="footer">
-		<!-- Ваш код для footer -->
 		<div class="copyright">© Hockey Shadow League - Создано в 2021 году
 			<a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
 			<a target="_blank" href="https://t.me/whiplash92">@Константином</a>
 		</div>
 	</footer>
-
-	<!-- Подключение Bootstrap JS -->
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-		integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
-		crossorigin="anonymous"></script>
 
 	<script>
 		document.addEventListener('DOMContentLoaded', function() {
@@ -89,50 +95,24 @@
 			const closeButton = document.querySelector('.close-button');
 			const menuContent = document.querySelector('.mobile-menu-content');
 			const overlay = document.querySelector('.overlay');
-			let isMenuOpen = false;
 
 			function openMenu() {
-				isMenuOpen = true;
 				menuContent.classList.add('active');
+				menuButton.classList.add('hidden');
 				overlay.classList.add('active');
-				document.body.style.overflow = 'hidden'; // Запрещаем прокрутку body
+				document.body.style.overflow = 'hidden';
 			}
 
 			function closeMenu() {
-				isMenuOpen = false;
 				menuContent.classList.remove('active');
+				menuButton.classList.remove('hidden');
 				overlay.classList.remove('active');
-				document.body.style.overflow = ''; // Возвращаем прокрутку
+				document.body.style.overflow = '';
 			}
 
-			// Открытие меню по клику на бургер
-			menuButton.addEventListener('click', function(e) {
-				e.stopPropagation();
-				if (!isMenuOpen) {
-					openMenu();
-				}
-			});
-
-			// Закрытие меню по клику на крестик
-			closeButton.addEventListener('click', function(e) {
-				e.stopPropagation();
-				closeMenu();
-			});
-
-			// Закрытие меню по клику на оверлей
+			menuButton.addEventListener('click', openMenu);
+			closeButton.addEventListener('click', closeMenu);
 			overlay.addEventListener('click', closeMenu);
-
-			// Закрытие меню по клику вне его области
-			document.addEventListener('click', function(e) {
-				if (isMenuOpen && !menuContent.contains(e.target) && e.target !== menuButton) {
-					closeMenu();
-				}
-			});
-
-			// Предотвращаем закрытие при клике внутри меню
-			menuContent.addEventListener('click', function(e) {
-				e.stopPropagation();
-			});
 		});
 	</script>
 
