@@ -295,17 +295,18 @@ tbody {
     background: rgba(0, 166, 255, 0.1);
     border: 1px solid rgba(0, 166, 255, 0.3);
     border-radius: 4px;
-    -webkit-transition: all 0.3s ease;
     transition: all 0.3s ease;
-    -webkit-box-shadow: 0 0 10px rgba(0, 166, 255, 0.2);
-            box-shadow: 0 0 10px rgba(0, 166, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 166, 255, 0.2);
+    -webkit-text-fill-color: #00a6ff;
+    background-clip: unset;
+    -webkit-background-clip: unset;
+    background-image: none;
   }
   .mobile-menu-creators a:hover {
     background: rgba(0, 166, 255, 0.2);
-    -webkit-transform: translateY(-2px);
-            transform: translateY(-2px);
-    -webkit-box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
-            box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(0, 166, 255, 0.3);
+    -webkit-text-fill-color: #fff;
   }
 }
 
