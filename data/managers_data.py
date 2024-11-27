@@ -6,6 +6,18 @@ class Manager:
         self.country = country
         self.achievements = achievements or []
 
+# Add the definition of countries
+countries = [
+    "Russia",
+    "Belarus",
+    "Kazakhstan",
+    "Vietnam",
+    "Ukraine",
+    "Mexico",
+    "Poland",
+    "China"
+]
+
 managers = [
     Manager("Feel Good", "/static/img/flags/bel.png", [
         '<img src="/static/img/cups/top1.svg" title="Shadow 1 league TOP1 s22/23">',

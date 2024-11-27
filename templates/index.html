@@ -10,17 +10,33 @@
 
 <body>
 	<div class="container">
-		<header class="header">
-			<div class="header-items">
-				<img src="{{ url_for('static', filename='img/logo.png') }}" alt="logo">
-				<img src="{{ url_for('static', filename='img/logo_nhl.png') }}" alt="nhl">
-				<img src="{{ url_for('static', filename='img/logo_sk2k.png') }}" alt="sk2k">
-				<img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="espn">
-				<a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
-					<img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="telegram">
-				</a>
+		<div class="mobile-menu">
+			<div class="mobile-menu-content">
+				<button class="close-button" aria-label="Close menu">&times;</button>
+				
+				<!-- Контейнер для логотипов -->
+				<div class="mobile-menu-logos">
+					<a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
+						<img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="telegram">
+					</a>
+					<img src="{{ url_for('static', filename='img/logo.png') }}" alt="logo" class="img-fluid">
+					<img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="espn">
+				</div>
+				
+				<!-- Футер в мобильном меню -->
+				<div class="mobile-menu-footer">
+					<div class="copyright">
+						© Hockey Shadow League
+					</div>
+					<div class="mobile-menu-creators">
+						Создано в 2021 году<br>
+						<a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
+						<a target="_blank" href="https://t.me/whiplash92">@Константином</a>
+					</div>
+				</div>
 			</div>
-		</header>
+			<button class="mobile-menu-button">☰</button>
+		</div>
 
 		<h1>Leaderboard</h1>
 
@@ -37,11 +53,13 @@
 			<tbody>
 				{% for manager in managers %}
 				<tr class="table-row">
-					<td class="table-items">
-						<img src="{{ manager.country }}" alt="country flag" class="table-row__countries">
+					<td class="table-items" data-label="Country">
+						<img src="{{ manager.country }}" alt="" class="table-row__countries">
 					</td>
-					<td class="table-items">{{ manager.name }}</td>
-					<td class="table-items">
+					<td class="table-items" data-label="Manager">
+						<span>{{ manager.name }}</span>
+					</td>
+					<td class="table-items" data-label="Achievements">
 						{% for achievement in manager.achievements %}
 						{{ achievement|safe }}
 						{% endfor %}
@@ -64,6 +82,62 @@
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
 		integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
 		crossorigin="anonymous"></script>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			const menuButton = document.querySelector('.mobile-menu-button');
+			const closeButton = document.querySelector('.close-button');
+			const menuContent = document.querySelector('.mobile-menu-content');
+			const overlay = document.querySelector('.overlay');
+			let isMenuOpen = false;
+
+			function openMenu() {
+				isMenuOpen = true;
+				menuContent.classList.add('active');
+				overlay.classList.add('active');
+				document.body.style.overflow = 'hidden'; // Запрещаем прокрутку body
+			}
+
+			function closeMenu() {
+				isMenuOpen = false;
+				menuContent.classList.remove('active');
+				overlay.classList.remove('active');
+				document.body.style.overflow = ''; // Возвращаем прокрутку
+			}
+
+			// Открытие меню по клику на бургер
+			menuButton.addEventListener('click', function(e) {
+				e.stopPropagation();
+				if (!isMenuOpen) {
+					openMenu();
+				}
+			});
+
+			// Закрытие меню по клику на крестик
+			closeButton.addEventListener('click', function(e) {
+				e.stopPropagation();
+				closeMenu();
+			});
+
+			// Закрытие меню по клику на оверлей
+			overlay.addEventListener('click', closeMenu);
+
+			// Закрытие меню по клику вне его области
+			document.addEventListener('click', function(e) {
+				if (isMenuOpen && !menuContent.contains(e.target) && e.target !== menuButton) {
+					closeMenu();
+				}
+			});
+
+			// Предотвращаем закрытие при клике внутри меню
+			menuContent.addEventListener('click', function(e) {
+				e.stopPropagation();
+			});
+		});
+	</script>
+
+	<!-- Добавляем оверлей -->
+	<div class="overlay"></div>
 
 </body>
 

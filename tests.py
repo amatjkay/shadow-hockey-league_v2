@@ -18,10 +18,11 @@ class TestApp(unittest.TestCase):
 
         # Проверка структуры данных менеджеров
         for manager in managers:
-            self.assertIn('name', manager)
-            self.assertIn('country', manager)
-            self.assertIn('achievement', manager)
-            self.assertIsInstance(manager['achievement'], list)
+            self.assertIsInstance(manager, Manager)  # Проверка, что это объект Manager
+            self.assertIn('name', vars(manager))  # Используем vars для получения атрибутов
+            self.assertIn('country', vars(manager))
+            self.assertIn('achievements', vars(manager))
+            self.assertIsInstance(manager.achievements, list)
 
     def test_static_files(self):
         # Проверка доступности статических файлов
