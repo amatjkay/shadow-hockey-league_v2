@@ -86,14 +86,6 @@ tbody {
   color: #00a6ff;
 }
 
-.table-header img {
-  width: 30px;
-  height: 30px;
-  cursor: help;
-  vertical-align: middle;
-  object-fit: contain;
-}
-
 .table-header:first-child {
   width: 10%;
 }
@@ -126,6 +118,10 @@ tbody {
 
 .table-row__countries {
   vertical-align: middle;
+}
+
+.mobile-flag {
+  display: none; /* Скрываем флаг в десктопной версии */
 }
 
 /* Анимация для топ-10 игроков */
@@ -404,6 +400,7 @@ tbody {
       padding: 0;
   }
 
+  /* Отображаем строки таблицы как блоки */
   .table-row {
       display: block;
       margin-bottom: 10px;
@@ -411,21 +408,32 @@ tbody {
       padding: 8px;
   }
 
-  .table-items {
-      display: block;
-      position: relative;
+  /* Скрываем ячейку со страной */
+  .country-cell {
+      display: none;
+  }
+
+  /* Отображаем флаг внутри ячейки с именем менеджера */
+  .mobile-flag {
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+  }
+
+  .manager-cell {
+      display: flex;
+      align-items: center;
       padding: 5px 0;
   }
 
-  /* Убираем метки колонок перед данными */
-  /* Удаляем правило, которое добавляло метки через ::before */
-
-  /* .table-items[data-label]::before {
-      content: attr(data-label) ": ";
-      font-weight: bold;
+  .manager-name {
       display: inline-block;
-      margin-right: 5px;
-  } */
+  }
+
+  .achievements-cell {
+      display: block;
+      padding: 5px 0;
+  }
 
   .table-items img {
       width: 30px;
@@ -448,8 +456,6 @@ tbody {
   .table-items {
       font-size: 14px;
   }
-
-  /* Так как метки удалены, здесь тоже нет необходимости в настройке размера шрифта для ::before */
 
   .table-items img {
       width: 30px;

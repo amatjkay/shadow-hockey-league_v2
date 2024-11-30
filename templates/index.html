@@ -68,13 +68,20 @@
                 <tbody>
                     {% for manager in managers %}
                     <tr class="table-row">
-                        <td class="table-items" data-label="Country">
+                        <!-- Ячейка со страной -->
+                        <td class="table-items country-cell">
                             <img src="{{ manager.country }}" alt="" class="table-row__countries">
                         </td>
-                        <td class="table-items" data-label="Manager">
-                            <span>{{ manager.name }}</span>
+                        <!-- Ячейка с именем менеджера -->
+                        <td class="table-items manager-cell">
+                            <!-- Флаг для мобильной версии -->
+                            <img src="{{ manager.country }}" alt="" class="table-row__countries mobile-flag">
+                            <span class="manager-name">
+                                {{ manager.name }}
+                            </span>
                         </td>
-                        <td class="table-items" data-label="Achievements">
+                        <!-- Ячейка с достижениями -->
+                        <td class="table-items achievements-cell">
                             {% for achievement in manager.achievements %}
                             {{ achievement|safe }}
                             {% endfor %}
