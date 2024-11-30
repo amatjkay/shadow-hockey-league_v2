@@ -1,4 +1,4 @@
-/* Основные стили */
+/* Базовые стили */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -86,6 +86,14 @@ tbody {
   color: #00a6ff;
 }
 
+.table-header img {
+  width: 30px;
+  height: 30px;
+  cursor: help;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
 .table-header:first-child {
   width: 10%;
 }
@@ -105,6 +113,7 @@ tbody {
 .table-items {
   white-space: nowrap;
   text-align: center;
+  position: relative;
 }
 
 .table-items img {
@@ -374,6 +383,11 @@ tbody {
       display: none;
   }
 
+  /* Скрываем заголовки колонок */
+  .table-header {
+      display: none;
+  }
+
   /* Контейнер */
   .container {
       padding-top: 60px;
@@ -390,10 +404,6 @@ tbody {
       padding: 0;
   }
 
-  .table-header {
-      display: none;
-  }
-
   .table-row {
       display: block;
       margin-bottom: 10px;
@@ -402,22 +412,25 @@ tbody {
   }
 
   .table-items {
-      display: flex;
-      flex-direction: row;
-      justify-content: flex-start;
-      border-bottom: 1px solid #ddd;
+      display: block;
+      position: relative;
       padding: 5px 0;
   }
 
-  .table-items[data-label]:before {
-      content: attr(data-label);
+  /* Убираем метки колонок перед данными */
+  /* Удаляем правило, которое добавляло метки через ::before */
+
+  /* .table-items[data-label]::before {
+      content: attr(data-label) ": ";
       font-weight: bold;
+      display: inline-block;
       margin-right: 5px;
-  }
+  } */
 
   .table-items img {
-      max-width: 20px;
-      height: auto;
+      width: 30px;
+      height: 30px;
+      vertical-align: middle;
   }
 }
 
@@ -436,11 +449,10 @@ tbody {
       font-size: 14px;
   }
 
-  .table-items[data-label]:before {
-      font-size: 12px;
-  }
+  /* Так как метки удалены, здесь тоже нет необходимости в настройке размера шрифта для ::before */
 
   .table-items img {
-      max-width: 15px;
+      width: 30px;
+      height: 30px;
   }
 }
