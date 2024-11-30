@@ -45,6 +45,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 h1 {
@@ -265,9 +266,8 @@ tbody {
     border-top: 2px solid rgba(0, 166, 255, 0.2);
   }
   .mobile-menu-footer .copyright {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
-    line-height: 1.6;
+    color: #fff;
+    font-size: 16px;
     margin-bottom: 15px;
   }
   .mobile-menu-creators {
@@ -279,6 +279,9 @@ tbody {
         -ms-flex-direction: column;
             flex-direction: column;
     gap: 10px;
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.6;
   }
   .mobile-menu-creators a {
     display: inline-block;
@@ -434,9 +437,8 @@ tbody {
 /* Медиа-запрос для мобильных устройств */
 @media screen and (max-width: 600px) {
   h1 {
-    font-size: 36px;
-    margin: 20px 0;
-    padding: 0 15px;
+    font-size: 24px;
+    margin: 30px 0;
   }
 
   .header {
@@ -478,6 +480,31 @@ tbody {
     text-align: center;
     box-shadow: 0 -5px 15px rgba(0, 166, 255, 0.1);
   }
+
+  .table-row {
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+
+  .table-items {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .table-items[data-label]:before {
+    content: attr(data-label);
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .table-items img {
+    max-width: 20px;
+    height: auto;
+  }
 }
 
 /* Медиа-запрос для очень маленьких экранов */
@@ -495,9 +522,10 @@ tbody {
 /* Обновляем стили контейнера */
 .container {
   min-height: calc(100vh - 42px);
-  padding-bottom: 0;
+  padding: 0 10px;
   width: 100%;
   margin: 0;
+  overflow-x: hidden;
 }
 
 /* Стили для иконок в таблице */
@@ -520,4 +548,123 @@ tbody {
   height: 30px !important;
   vertical-align: middle;
   object-fit: contain;
+}
+
+.table-responsive {
+    overflow-x: hidden;
+    padding: 0;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+    padding: 10px;
+    overflow-x: auto;
+}
+
+.table-header, .table-items {
+    padding: 10px;
+    text-align: left;
+}
+
+/* Стили для мобильных устройств */
+@media screen and (max-width: 600px) {
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-header {
+        display: none;
+    }
+
+    .table-row {
+        display: block;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        padding: 5px;
+    }
+
+    .table-items {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table-items[data-label]:before {
+        content: attr(data-label);
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .table img {
+        max-width: 20px;
+        height: auto;
+    }
+}
+
+.table img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Медиа-запрос для очень маленьких экранов */
+@media screen and (max-width: 320px) {
+    h1 {
+        font-size: 28px; /* Уменьшаем размер заголовка */
+        margin: 10px 0; /* Уменьшаем отступы */
+    }
+
+    .table-row {
+        padding: 5px; /* Уменьшаем отступы в строках */
+    }
+
+    .table-items {
+        font-size: 14px; /* Уменьшаем размер шрифта для ячеек */
+    }
+
+    .table-items[data-label]:before {
+        font-size: 12px; /* Уменьшаем размер шрифта для меток */
+    }
+
+    .table img {
+        max-width: 15px; /* Уменьшаем размер изображений */
+    }
+}
+
+/* Медиа-запрос для мобильных устройств */
+@media screen and (max-width: 600px) {
+    .table-header {
+        display: none; /* Скрываем заголовки на мобильных */
+    }
+
+    .table-items[data-label]:before {
+        display: none; /* Скрываем псевдоэлемент ::before */
+    }
+
+    .table-row {
+        display: block;
+        margin-bottom: 10px; /* Уменьшаем отступ между строками */
+        border: 1px solid #ddd; /* Добавляем границу */
+        padding: 5px; /* Уменьшаем отступы для строк */
+    }
+
+    .table-items {
+        display: flex; /* Используем flexbox для ячеек */
+        flex-direction: row; /* Изменяем направление на строку */
+        justify-content: flex-start; /* Выравниваем элементы по началу */
+        border-bottom: 1px solid #ddd; /* Граница ежду ячейками */
+    }
+
+    .table-items[data-label]:before {
+        content: attr(data-label); /* Добавляем метки для ячеек */
+        font-weight: bold; /* Жирный шрифт для меток */
+        margin-bottom: 5px; /* Отступ между меткой и значением */
+    }
+
+    .table img {
+        height: auto; /* Сохраняем пропорции */
+    }
 }

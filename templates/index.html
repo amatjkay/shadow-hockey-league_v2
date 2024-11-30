@@ -43,7 +43,7 @@
 					</div>
 					<div class="mobile-menu-creators">
 						Создано в 2021 году<br>
-						<a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
+						<a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a>
 						<a target="_blank" href="https://t.me/whiplash92">@Константином</a>
 					</div>
 				</div>
@@ -52,34 +52,36 @@
 
 		<h1>Leaderboard</h1>
 
-		<table class="table">
-			<thead>
-				<tr>
-					<th class="table-header" scope="col">
-						<img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="geoloc" class="table-geoloc__img">
-					</th>
-					<th class="table-header" scope="col">MANAGERS</th>
-					<th class="table-header" scope="col">ACHIEVEMENTS</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for manager in managers %}
-				<tr class="table-row">
-					<td class="table-items" data-label="Country">
-						<img src="{{ manager.country }}" alt="" class="table-row__countries">
-					</td>
-					<td class="table-items" data-label="Manager">
-						<span>{{ manager.name }}</span>
-					</td>
-					<td class="table-items" data-label="Achievements">
-						{% for achievement in manager.achievements %}
-						{{ achievement|safe }}
-						{% endfor %}
-					</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
+		<div class="table-responsive">
+			<table class="table">
+				<thead>
+					<tr>
+						<th class="table-header" scope="col">
+							<img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="geoloc" class="table-geoloc__img">
+						</th>
+						<th class="table-header" scope="col">MANAGERS</th>
+						<th class="table-header" scope="col">ACHIEVEMENTS</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for manager in managers %}
+					<tr class="table-row">
+						<td class="table-items" data-label="Country">
+							<img src="{{ manager.country }}" alt="" class="table-row__countries">
+						</td>
+						<td class="table-items" data-label="Manager">
+							<span>{{ manager.name }}</span>
+						</td>
+						<td class="table-items" data-label="Achievements">
+							{% for achievement in manager.achievements %}
+							{{ achievement|safe }}
+							{% endfor %}
+						</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
 	</div>
 
 	<footer class="footer">
