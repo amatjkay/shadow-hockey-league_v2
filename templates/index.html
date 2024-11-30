@@ -2,125 +2,103 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-	<title>Shadow Hockey League</title>
-	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <!-- Мета-тег viewport для адаптивности -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Hockey League</title>
+    <!-- Подключение внешнего CSS-файла -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
-	<div class="container">
-		<!-- Шапка для десктопной версии -->
-		<div class="header">
-			<div class="header-items">
-				<a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
-					<img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="telegram">
-				</a>
-				<img src="{{ url_for('static', filename='img/logo.png') }}" alt="logo" class="img-fluid">
-				<img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="espn">
-			</div>
-		</div>
-		
-		<!-- Мобильное меню -->
-		<div class="mobile-menu">
-			<button class="mobile-menu-button">☰</button>
-			<div class="mobile-menu-content">
-				<button class="close-button" aria-label="Close menu">&times;</button>
-				
-				<!-- Контейнер для логотипов -->
-				<div class="mobile-menu-logos">
-					<a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
-						<img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="telegram">
-					</a>
-					<img src="{{ url_for('static', filename='img/logo.png') }}" alt="logo" class="img-fluid">
-					<img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="espn">
-				</div>
-				
-				<!-- Футер в мобильном меню -->
-				<div class="mobile-menu-footer">
-					<div class="copyright">
-						© Hockey Shadow League
-					</div>
-					<div class="mobile-menu-creators">
-						Создано в 2021 году<br>
-						<a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a>
-						<a target="_blank" href="https://t.me/whiplash92">@Константином</a>
-					</div>
-				</div>
-			</div>
-		</div>
+    <div class="container">
+        <!-- Шапка для десктопной версии -->
+        <header class="header">
+            <div class="header-items">
+                <a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
+                    <img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="Telegram">
+                </a>
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип" class="img-fluid">
+                <img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="ESPN">
+            </div>
+        </header>
+        
+        <!-- Мобильное меню -->
+        <div class="mobile-menu">
+            <button class="mobile-menu-button" aria-label="Открыть меню">☰</button>
+            <div class="mobile-menu-content">
+                <button class="close-button" aria-label="Закрыть меню">&times;</button>
+                
+                <!-- Контейнер для логотипов -->
+                <div class="mobile-menu-logos">
+                    <a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
+                        <img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="Telegram">
+                    </a>
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип" class="img-fluid">
+                    <img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="ESPN">
+                </div>
+                
+                <!-- Футер в мобильном меню -->
+                <div class="mobile-menu-footer">
+                    <div class="copyright">
+                        © Hockey Shadow League
+                    </div>
+                    <div class="mobile-menu-creators">
+                        Создано в 2021 году<br>
+                        <a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a>
+                        <a target="_blank" href="https://t.me/whiplash92">@Константином</a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-		<h1>Leaderboard</h1>
+        <h1>Leaderboard</h1>
 
-		<div class="table-responsive">
-			<table class="table">
-				<thead>
-					<tr>
-						<th class="table-header" scope="col">
-							<img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="geoloc" class="table-geoloc__img">
-						</th>
-						<th class="table-header" scope="col">MANAGERS</th>
-						<th class="table-header" scope="col">ACHIEVEMENTS</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for manager in managers %}
-					<tr class="table-row">
-						<td class="table-items" data-label="Country">
-							<img src="{{ manager.country }}" alt="" class="table-row__countries">
-						</td>
-						<td class="table-items" data-label="Manager">
-							<span>{{ manager.name }}</span>
-						</td>
-						<td class="table-items" data-label="Achievements">
-							{% for achievement in manager.achievements %}
-							{{ achievement|safe }}
-							{% endfor %}
-						</td>
-					</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
-	</div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th class="table-header" scope="col">
+                            <img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="geoloc" class="table-geoloc__img">
+                        </th>
+                        <th class="table-header" scope="col">MANAGERS</th>
+                        <th class="table-header" scope="col">ACHIEVEMENTS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for manager in managers %}
+                    <tr class="table-row">
+                        <td class="table-items" data-label="Country">
+                            <img src="{{ manager.country }}" alt="" class="table-row__countries">
+                        </td>
+                        <td class="table-items" data-label="Manager">
+                            <span>{{ manager.name }}</span>
+                        </td>
+                        <td class="table-items" data-label="Achievements">
+                            {% for achievement in manager.achievements %}
+                            {{ achievement|safe }}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-	<footer class="footer">
-		<div class="copyright">© Hockey Shadow League - Создано в 2021 году
-			<a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
-			<a target="_blank" href="https://t.me/whiplash92">@Константином</a>
-		</div>
-	</footer>
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="copyright">© Hockey Shadow League - Создано в 2021 году
+            <a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
+            <a target="_blank" href="https://t.me/whiplash92">@Константином</a>
+        </div>
+    </footer>
 
-	<script>
-		document.addEventListener('DOMContentLoaded', function() {
-			const menuButton = document.querySelector('.mobile-menu-button');
-			const closeButton = document.querySelector('.close-button');
-			const menuContent = document.querySelector('.mobile-menu-content');
-			const overlay = document.querySelector('.overlay');
+    <!-- Оверлей для мобильного меню -->
+    <div class="overlay"></div>
 
-			function openMenu() {
-				menuContent.classList.add('active');
-				menuButton.classList.add('hidden');
-				overlay.classList.add('active');
-				document.body.style.overflow = 'hidden';
-			}
-
-			function closeMenu() {
-				menuContent.classList.remove('active');
-				menuButton.classList.remove('hidden');
-				overlay.classList.remove('active');
-				document.body.style.overflow = '';
-			}
-
-			menuButton.addEventListener('click', openMenu);
-			closeButton.addEventListener('click', closeMenu);
-			overlay.addEventListener('click', closeMenu);
-		});
-	</script>
-
-	<!-- Добавляем оверлей -->
-	<div class="overlay"></div>
-
+    <!-- Подключение внешнего JavaScript-файла -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 
 </html>

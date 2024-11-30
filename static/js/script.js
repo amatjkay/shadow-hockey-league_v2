@@ -1,4 +1,3 @@
-// static/js/script.js
 document.addEventListener('DOMContentLoaded', function() {
     const menuButton = document.querySelector('.mobile-menu-button');
     const closeButton = document.querySelector('.close-button');
