@@ -108,6 +108,14 @@ tbody {
   position: relative;
 }
 
+.table-header img {
+  width: 30px;
+  height: 30px;
+  cursor: help;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
 .table-items img {
   width: 30px;
   height: 30px;
