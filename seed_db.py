@@ -88,12 +88,29 @@ def seed_database() -> None:
         for manager_data in initial_managers:
             # Extract country info
             country_path = manager_data.country
-            country_code = country_path.split('/')[-1].split('.')[0].upper()
+            filename = country_path.split('/')[-1].split('.')[0].upper()
+            
+            # Map filename to 3-letter country code
+            FLAG_TO_CODE = {
+                'RUS': 'RUS',
+                'BEL': 'BEL',
+                'KZ': 'KAZ',
+                'KAZ': 'KAZ',
+                'VIETNAM': 'VNM',
+                'UA': 'UKR',
+                'UKR': 'UKR',
+                'MEXICO': 'MEX',
+                'MEX': 'MEX',
+                'POL': 'POL',
+                'CHINA': 'CHN',
+                'CHN': 'CHN',
+            }
+            country_code = FLAG_TO_CODE.get(filename, filename[:3])
 
             # Validate country data
             is_valid, error = validate_country_data(country_code, country_path)
             if not is_valid:
-                print(f"  ❌ Validation error for country: {error}")
+                print(f"  [ERROR] Validation error for country: {error}")
                 continue
 
             # Track country (avoid duplicates)
@@ -109,7 +126,7 @@ def seed_database() -> None:
                 None
             )
             if existing_manager:
-                print(f"  ⚠️ Skipping duplicate manager in input: {manager_data.name}")
+                print(f"  [WARN] Skipping duplicate manager in input: {manager_data.name}")
                 continue
 
             manager_entry = {
@@ -123,7 +140,7 @@ def seed_database() -> None:
             for achievement_html in manager_data.achievements:
                 parsed = parse_achievement_html(achievement_html)
                 if parsed is None:
-                    print(f"  ⚠️ Could not parse achievement: {achievement_html}")
+                    print(f"  [WARN] Could not parse achievement: {achievement_html}")
                     continue
                 achievements_to_create.append({
                     'manager_name': manager_data.name,
@@ -134,14 +151,14 @@ def seed_database() -> None:
         validator = DataValidator(db.session)
 
         # Create countries
-        print("\n📍 Creating countries...")
+        print("\n[INFO] Creating countries...")
         for country_code, country in countries_to_create.items():
             db.session.add(country)
-            print(f"  ✅ Created country: {country_code}")
+            print(f"  [OK] Created country: {country_code}")
         db.session.flush()
 
         # Create managers
-        print("\n👤 Creating managers...")
+        print("\n[INFO] Creating managers...")
         manager_id_map: dict[str, int] = {}  # name -> id
         managers_created = 0
 
@@ -152,7 +169,7 @@ def seed_database() -> None:
             # Check for existing in DB
             existing = db.session.query(Manager).filter_by(name=name).first()
             if existing:
-                print(f"  ⚠️ Skipping existing manager: {name}")
+                print(f"  [SKIP] Skipping existing manager: {name}")
                 manager_id_map[name] = existing.id
                 continue
 
@@ -164,10 +181,10 @@ def seed_database() -> None:
             db.session.flush()
             manager_id_map[name] = manager.id
             managers_created += 1
-            print(f"  ✅ Created manager: {name}")
+            print(f"  [OK] Created manager: {name}")
 
         # Create achievements
-        print("\n🏆 Creating achievements...")
+        print("\n[INFO] Creating achievements...")
         achievements_created = 0
 
         for achievement_data in achievements_to_create:
@@ -175,7 +192,7 @@ def seed_database() -> None:
             manager_id = manager_id_map.get(manager_name)
 
             if not manager_id:
-                print(f"  ⚠️ Skipping achievement for unknown manager: {manager_name}")
+                print(f"  [SKIP] Skipping achievement for unknown manager: {manager_name}")
                 continue
 
             achievement = Achievement(
@@ -191,7 +208,7 @@ def seed_database() -> None:
 
         db.session.commit()
 
-        print("\n✅ Database seeded successfully!")
+        print("\n[SUCCESS] Database seeded successfully!")
         print(f"  Countries: {len(countries_to_create)}")
         print(f"  Managers created: {managers_created}")
         print(f"  Achievements created: {achievements_created}")
