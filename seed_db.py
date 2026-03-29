@@ -9,16 +9,17 @@ Usage:
 """
 
 import re
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import List, Optional, TypedDict
 
 from app import create_app
-from models import db, Country, Manager, Achievement
 from data.managers_data import managers as initial_managers
-from services.validation_service import DataValidator, validate_country_data
+from models import Achievement, Country, Manager, db
+from services.validation_service import validate_country_data
 
 
 class ParsedAchievement(TypedDict):
     """Typed dictionary for parsed achievement data."""
+
     achievement_type: str
     league: str
     season: str
@@ -28,6 +29,7 @@ class ParsedAchievement(TypedDict):
 
 class ManagerEntry(TypedDict):
     """Typed dictionary for manager entry data."""
+
     name: str
     country_code: str
     achievements: List[str]
@@ -43,25 +45,27 @@ def parse_achievement_html(achievement_html: str) -> Optional[ParsedAchievement]
         Dictionary with achievement data or None if parsing fails
     """
     # Parse standard achievement HTML
-    # Example: <img src="/static/img/cups/top1.svg" title="Shadow 1 league TOP1 s22/23">
-    match = re.search(
-        r'src="/static/img/cups/([\w-]+)\.(svg|png)".*?title="Shadow (\d) league (.+?) s(\d{2}/\d{2})"',
-        achievement_html
+    # Example: <img src="/static/img/cups/top1.svg"
+    # title="Shadow 1 league TOP1 s22/23">
+    pattern = (
+        r'src="/static/img/cups/([\w-]+)\.(svg|png)"'
+        r'.*?title="Shadow (\d) league (.+?) s(\d{2}/\d{2})"'
     )
+    match = re.search(pattern, achievement_html)
     if not match:
         return None
 
     cup_type, ext, league, title, season = match.groups()
 
     # Normalize achievement type
-    achievement_type = cup_type.upper().replace('-', '_')
+    achievement_type = cup_type.upper().replace("-", "_")
 
     return ParsedAchievement(
         achievement_type=achievement_type,
         league=league,
         season=season,
         title=title,
-        icon_path=f'/static/img/cups/{cup_type}.{ext}',
+        icon_path=f"/static/img/cups/{cup_type}.{ext}",
     )
 
 
@@ -88,22 +92,22 @@ def seed_database() -> None:
         for manager_data in initial_managers:
             # Extract country info
             country_path = manager_data.country
-            filename = country_path.split('/')[-1].split('.')[0].upper()
-            
+            filename = country_path.split("/")[-1].split(".")[0].upper()
+
             # Map filename to 3-letter country code
             FLAG_TO_CODE = {
-                'RUS': 'RUS',
-                'BEL': 'BEL',
-                'KZ': 'KAZ',
-                'KAZ': 'KAZ',
-                'VIETNAM': 'VNM',
-                'UA': 'UKR',
-                'UKR': 'UKR',
-                'MEXICO': 'MEX',
-                'MEX': 'MEX',
-                'POL': 'POL',
-                'CHINA': 'CHN',
-                'CHN': 'CHN',
+                "RUS": "RUS",
+                "BEL": "BEL",
+                "KZ": "KAZ",
+                "KAZ": "KAZ",
+                "VIETNAM": "VNM",
+                "UA": "UKR",
+                "UKR": "UKR",
+                "MEXICO": "MEX",
+                "MEX": "MEX",
+                "POL": "POL",
+                "CHINA": "CHN",
+                "CHN": "CHN",
             }
             country_code = FLAG_TO_CODE.get(filename, filename[:3])
 
@@ -116,23 +120,21 @@ def seed_database() -> None:
             # Track country (avoid duplicates)
             if country_code not in countries_to_create:
                 countries_to_create[country_code] = Country(
-                    code=country_code,
-                    flag_path=country_path
+                    code=country_code, flag_path=country_path
                 )
 
             # Track manager (avoid duplicates within input)
             existing_manager = next(
-                (m for m in managers_to_create if m['name'] == manager_data.name),
-                None
+                (m for m in managers_to_create if m["name"] == manager_data.name), None
             )
             if existing_manager:
                 print(f"  [WARN] Skipping duplicate manager in input: {manager_data.name}")
                 continue
 
             manager_entry = {
-                'name': manager_data.name,
-                'country_code': country_code,
-                'achievements': manager_data.achievements
+                "name": manager_data.name,
+                "country_code": country_code,
+                "achievements": manager_data.achievements,
             }
             managers_to_create.append(manager_entry)
 
@@ -142,13 +144,7 @@ def seed_database() -> None:
                 if parsed is None:
                     print(f"  [WARN] Could not parse achievement: {achievement_html}")
                     continue
-                achievements_to_create.append({
-                    'manager_name': manager_data.name,
-                    **parsed
-                })
-
-        # Validate managers for duplicates in database
-        validator = DataValidator(db.session)
+                achievements_to_create.append({"manager_name": manager_data.name, **parsed})
 
         # Create countries
         print("\n[INFO] Creating countries...")
@@ -163,8 +159,8 @@ def seed_database() -> None:
         managers_created = 0
 
         for manager_entry in managers_to_create:
-            name = manager_entry['name']
-            country = countries_to_create[manager_entry['country_code']]
+            name = manager_entry["name"]
+            country = countries_to_create[manager_entry["country_code"]]
 
             # Check for existing in DB
             existing = db.session.query(Manager).filter_by(name=name).first()
@@ -173,10 +169,7 @@ def seed_database() -> None:
                 manager_id_map[name] = existing.id
                 continue
 
-            manager = Manager(
-                name=name,
-                country_id=country.id
-            )
+            manager = Manager(name=name, country_id=country.id)
             db.session.add(manager)
             db.session.flush()
             manager_id_map[name] = manager.id
@@ -188,7 +181,7 @@ def seed_database() -> None:
         achievements_created = 0
 
         for achievement_data in achievements_to_create:
-            manager_name = achievement_data['manager_name']
+            manager_name = achievement_data["manager_name"]
             manager_id = manager_id_map.get(manager_name)
 
             if not manager_id:
@@ -196,12 +189,12 @@ def seed_database() -> None:
                 continue
 
             achievement = Achievement(
-                achievement_type=achievement_data['achievement_type'],
-                league=achievement_data['league'],
-                season=achievement_data['season'],
-                title=achievement_data['title'],
-                icon_path=achievement_data['icon_path'],
-                manager_id=manager_id
+                achievement_type=achievement_data["achievement_type"],
+                league=achievement_data["league"],
+                season=achievement_data["season"],
+                title=achievement_data["title"],
+                icon_path=achievement_data["icon_path"],
+                manager_id=manager_id,
             )
             db.session.add(achievement)
             achievements_created += 1

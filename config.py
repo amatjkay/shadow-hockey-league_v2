@@ -10,6 +10,7 @@ from pathlib import Path
 # Optional dotenv support - gracefully degrades if not installed
 try:
     from dotenv import load_dotenv
+
     # Load environment variables from .env file (project root)
     BASE_DIR = Path(__file__).parent
     load_dotenv(BASE_DIR / ".env")

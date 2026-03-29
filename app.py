@@ -98,7 +98,7 @@ def configure_logging(app: Flask) -> None:
             file_handler = RotatingFileHandler(
                 app.config.get("LOG_FILE", "logs/app.log"),
                 maxBytes=app.config.get("LOG_MAX_BYTES", 10 * 1024 * 1024),
-                backupCount=app.config.get("LOG_BACKUP_COUNT", 5)
+                backupCount=app.config.get("LOG_BACKUP_COUNT", 5),
             )
             file_handler.setLevel(log_level)
             file_handler.setFormatter(formatter)
@@ -139,16 +139,20 @@ def register_routes(app: Flask) -> None:
             )
         except Exception as e:
             import traceback as tb
+
             error_traceback = tb.format_exc()
             app.logger.error(f"Error building leaderboard: {str(e)}", exc_info=True)
-            return render_template(
-                "error.html",
-                message="Не удалось загрузить рейтинг лиги. Попробуйте обновить страницу.",
-                error_code=500,
-                error_type=type(e).__name__,
-                traceback=error_traceback if app.debug else None,
-                show_details=app.debug,
-            ), 500
+            return (
+                render_template(
+                    "error.html",
+                    message="Не удалось загрузить рейтинг лиги. Попробуйте обновить страницу.",
+                    error_code=500,
+                    error_type=type(e).__name__,
+                    traceback=error_traceback if app.debug else None,
+                    show_details=app.debug,
+                ),
+                500,
+            )
 
     @app.route("/rating")
     def rating() -> Any:
@@ -164,21 +168,27 @@ def register_routes(app: Flask) -> None:
     @app.errorhandler(404)
     def not_found_error(error: Any) -> tuple[str, int]:
         app.logger.warning(f"404 error: {request.url}")
-        return render_template(
-            "error.html",
-            message="Страница не найдена.",
-            error_code=404,
-        ), 404
+        return (
+            render_template(
+                "error.html",
+                message="Страница не найдена.",
+                error_code=404,
+            ),
+            404,
+        )
 
     @app.errorhandler(500)
     def internal_error(error: Any) -> tuple[str, int]:
         db.session.rollback()
         app.logger.error(f"500 error: {str(error)}", exc_info=True)
-        return render_template(
-            "error.html",
-            message="Внутренняя ошибка сервера. Пожалуйста, попробуйте позже.",
-            error_code=500,
-        ), 500
+        return (
+            render_template(
+                "error.html",
+                message="Внутренняя ошибка сервера. Пожалуйста, попробуйте позже.",
+                error_code=500,
+            ),
+            500,
+        )
 
 
 # Create app instance for manage.py and direct execution

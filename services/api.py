@@ -8,12 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from sqlalchemy.orm import Session
 
 from models import Achievement, Country, Manager, db
 from services.validation_service import (
-    DataValidator,
     validate_achievement_data,
     validate_country_data,
     validate_country_exists,
@@ -33,6 +32,7 @@ def get_session() -> Session:
 
 # ============== Countries ==============
 
+
 @api.route("/countries", methods=["GET"])
 def get_countries() -> tuple[Any, int]:
     """Get all countries.
@@ -42,14 +42,19 @@ def get_countries() -> tuple[Any, int]:
     """
     countries = db.session.query(Country).order_by(Country.code).all()
 
-    return jsonify([
-        {
-            "id": c.id,
-            "code": c.code,
-            "flag_path": c.flag_path,
-        }
-        for c in countries
-    ]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": c.id,
+                    "code": c.code,
+                    "flag_path": c.flag_path,
+                }
+                for c in countries
+            ]
+        ),
+        200,
+    )
 
 
 @api.route("/countries", methods=["POST"])
@@ -88,12 +93,17 @@ def create_country() -> tuple[Any, int]:
     db.session.add(country)
     db.session.commit()
 
-    return jsonify({
-        "id": country.id,
-        "code": country.code,
-        "flag_path": country.flag_path,
-        "message": "Country created successfully"
-    }), 201
+    return (
+        jsonify(
+            {
+                "id": country.id,
+                "code": country.code,
+                "flag_path": country.flag_path,
+                "message": "Country created successfully",
+            }
+        ),
+        201,
+    )
 
 
 @api.route("/countries/<int:country_id>", methods=["GET"])
@@ -111,11 +121,16 @@ def get_country(country_id: int) -> tuple[Any, int]:
     if not country:
         return jsonify({"error": f"Country with ID {country_id} not found"}), 404
 
-    return jsonify({
-        "id": country.id,
-        "code": country.code,
-        "flag_path": country.flag_path,
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": country.id,
+                "code": country.code,
+                "flag_path": country.flag_path,
+            }
+        ),
+        200,
+    )
 
 
 @api.route("/countries/<int:country_id>", methods=["PUT"])
@@ -157,12 +172,17 @@ def update_country(country_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
-    return jsonify({
-        "id": country.id,
-        "code": country.code,
-        "flag_path": country.flag_path,
-        "message": "Country updated successfully"
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": country.id,
+                "code": country.code,
+                "flag_path": country.flag_path,
+                "message": "Country updated successfully",
+            }
+        ),
+        200,
+    )
 
 
 @api.route("/countries/<int:country_id>", methods=["DELETE"])
@@ -183,9 +203,7 @@ def delete_country(country_id: int) -> tuple[Any, int]:
     # Check if country has managers
     managers_count = db.session.query(Manager).filter_by(country_id=country_id).count()
     if managers_count > 0:
-        return jsonify({
-            "error": f"Cannot delete country with {managers_count} manager(s)"
-        }), 409
+        return jsonify({"error": f"Cannot delete country with {managers_count} manager(s)"}), 409
 
     db.session.delete(country)
     db.session.commit()
@@ -194,6 +212,7 @@ def delete_country(country_id: int) -> tuple[Any, int]:
 
 
 # ============== Managers ==============
+
 
 @api.route("/managers", methods=["GET"])
 def get_managers() -> tuple[Any, int]:
@@ -219,18 +238,23 @@ def get_managers() -> tuple[Any, int]:
 
     managers = query.order_by(Manager.name).all()
 
-    return jsonify([
-        {
-            "id": m.id,
-            "name": m.name,
-            "display_name": m.display_name,
-            "is_tandem": m.is_tandem,
-            "country_id": m.country_id,
-            "country_code": m.country.code,
-            "achievements_count": len(m.achievements),
-        }
-        for m in managers
-    ]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": m.id,
+                    "name": m.name,
+                    "display_name": m.display_name,
+                    "is_tandem": m.is_tandem,
+                    "country_id": m.country_id,
+                    "country_code": m.country.code,
+                    "achievements_count": len(m.achievements),
+                }
+                for m in managers
+            ]
+        ),
+        200,
+    )
 
 
 @api.route("/managers", methods=["POST"])
@@ -274,14 +298,19 @@ def create_manager() -> tuple[Any, int]:
     db.session.add(manager)
     db.session.commit()
 
-    return jsonify({
-        "id": manager.id,
-        "name": manager.name,
-        "display_name": manager.display_name,
-        "is_tandem": manager.is_tandem,
-        "country_id": manager.country_id,
-        "message": "Manager created successfully"
-    }), 201
+    return (
+        jsonify(
+            {
+                "id": manager.id,
+                "name": manager.name,
+                "display_name": manager.display_name,
+                "is_tandem": manager.is_tandem,
+                "country_id": manager.country_id,
+                "message": "Manager created successfully",
+            }
+        ),
+        201,
+    )
 
 
 @api.route("/managers/<int:manager_id>", methods=["GET"])
@@ -299,25 +328,30 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
     if not manager:
         return jsonify({"error": f"Manager with ID {manager_id} not found"}), 404
 
-    return jsonify({
-        "id": manager.id,
-        "name": manager.name,
-        "display_name": manager.display_name,
-        "is_tandem": manager.is_tandem,
-        "country_id": manager.country_id,
-        "country_code": manager.country.code,
-        "achievements": [
+    return (
+        jsonify(
             {
-                "id": a.id,
-                "achievement_type": a.achievement_type,
-                "league": a.league,
-                "season": a.season,
-                "title": a.title,
-                "icon_path": a.icon_path,
+                "id": manager.id,
+                "name": manager.name,
+                "display_name": manager.display_name,
+                "is_tandem": manager.is_tandem,
+                "country_id": manager.country_id,
+                "country_code": manager.country.code,
+                "achievements": [
+                    {
+                        "id": a.id,
+                        "achievement_type": a.achievement_type,
+                        "league": a.league,
+                        "season": a.season,
+                        "title": a.title,
+                        "icon_path": a.icon_path,
+                    }
+                    for a in manager.achievements
+                ],
             }
-            for a in manager.achievements
-        ],
-    }), 200
+        ),
+        200,
+    )
 
 
 @api.route("/managers/<int:manager_id>", methods=["PUT"])
@@ -365,14 +399,19 @@ def update_manager(manager_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
-    return jsonify({
-        "id": manager.id,
-        "name": manager.name,
-        "display_name": manager.display_name,
-        "is_tandem": manager.is_tandem,
-        "country_id": manager.country_id,
-        "message": "Manager updated successfully"
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": manager.id,
+                "name": manager.name,
+                "display_name": manager.display_name,
+                "is_tandem": manager.is_tandem,
+                "country_id": manager.country_id,
+                "message": "Manager updated successfully",
+            }
+        ),
+        200,
+    )
 
 
 @api.route("/managers/<int:manager_id>", methods=["DELETE"])
@@ -397,6 +436,7 @@ def delete_manager(manager_id: int) -> tuple[Any, int]:
 
 
 # ============== Achievements ==============
+
 
 @api.route("/achievements", methods=["GET"])
 def get_achievements() -> tuple[Any, int]:
@@ -432,19 +472,24 @@ def get_achievements() -> tuple[Any, int]:
 
     achievements = query.order_by(Achievement.season.desc()).all()
 
-    return jsonify([
-        {
-            "id": a.id,
-            "achievement_type": a.achievement_type,
-            "league": a.league,
-            "season": a.season,
-            "title": a.title,
-            "icon_path": a.icon_path,
-            "manager_id": a.manager_id,
-            "manager_name": a.manager.name,
-        }
-        for a in achievements
-    ]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": a.id,
+                    "achievement_type": a.achievement_type,
+                    "league": a.league,
+                    "season": a.season,
+                    "title": a.title,
+                    "icon_path": a.icon_path,
+                    "manager_id": a.manager_id,
+                    "manager_name": a.manager.name,
+                }
+                for a in achievements
+            ]
+        ),
+        200,
+    )
 
 
 @api.route("/achievements", methods=["POST"])
@@ -477,9 +522,7 @@ def create_achievement() -> tuple[Any, int]:
     manager_id = data.get("manager_id", type=int)
 
     # Validate data format
-    is_valid, error = validate_achievement_data(
-        achievement_type, league, season, title
-    )
+    is_valid, error = validate_achievement_data(achievement_type, league, season, title)
     if not is_valid:
         return jsonify({"error": error}), 400
 
@@ -500,16 +543,21 @@ def create_achievement() -> tuple[Any, int]:
     db.session.add(achievement)
     db.session.commit()
 
-    return jsonify({
-        "id": achievement.id,
-        "achievement_type": achievement.achievement_type,
-        "league": achievement.league,
-        "season": achievement.season,
-        "title": achievement.title,
-        "icon_path": achievement.icon_path,
-        "manager_id": achievement.manager_id,
-        "message": "Achievement created successfully"
-    }), 201
+    return (
+        jsonify(
+            {
+                "id": achievement.id,
+                "achievement_type": achievement.achievement_type,
+                "league": achievement.league,
+                "season": achievement.season,
+                "title": achievement.title,
+                "icon_path": achievement.icon_path,
+                "manager_id": achievement.manager_id,
+                "message": "Achievement created successfully",
+            }
+        ),
+        201,
+    )
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["GET"])
@@ -527,16 +575,21 @@ def get_achievement(achievement_id: int) -> tuple[Any, int]:
     if not achievement:
         return jsonify({"error": f"Achievement with ID {achievement_id} not found"}), 404
 
-    return jsonify({
-        "id": achievement.id,
-        "achievement_type": achievement.achievement_type,
-        "league": achievement.league,
-        "season": achievement.season,
-        "title": achievement.title,
-        "icon_path": achievement.icon_path,
-        "manager_id": achievement.manager_id,
-        "manager_name": achievement.manager.name,
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": achievement.id,
+                "achievement_type": achievement.achievement_type,
+                "league": achievement.league,
+                "season": achievement.season,
+                "title": achievement.title,
+                "icon_path": achievement.icon_path,
+                "manager_id": achievement.manager_id,
+                "manager_name": achievement.manager.name,
+            }
+        ),
+        200,
+    )
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["PUT"])
@@ -594,16 +647,21 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
-    return jsonify({
-        "id": achievement.id,
-        "achievement_type": achievement.achievement_type,
-        "league": achievement.league,
-        "season": achievement.season,
-        "title": achievement.title,
-        "icon_path": achievement.icon_path,
-        "manager_id": achievement.manager_id,
-        "message": "Achievement updated successfully"
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": achievement.id,
+                "achievement_type": achievement.achievement_type,
+                "league": achievement.league,
+                "season": achievement.season,
+                "title": achievement.title,
+                "icon_path": achievement.icon_path,
+                "manager_id": achievement.manager_id,
+                "message": "Achievement updated successfully",
+            }
+        ),
+        200,
+    )
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["DELETE"])

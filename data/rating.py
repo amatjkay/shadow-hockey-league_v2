@@ -1,4 +1,5 @@
 """Расчёт рейтинга: база по типу награды и лиге × множитель сезона."""
+
 from __future__ import annotations
 
 import re

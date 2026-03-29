@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from models import Achievement, Manager
 
-
 # Base points for each league and achievement type combination
 # Updated: increased gap between TOP1 and other achievements to make L1 victories more meaningful
 BASE_POINTS: dict[tuple[str, str], int] = {
@@ -112,7 +111,7 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
     Uses eager loading (joinedload) to prevent N+1 query problem:
     - Loads all managers with their achievements in a single query
     - Loads country data for each manager in the same query
-    
+
     Args:
         session: SQLAlchemy database session
 
@@ -139,16 +138,18 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
             achievements_data.append(parsed)
             total_points += parsed["points"]
 
-        rows.append({
-            "id": manager.id,
-            "name": manager.name,
-            "display_name": manager.display_name,
-            "is_tandem": manager.is_tandem,
-            "country": manager.country.flag_path,
-            "country_code": manager.country.code,
-            "total": total_points,
-            "achievements": achievements_data,
-        })
+        rows.append(
+            {
+                "id": manager.id,
+                "name": manager.name,
+                "display_name": manager.display_name,
+                "is_tandem": manager.is_tandem,
+                "country": manager.country.flag_path,
+                "country_code": manager.country.code,
+                "total": total_points,
+                "achievements": achievements_data,
+            }
+        )
 
     # Sort by total points descending, then by name ascending
     rows.sort(key=lambda r: (-r["total"], r["name"]))
@@ -163,9 +164,11 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
             rank = i
             prev_total = row["total"]
 
-        result.append({
-            **row,
-            "rank": rank,
-        })
+        result.append(
+            {
+                **row,
+                "rank": rank,
+            }
+        )
 
     return result

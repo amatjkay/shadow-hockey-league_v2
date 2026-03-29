@@ -7,7 +7,7 @@ and data validation tests.
 import unittest
 
 from app import create_app
-from models import db, Manager, Achievement, Country
+from models import Achievement, Country, Manager, db
 from services.rating_service import (
     BASE_POINTS,
     SEASON_MULTIPLIER,
@@ -23,7 +23,7 @@ class TestAppRoutes(unittest.TestCase):
     def setUp(self) -> None:
         self.app = create_app("config.TestingConfig")
         self.client = self.app.test_client()
-        
+
         # Create tables and seed test data
         with self.app.app_context():
             db.create_all()
@@ -40,12 +40,12 @@ class TestAppRoutes(unittest.TestCase):
         country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
         db.session.add(country)
         db.session.flush()
-        
+
         # Create manager with achievements
         manager = Manager(name="Test Manager", country_id=country.id)
         db.session.add(manager)
         db.session.flush()
-        
+
         # Create achievements
         achievements = [
             Achievement(
@@ -67,7 +67,7 @@ class TestAppRoutes(unittest.TestCase):
         ]
         for ach in achievements:
             db.session.add(ach)
-        
+
         db.session.commit()
 
     def test_home_page(self) -> None:
@@ -100,12 +100,12 @@ class TestRatingServiceHelpers(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        
+
         # Create test country and manager
         self.country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
         db.session.add(self.country)
         db.session.flush()
-        
+
         self.manager = Manager(name="Test Manager", country_id=self.country.id)
         db.session.add(self.manager)
         db.session.flush()
@@ -115,7 +115,9 @@ class TestRatingServiceHelpers(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def _create_achievement(self, ach_type: str, league: str, season: str, title: str) -> Achievement:
+    def _create_achievement(
+        self, ach_type: str, league: str, season: str, title: str
+    ) -> Achievement:
         """Helper to create test achievement."""
         ach = Achievement(
             achievement_type=ach_type,
@@ -214,42 +216,60 @@ class TestRatingCalculation(unittest.TestCase):
         self.country_bel = Country(code="BEL", flag_path="/static/img/flags/bel.png")
         db.session.add_all([self.country_rus, self.country_bel])
         db.session.flush()
-        
+
         # Create managers
         self.manager1 = Manager(name="Manager One", country_id=self.country_rus.id)
         self.manager2 = Manager(name="Manager Two", country_id=self.country_bel.id)
         self.manager3 = Manager(name="Tandem: A, B", country_id=self.country_rus.id)
         db.session.add_all([self.manager1, self.manager2, self.manager3])
         db.session.flush()
-        
+
         # Create achievements for manager1 (high score)
-        db.session.add_all([
-            Achievement(
-                achievement_type="TOP1", league="1", season="23/24",
-                title="TOP1", icon_path="/static/img/cups/top1.svg",
-                manager_id=self.manager1.id,
-            ),
-            Achievement(
-                achievement_type="TOP2", league="1", season="22/23",
-                title="TOP2", icon_path="/static/img/cups/top2.svg",
-                manager_id=self.manager1.id,
-            ),
-        ])
-        
+        db.session.add_all(
+            [
+                Achievement(
+                    achievement_type="TOP1",
+                    league="1",
+                    season="23/24",
+                    title="TOP1",
+                    icon_path="/static/img/cups/top1.svg",
+                    manager_id=self.manager1.id,
+                ),
+                Achievement(
+                    achievement_type="TOP2",
+                    league="1",
+                    season="22/23",
+                    title="TOP2",
+                    icon_path="/static/img/cups/top2.svg",
+                    manager_id=self.manager1.id,
+                ),
+            ]
+        )
+
         # Create achievements for manager2 (medium score)
-        db.session.add(Achievement(
-            achievement_type="TOP3", league="1", season="23/24",
-            title="TOP3", icon_path="/static/img/cups/top3.svg",
-            manager_id=self.manager2.id,
-        ))
-        
+        db.session.add(
+            Achievement(
+                achievement_type="TOP3",
+                league="1",
+                season="23/24",
+                title="TOP3",
+                icon_path="/static/img/cups/top3.svg",
+                manager_id=self.manager2.id,
+            )
+        )
+
         # Create achievements for manager3 (tandem, low score)
-        db.session.add(Achievement(
-            achievement_type="R1", league="2", season="21/22",
-            title="Round 1", icon_path="/static/img/cups/r1.svg",
-            manager_id=self.manager3.id,
-        ))
-        
+        db.session.add(
+            Achievement(
+                achievement_type="R1",
+                league="2",
+                season="21/22",
+                title="Round 1",
+                icon_path="/static/img/cups/r1.svg",
+                manager_id=self.manager3.id,
+            )
+        )
+
         db.session.commit()
 
     def test_build_leaderboard_returns_list(self) -> None:
@@ -260,7 +280,16 @@ class TestRatingCalculation(unittest.TestCase):
     def test_leaderboard_has_required_fields(self) -> None:
         """Test that each leaderboard entry has required fields."""
         result = build_leaderboard(db.session)
-        required_fields = ["id", "name", "display_name", "is_tandem", "country", "total", "achievements", "rank"]
+        required_fields = [
+            "id",
+            "name",
+            "display_name",
+            "is_tandem",
+            "country",
+            "total",
+            "achievements",
+            "rank",
+        ]
 
         for entry in result:
             for field in required_fields:
@@ -288,11 +317,11 @@ class TestRatingCalculation(unittest.TestCase):
     def test_tandem_detection(self) -> None:
         """Test that tandem managers are detected correctly."""
         result = build_leaderboard(db.session)
-        
+
         tandem_entry = next(e for e in result if e["name"] == "Tandem: A, B")
         self.assertTrue(tandem_entry["is_tandem"])
         self.assertEqual(tandem_entry["display_name"], "A, B")
-        
+
         non_tandem_entry = next(e for e in result if e["name"] == "Manager One")
         self.assertFalse(non_tandem_entry["is_tandem"])
         self.assertEqual(non_tandem_entry["display_name"], "Manager One")
@@ -300,11 +329,18 @@ class TestRatingCalculation(unittest.TestCase):
     def test_base_points_coverage(self) -> None:
         """Test that BASE_POINTS covers all expected combinations."""
         expected_combinations = [
-            ("1", "TOP1"), ("1", "TOP2"), ("1", "TOP3"),
-            ("2", "TOP1"), ("2", "TOP2"), ("2", "TOP3"),
-            ("1", "BEST"), ("2", "BEST"),
-            ("1", "R3"), ("2", "R3"),
-            ("1", "R1"), ("2", "R1"),
+            ("1", "TOP1"),
+            ("1", "TOP2"),
+            ("1", "TOP3"),
+            ("2", "TOP1"),
+            ("2", "TOP2"),
+            ("2", "TOP3"),
+            ("1", "BEST"),
+            ("2", "BEST"),
+            ("1", "R3"),
+            ("2", "R3"),
+            ("1", "R1"),
+            ("2", "R1"),
         ]
         for combo in expected_combinations:
             self.assertIn(combo, BASE_POINTS, f"Missing base points for {combo}")
@@ -318,7 +354,7 @@ class TestRatingCalculation(unittest.TestCase):
         self.assertEqual(BASE_POINTS[("1", "BEST")], 50)
         self.assertEqual(BASE_POINTS[("1", "R3")], 30)
         self.assertEqual(BASE_POINTS[("1", "R1")], 10)
-        
+
         # League 2
         self.assertEqual(BASE_POINTS[("2", "TOP1")], 300)
         self.assertEqual(BASE_POINTS[("2", "TOP2")], 200)
@@ -332,7 +368,7 @@ class TestRatingCalculation(unittest.TestCase):
         expected_seasons = ["24/25", "23/24", "22/23", "21/22"]
         for season in expected_seasons:
             self.assertIn(season, SEASON_MULTIPLIER, f"Missing multiplier for season {season}")
-        
+
         # Verify multiplier values (current season = baseline, older = discount)
         self.assertEqual(SEASON_MULTIPLIER["24/25"], 1.00)  # Baseline
         self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.95)  # -5%

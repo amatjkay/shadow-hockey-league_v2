@@ -7,9 +7,8 @@ Usage:
     from data.managers_data import managers
 """
 
-from typing import List, Optional
 from dataclasses import dataclass
-
+from typing import List, Optional
 
 # Path constants for static assets
 CUPS_PATH = "/static/img/cups/"
@@ -37,6 +36,7 @@ FLAG_CHINA = f"{FLAGS_PATH}china.png"
 @dataclass
 class ManagerData:
     """Data class representing a manager with their achievements."""
+
     name: str
     country: str
     achievements: Optional[List[str]] = None
@@ -47,120 +47,187 @@ class ManagerData:
 
 
 # List of countries (for reference, not directly used in seeding)
-COUNTRIES = [
-    "Russia",
-    "Belarus",
-    "Kazakhstan",
-    "Vietnam",
-    "Ukraine",
-    "Mexico",
-    "Poland",
-    "China"
-]
+COUNTRIES = ["Russia", "Belarus", "Kazakhstan", "Vietnam", "Ukraine", "Mexico", "Poland", "China"]
 
 # Managers data - used by seed_db.py to populate the database
 # Note: Max Trufanov appears once with all 3 achievements (consolidated from duplicate entries)
 managers = [
-    ManagerData("Feel Good", FLAG_BEL, [
-        f'<img src="{CUP_TOP1}" title="Shadow 1 league TOP1 s22/23">',
-        f'<img src="{CUP_TOP2}" title="Shadow 1 league TOP2 s21/22">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">'
-    ]),
-    ManagerData("Sousse Sousse", FLAG_RUS,
-           [f'<img src="{CUP_TOP1}" title="Shadow 1 league TOP1 s23/24">']),
-    ManagerData("Cole CaufieldTeamNePobedim", FLAG_KZ,
-           [f'<img src="{CUP_TOP1}" title="Shadow 1 league TOP1 s21/22">']),
-    ManagerData("whiplash 92", FLAG_RUS, [
-        f'<img src="{CUP_TOP2}" title="Shadow 1 league TOP2 s23/24">',
-        f'<img src="{CUP_TOP3}" title="Shadow 1 league TOP3 s21/22">',
-        f'<img src="{CUP_BEST}" title="Shadow 1 league Best regular player s23/24">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">'
-    ]),
-    ManagerData("Alex Galuza", FLAG_BEL, [
-        f'<img src="{CUP_TOP2}" title="Shadow 1 league TOP2 s22/23">',
-        f'<img src="{CUP_BEST}" title="Shadow 1 league Best regular player s22/23">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">'
-    ]),
-    ManagerData("El Guerrero", FLAG_BEL,
-           [f'<img src="{CUP_TOP3}" title="Shadow 1 league TOP3 s23/24">']),
-    ManagerData("Max Bumble", FLAG_RUS,
-           [f'<img src="{CUP_TOP1}" title="Shadow 2 league TOP1 s23/24">']),
-
-    ManagerData("Sumzair San", FLAG_RUS,
-           [f'<img src="{CUP_TOP1}" title="Shadow 2 league TOP1 s22/23">']),
-    ManagerData("AleX TiiKii", FLAG_RUS, [
-        f'<img src="{CUP_TOP2}" title="Shadow 2 league TOP2 s22/23">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">'
-    ]),
-    ManagerData("Сергей Стрельченко", FLAG_BEL,
-           [f'<img src="{CUP_TOP2}" title="Shadow 2 league TOP2 s23/24">']),
-    ManagerData("Yoze Marino", FLAG_CHINA,
-           [f'<img src="{CUP_TOP3}" title="Shadow 2 league TOP3 s23/24">']),
-
-    ManagerData("Nurzhan Yessengaliev", FLAG_KZ, [
-        f'<img src="{CUP_TOP3}" title="Shadow 1 league TOP3 s22/23">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">'
-    ]),
-    ManagerData("Tandem: Vlad, whiplash 92", FLAG_RUS,
-           [f'<img src="{CUP_TOP3}" title="Shadow 2 league TOP3 s22/23">']),
-    ManagerData("Евгений Иванов", FLAG_RUS, [
-        f'<img src="{CUP_BEST}" title="Shadow 1 league Best regular player s21/22">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">',
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">'
-    ]),
-    ManagerData("Vladislav Belov", FLAG_VIETNAM, [
-        f'<img src="{CUP_BEST}" title="Shadow 2 league Best regular player s21/22">',
-        f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s21/22">'
-    ]),
-    ManagerData("Евгений Медведев", FLAG_RUS,
-           [f'<img src="{CUP_R3}" title="Shadow 1 league Round 3 s23/24">']),
-    ManagerData("Aleks Lang", FLAG_RUS,
-           [f'<img src="{CUP_R3}" title="Shadow 2 league Round 3 s23/24">']),
-    ManagerData("Vyacheslav Shamanov", FLAG_RUS,
-           [f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">']),
-    ManagerData("Sergey Kharlanov", FLAG_BEL,
-           [f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">']),
-    ManagerData("Denis Sanzharevskyi", FLAG_UA,
-           [f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">']),
-    ManagerData("Don Georgio", FLAG_RUS, [
-        f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">',
-        f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">'
-    ]),
-    ManagerData("Юрий Shestakov", FLAG_RUS, [
-        f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">',
-        f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">'
-    ]),
-    ManagerData("Vlad V", FLAG_RUS,
-           [f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">']),
-    ManagerData("Tandem: Sergey Dorokhov, Maxim Shvetsov", FLAG_RUS,
-           [f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">']),
+    ManagerData(
+        "Feel Good",
+        FLAG_BEL,
+        [
+            f'<img src="{CUP_TOP1}" title="Shadow 1 league TOP1 s22/23">',
+            f'<img src="{CUP_TOP2}" title="Shadow 1 league TOP2 s21/22">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">',
+        ],
+    ),
+    ManagerData(
+        "Sousse Sousse", FLAG_RUS, [f'<img src="{CUP_TOP1}" title="Shadow 1 league TOP1 s23/24">']
+    ),
+    ManagerData(
+        "Cole CaufieldTeamNePobedim",
+        FLAG_KZ,
+        [f'<img src="{CUP_TOP1}" title="Shadow 1 league TOP1 s21/22">'],
+    ),
+    ManagerData(
+        "whiplash 92",
+        FLAG_RUS,
+        [
+            f'<img src="{CUP_TOP2}" title="Shadow 1 league TOP2 s23/24">',
+            f'<img src="{CUP_TOP3}" title="Shadow 1 league TOP3 s21/22">',
+            f'<img src="{CUP_BEST}" title="Shadow 1 league Best regular player s23/24">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">',
+        ],
+    ),
+    ManagerData(
+        "Alex Galuza",
+        FLAG_BEL,
+        [
+            f'<img src="{CUP_TOP2}" title="Shadow 1 league TOP2 s22/23">',
+            f'<img src="{CUP_BEST}" title="Shadow 1 league Best regular player s22/23">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">',
+        ],
+    ),
+    ManagerData(
+        "El Guerrero", FLAG_BEL, [f'<img src="{CUP_TOP3}" title="Shadow 1 league TOP3 s23/24">']
+    ),
+    ManagerData(
+        "Max Bumble", FLAG_RUS, [f'<img src="{CUP_TOP1}" title="Shadow 2 league TOP1 s23/24">']
+    ),
+    ManagerData(
+        "Sumzair San", FLAG_RUS, [f'<img src="{CUP_TOP1}" title="Shadow 2 league TOP1 s22/23">']
+    ),
+    ManagerData(
+        "AleX TiiKii",
+        FLAG_RUS,
+        [
+            f'<img src="{CUP_TOP2}" title="Shadow 2 league TOP2 s22/23">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">',
+        ],
+    ),
+    ManagerData(
+        "Сергей Стрельченко",
+        FLAG_BEL,
+        [f'<img src="{CUP_TOP2}" title="Shadow 2 league TOP2 s23/24">'],
+    ),
+    ManagerData(
+        "Yoze Marino", FLAG_CHINA, [f'<img src="{CUP_TOP3}" title="Shadow 2 league TOP3 s23/24">']
+    ),
+    ManagerData(
+        "Nurzhan Yessengaliev",
+        FLAG_KZ,
+        [
+            f'<img src="{CUP_TOP3}" title="Shadow 1 league TOP3 s22/23">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">',
+        ],
+    ),
+    ManagerData(
+        "Tandem: Vlad, whiplash 92",
+        FLAG_RUS,
+        [f'<img src="{CUP_TOP3}" title="Shadow 2 league TOP3 s22/23">'],
+    ),
+    ManagerData(
+        "Евгений Иванов",
+        FLAG_RUS,
+        [
+            f'<img src="{CUP_BEST}" title="Shadow 1 league Best regular player s21/22">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">',
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">',
+        ],
+    ),
+    ManagerData(
+        "Vladislav Belov",
+        FLAG_VIETNAM,
+        [
+            f'<img src="{CUP_BEST}" title="Shadow 2 league Best regular player s21/22">',
+            f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s21/22">',
+        ],
+    ),
+    ManagerData(
+        "Евгений Медведев",
+        FLAG_RUS,
+        [f'<img src="{CUP_R3}" title="Shadow 1 league Round 3 s23/24">'],
+    ),
+    ManagerData(
+        "Aleks Lang", FLAG_RUS, [f'<img src="{CUP_R3}" title="Shadow 2 league Round 3 s23/24">']
+    ),
+    ManagerData(
+        "Vyacheslav Shamanov",
+        FLAG_RUS,
+        [f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s23/24">'],
+    ),
+    ManagerData(
+        "Sergey Kharlanov",
+        FLAG_BEL,
+        [f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">'],
+    ),
+    ManagerData(
+        "Denis Sanzharevskyi",
+        FLAG_UA,
+        [f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s21/22">'],
+    ),
+    ManagerData(
+        "Don Georgio",
+        FLAG_RUS,
+        [
+            f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">',
+            f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">',
+        ],
+    ),
+    ManagerData(
+        "Юрий Shestakov",
+        FLAG_RUS,
+        [
+            f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">',
+            f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">',
+        ],
+    ),
+    ManagerData(
+        "Vlad V", FLAG_RUS, [f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">']
+    ),
+    ManagerData(
+        "Tandem: Sergey Dorokhov, Maxim Shvetsov",
+        FLAG_RUS,
+        [f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">'],
+    ),
     ManagerData("Павел Роевнев", FLAG_RUS),
     ManagerData("Igor Kadzayev", FLAG_MEXICO),
     ManagerData("Oleg Karandashov", FLAG_UA),
     ManagerData("Andrii Korniichuk", FLAG_POL),
-    ManagerData("Dima ATC", FLAG_RUS,
-           [f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">']),
-    ManagerData("Alex Rybakov", FLAG_RUS,
-           [f'<img src="{CUP_TOP1}" title="Shadow 2 league TOP1 s24/25">']),
+    ManagerData(
+        "Dima ATC", FLAG_RUS, [f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">']
+    ),
+    ManagerData(
+        "Alex Rybakov", FLAG_RUS, [f'<img src="{CUP_TOP1}" title="Shadow 2 league TOP1 s24/25">']
+    ),
     ManagerData("Femida Femida", FLAG_RUS),
     ManagerData("Maxim Shvetsov", FLAG_RUS),
     ManagerData("Sergey Dorokhov", FLAG_RUS),
-    ManagerData("Zhanabil Au", FLAG_KZ,
-           [f'<img src="{CUP_R3}" title="Shadow 2 league Round 3 s24/25">']),
-    ManagerData("xMoneyMaker 1", FLAG_RUS,
-           [f'<img src="{CUP_TOP2}" title="Shadow 2 league TOP2 s24/25">']),
-    ManagerData("Aleksejs Lazarenko", FLAG_RUS,
-           [f'<img src="{CUP_TOP3}" title="Shadow 2 league TOP3 s24/25">']),
+    ManagerData(
+        "Zhanabil Au", FLAG_KZ, [f'<img src="{CUP_R3}" title="Shadow 2 league Round 3 s24/25">']
+    ),
+    ManagerData(
+        "xMoneyMaker 1", FLAG_RUS, [f'<img src="{CUP_TOP2}" title="Shadow 2 league TOP2 s24/25">']
+    ),
+    ManagerData(
+        "Aleksejs Lazarenko",
+        FLAG_RUS,
+        [f'<img src="{CUP_TOP3}" title="Shadow 2 league TOP3 s24/25">'],
+    ),
     ManagerData("Dias Kazbekuly", FLAG_RUS),
     ManagerData("Tandem: Vladislav B, Ilnaz Akhtyamov", FLAG_RUS),
     ManagerData("Sergey Pashkov", FLAG_RUS),
     ManagerData("Ruslan Shlain", FLAG_RUS),
     ManagerData("Dmitrii Volkov", FLAG_RUS),
-    ManagerData("Max Trufanov", FLAG_UA, [
-        f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">',
-        f'<img src="{CUP_R3}" title="Shadow 1 league Round 3 s21/22">',
-        f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">'
-    ])
+    ManagerData(
+        "Max Trufanov",
+        FLAG_UA,
+        [
+            f'<img src="{CUP_R1}" title="Shadow 1 league Round 1 s22/23">',
+            f'<img src="{CUP_R3}" title="Shadow 1 league Round 3 s21/22">',
+            f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">',
+        ],
+    ),
 ]

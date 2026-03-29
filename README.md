@@ -9,7 +9,7 @@
 #### Вариант 1: Использование .bat файлов (рекомендуется)
 
 ```cmd
-REM 1. Установка и настройка (аналог make setup)
+REM 1. Установка и настройка
 setup.bat
 
 REM 2. Запуск сервера
@@ -23,7 +23,7 @@ run.bat
 pip install -r requirements.txt
 
 # 2. Инициализация базы данных
-python scripts\validate_db.py --init --seed
+python seed_db.py
 
 # 3. Запуск сервера
 python app.py
@@ -145,24 +145,43 @@ python -m unittest discover -v
 ### Ошибка "An error occurred"
 
 ```bash
-# Проверьте базу данных
-make validate
-
-# Если есть проблемы, переинициализируйте БД
-make init-db
+# Переинициализируйте БД
+python seed_db.py
 ```
 
 ### Ошибка "no such table"
 
 ```bash
-# Примените миграции
-alembic upgrade head
-
-# Или пересоздайте БД
-make clean-db
-make init-db
+# Пересоздайте БД
+del dev.db
+python seed_db.py
 ```
 
 ### Проблемы с путями к БД
 
 Убедитесь, что `DATABASE_URL` в `.env` и `sqlalchemy.url` в `alembic.ini` указывают на один файл.
+
+## 📁 Структура проекта
+
+| Путь                             | Назначение                                          |
+| -------------------------------- | --------------------------------------------------- |
+| `app.py`                         | Приложение Flask, маршруты `/` и редирект `/rating` |
+| `models.py`                      | SQLAlchemy модели (Country, Manager, Achievement)   |
+| `config.py`                      | Конфигурация с поддержкой `.env`                    |
+| `services/rating_service.py`     | Сервис расчёта рейтинга из БД                       |
+| `services/api.py`                | REST API для CRUD операций                          |
+| `services/validation_service.py` | Валидация данных перед записью в БД                 |
+| `seed_db.py`                     | Скрипт наполнения БД начальными данными             |
+| `data/managers_data.py`          | Исходные данные для импорта в БД                    |
+| `templates/index.html`           | Главная страница                                    |
+| `static/css/`                    | Модульные CSS файлы (11 файлов)                     |
+| `docs/API.md`                    | Документация REST API                               |
+| `.env`                           | Переменные окружения (не коммитить в git)           |
+| `.env.example`                   | Пример переменных окружения                         |
+
+## 📊 Статус
+
+- ✅ Все 36 тестов проходят
+- ✅ Код отформатирован (black, isort, flake8)
+- ✅ REST API документирован (`docs/API.md`)
+- ✅ Поддержка Windows (кодировка, пути)

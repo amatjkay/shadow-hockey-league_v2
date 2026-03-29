@@ -9,7 +9,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from models import Achievement, Country, Manager
+from models import Country, Manager
 
 
 class ValidationError(Exception):
@@ -85,10 +85,7 @@ def validate_manager_exists(session: Session, manager_id: int) -> tuple[bool, st
 
 
 def validate_achievement_data(
-    achievement_type: str,
-    league: str,
-    season: str,
-    title: str
+    achievement_type: str, league: str, season: str, title: str
 ) -> tuple[bool, str | None]:
     """Validate achievement data format.
 
@@ -121,10 +118,7 @@ def validate_achievement_data(
     return True, None
 
 
-def validate_manager_data(
-    name: str,
-    country_id: int
-) -> tuple[bool, str | None]:
+def validate_manager_data(name: str, country_id: int) -> tuple[bool, str | None]:
     """Validate manager data format.
 
     Args:
@@ -148,10 +142,7 @@ def validate_manager_data(
     return True, None
 
 
-def validate_country_data(
-    code: str,
-    flag_path: str
-) -> tuple[bool, str | None]:
+def validate_country_data(code: str, flag_path: str) -> tuple[bool, str | None]:
     """Validate country data format.
 
     Args:
@@ -242,16 +233,16 @@ class DataValidator:
                 self.errors.append(error)
 
             # Check country exists
-            is_valid, error = validate_country_exists(self.session, country_id)  # type: ignore[arg-type]
+            is_valid, error = validate_country_exists(
+                self.session, country_id  # type: ignore[arg-type]
+            )
             if not is_valid:
                 self.errors.append(f"Manager '{name}': {error}")
 
         return len(self.errors) == 0
 
     def validate_achievements(
-        self,
-        achievements_data: list[dict[str, Any]],
-        valid_manager_ids: set[int]
+        self, achievements_data: list[dict[str, Any]], valid_manager_ids: set[int]
     ) -> bool:
         """Validate achievements before insertion.
 
@@ -270,17 +261,13 @@ class DataValidator:
             title = achievement.get("title", "")
 
             # Validate format
-            is_valid, error = validate_achievement_data(
-                achievement_type, league, season, title
-            )
+            is_valid, error = validate_achievement_data(achievement_type, league, season, title)
             if not is_valid:
                 self.errors.append(f"Achievement for manager {manager_id}: {error}")
 
             # Check manager exists
             if manager_id not in valid_manager_ids:
-                self.errors.append(
-                    f"Achievement references non-existent manager ID: {manager_id}"
-                )
+                self.errors.append(f"Achievement references non-existent manager ID: {manager_id}")
 
         return len(self.errors) == 0
 
