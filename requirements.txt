@@ -1,12 +1,16 @@
-# Flask 3.1+ needed for Python 3.14 (pkgutil.get_loader removed); use 2.3.x on older Python if required
+# Shadow Hockey League Requirements
+# For PythonAnywhere deployment
+
+# Core Flask dependencies
 Flask>=3.1.0,<4
 Flask-SQLAlchemy==3.1.1
 python-dotenv>=1.0.0
-gunicorn==20.1.0
-# 3.11.x may require building from source on Python 3.14+; use a release with wheels
-aiohttp>=3.11.7
-aiofiles==24.1.0
+
+# Database migrations
 alembic==1.14.0
-attrs==24.2.0
-bcrypt==4.2.1
+
+# Production server (PythonAnywhere uses gunicorn)
+gunicorn==20.1.0
+
+# Utilities
 blinker==1.9.0
