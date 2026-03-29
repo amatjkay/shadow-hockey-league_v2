@@ -1,0 +1,144 @@
+/* Rating breakdown and achievement components */
+.achievement-label {
+  display: block;
+  font-weight: 500;
+  color: #282828;
+  margin-bottom: 2px;
+}
+
+.achievement-points {
+  display: block;
+  font-size: 13px;
+  color: #00a6ff;
+  font-weight: 600;
+}
+
+.rating-formula {
+  display: block;
+  font-size: 11px;
+  color: #dbe0e5;
+  font-weight: normal;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.rating-breakdown {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rating-breakdown-summary {
+  cursor: pointer;
+  color: #00a6ff;
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  padding: 4px 0;
+}
+
+.rating-breakdown-summary::-webkit-details-marker {
+  display: none;
+}
+
+.rating-breakdown-summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.rating-breakdown[open] .rating-breakdown-summary::before {
+  transform: rotate(90deg);
+}
+
+.rating-breakdown-body {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid skyblue;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #333;
+}
+
+.rating-ach-list--textonly {
+  margin: 0;
+  padding-left: 1.1em;
+  text-align: left;
+  list-style: disc;
+}
+
+.rating-ach-list--textonly li {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.35;
+}
+
+.rating-ach-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rating-ach-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.rating-ach-item:last-child {
+  margin-bottom: 0;
+}
+
+.rating-ach-icons {
+  flex-shrink: 0;
+}
+
+.rating-ach-icons img {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.rating-ach-meta {
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.35;
+  color: #282828;
+}
+
+.rating-formula {
+  opacity: 0.75;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.rating-empty {
+  opacity: 0.5;
+}
+
+/* Tandem badge */
+.tandem-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #00a6ff;
+  border: 1px solid rgba(0, 166, 255, 0.45);
+  border-radius: 6px;
+  background: rgba(0, 166, 255, 0.1);
+  vertical-align: middle;
+}
+
+.league-table .table-row:nth-child(-n+10) .manager-cell .tandem-badge {
+  -webkit-text-fill-color: #00a6ff;
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+}

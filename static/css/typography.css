@@ -1,0 +1,27 @@
+/* Links and typography styles */
+a {
+  position: relative;
+  display: inline-block;
+  color: #00a6ff;
+  overflow: hidden;
+  background: linear-gradient(to right, #00a6ff, #fff 50%, #00a6ff 50%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  background-position: 100%;
+  transition: background-position 275ms ease;
+  text-decoration: none;
+  margin: 0 2px;
+}
+
+a:hover {
+  background-position: 0 100%;
+}
+
+h1 {
+  color: #00a6ff;
+  text-align: center;
+  font-size: 60px;
+  margin: 30px 0;
+}

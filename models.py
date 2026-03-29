@@ -28,7 +28,7 @@ class Manager(db.Model):
     __tablename__ = 'managers'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
     country_id = db.Column(
         db.Integer,
         db.ForeignKey('countries.id', ondelete='RESTRICT'),

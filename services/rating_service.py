@@ -52,7 +52,6 @@ LABEL_RU: dict[str, str] = {
     "BEST": "Best regular",
     "R3": "Round 3",
     "R1": "Round 1",
-    "TOXIC": "toxic",
 }
 
 
@@ -63,7 +62,7 @@ def get_achievement_kind(achievement: Achievement) -> str:
         achievement: Achievement model instance
 
     Returns:
-        Normalized kind string (TOP1, TOP2, BEST, R3, R1, TOXIC)
+        Normalized kind string (TOP1, TOP2, BEST, R3, R1)
     """
     if achievement.achievement_type.startswith("TOP"):
         return achievement.achievement_type
@@ -86,20 +85,6 @@ def calculate_achievement_points(achievement: Achievement) -> dict[str, Any]:
         Dictionary with points calculation details
     """
     kind = get_achievement_kind(achievement)
-
-    # Handle toxic achievements (zero points)
-    if kind == "TOXIC":
-        return {
-            "points": 0,
-            "base": 0,
-            "mul": 1.0,
-            "mul_display": "1,00",
-            "season": achievement.season,
-            "league": achievement.league,
-            "kind": "toxic",
-            "label": "toxic",
-            "html": achievement.to_html(),
-        }
 
     # Calculate points: base × multiplier
     base = BASE_POINTS.get((achievement.league, kind), 0)
@@ -124,13 +109,18 @@ def calculate_achievement_points(achievement: Achievement) -> dict[str, Any]:
 def build_leaderboard(session: Session) -> list[dict[str, Any]]:
     """Build the leaderboard with all managers and their ratings.
 
+    Uses eager loading (joinedload) to prevent N+1 query problem:
+    - Loads all managers with their achievements in a single query
+    - Loads country data for each manager in the same query
+    
     Args:
         session: SQLAlchemy database session
 
     Returns:
         List of manager rating dictionaries, sorted by total points descending
     """
-    # Query all managers with their achievements and country
+    # Query all managers with their achievements and country using eager loading
+    # This generates a single SQL query with JOINs instead of N+1 queries
     managers = (
         session.query(Manager)
         .options(joinedload(Manager.achievements), joinedload(Manager.country))

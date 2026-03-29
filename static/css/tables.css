@@ -1,0 +1,148 @@
+/* Table styles */
+.table {
+  width: 70%;
+  margin: 0 auto;
+  text-align: center;
+  font-weight: bold;
+  border: 3px solid skyblue;
+  border-collapse: collapse;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.13));
+}
+
+.table.league-table {
+  width: 96%;
+  max-width: 1200px;
+}
+
+.table td, .table th {
+  padding: 10px;
+  border: 1px solid skyblue;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table-header {
+  text-transform: uppercase;
+  width: auto;
+  text-align: left;
+  vertical-align: middle;
+  color: #00a6ff;
+}
+
+.table-header:first-child {
+  width: 10%;
+}
+
+.table-header:nth-child(2) {
+  width: 40%;
+}
+
+.table-header:last-child {
+  width: 50%;
+}
+
+.table-row {
+  text-align: center;
+}
+
+.table-items {
+  white-space: nowrap;
+  text-align: center;
+  position: relative;
+}
+
+.table-header img {
+  width: 30px;
+  height: 30px;
+  cursor: help;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.table-items img {
+  width: 30px;
+  height: 30px;
+  cursor: help;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.table-row__countries {
+  vertical-align: middle;
+}
+
+/* Top 10 animation */
+@keyframes league-top10-sheen {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.league-table .table-row:nth-child(-n+10) .rank-cell,
+.league-table .table-row:nth-child(-n+10) .score-cell,
+.league-table .table-row:nth-child(-n+10) .manager-cell {
+  background: linear-gradient(270deg, red, yellow);
+  background-size: 200% 200%;
+  background-attachment: fixed;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: league-top10-sheen 3s linear infinite;
+  text-transform: uppercase;
+  text-shadow: none;
+}
+
+/* League table specific column widths */
+.league-table .table-header:nth-child(1) {
+  width: 7%;
+}
+
+.league-table .table-header:nth-child(2) {
+  width: 4%;
+}
+
+.league-table .table-header:nth-child(3) {
+  width: 7%;
+}
+
+.league-table .table-header:nth-child(4) {
+  width: 22%;
+}
+
+.league-table .table-header:nth-child(5) {
+  width: 38%;
+}
+
+.league-table .table-header:nth-child(6) {
+  width: 14%;
+}
+
+.table-header--narrow {
+  font-size: 0.85em;
+}
+
+.league-table .rank-cell,
+.league-table .score-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.league-cups-cell {
+  white-space: normal;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.league-cups-cell img {
+  margin: 2px;
+}
+
+.rating-breakdown-cell {
+  white-space: normal;
+  text-align: left !important;
+  vertical-align: top;
+  max-width: 280px;
+}

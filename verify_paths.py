@@ -4,10 +4,11 @@ import unittest
 def verify_static_files():
     static_dir = Path('static')
     missing_files = []
-    
+
     # Проверка файлов достижений
-    for cup in ['top1', 'top2', 'top3', 'best-reg', 'clap', 'clap-b', 'toxic']:
-        ext = 'png' if cup == 'toxic' else 'svg'
+    # Примечание: toxic.png был удалён намеренно, т.к. не используется
+    for cup in ['top1', 'top2', 'top3', 'best-reg', 'clap', 'clap-b']:
+        ext = 'svg'
         if not (static_dir / 'img' / 'cups' / f'{cup}.{ext}').exists():
             missing_files.append(f'cups/{cup}.{ext}')
     

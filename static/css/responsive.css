@@ -1,0 +1,102 @@
+/* Mobile responsive styles */
+@media screen and (max-width: 600px) {
+  /* Show mobile menu */
+  .mobile-flag {
+    display: inline-block; /* Show flag in mobile version */
+  }
+
+  /* Container */
+  .container {
+    padding-top: 60px;
+  }
+
+  /* Table on mobile */
+  .table {
+    width: 95%;
+    margin: 0 auto;
+  }
+
+  .table-responsive {
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  /* Display table rows as blocks */
+  .table-row {
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+
+  /* Hide country cell */
+  .country-cell {
+    display: none;
+  }
+
+  .manager-cell {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+  }
+
+  .manager-name {
+    display: inline-block;
+  }
+
+  .achievements-cell {
+    display: block;
+    padding: 5px 0;
+  }
+
+  .table-items img {
+    width: 30px;
+    height: 30px;
+    vertical-align: middle;
+  }
+
+  /* Hide table headers */
+  .table-header {
+    display: none;
+  }
+
+  /* Rating breakdown on mobile */
+  .rating-breakdown-cell {
+    max-width: none;
+  }
+
+  .rating-ach-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-section {
+    margin-top: 2rem;
+  }
+
+  .section-lead {
+    font-size: 14px;
+    padding: 0 8px;
+  }
+}
+
+/* Very small screens */
+@media screen and (max-width: 320px) {
+  h1 {
+    font-size: 28px;
+    margin: 10px 0;
+  }
+
+  .container {
+    padding-top: 50px;
+  }
+
+  .table-items {
+    font-size: 14px;
+  }
+
+  .table-items img {
+    width: 30px;
+    height: 30px;
+  }
+}

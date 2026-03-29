@@ -1,0 +1,30 @@
+/* Page sections and layout */
+.page-title {
+  margin-bottom: 0.25rem;
+}
+
+.page-section {
+  margin-top: 2.75rem;
+}
+
+.page-section--league {
+  margin-top: 1.5rem;
+}
+
+.section-heading {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: #00a6ff;
+  text-align: center;
+  margin: 0 0 0.35rem 0;
+  font-weight: bold;
+}
+
+.section-lead {
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto 1rem;
+  font-size: 15px;
+  color: rgba(40, 40, 40, 0.82);
+  font-weight: normal;
+  line-height: 1.45;
+}

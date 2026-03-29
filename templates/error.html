@@ -1,11 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Error</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Shadow Hockey League</title>
+    <!-- CSS Modules -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <style>
+        .error-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .error-title {
+            color: #d93025;
+            font-size: 32px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .error-message {
+            color: #333;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .error-details {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .error-details h4 {
+            color: #00a6ff;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .error-details pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .error-actions {
+            text-align: center;
+            margin-top: 25px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: #00a6ff;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #0088cc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 166, 255, 0.3);
+        }
+        .btn-secondary {
+            background: rgba(0, 166, 255, 0.1);
+            color: #00a6ff;
+            border: 1px solid rgba(0, 166, 255, 0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(0, 166, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .error-icon {
+            font-size: 64px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>An error occurred</h1>
-    <p>Please try again later.</p>
+    <div class="container">
+        <header class="header">
+            <div class="header-items">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип" class="img-fluid">
+            </div>
+        </header>
+
+        <div class="error-container">
+            <div class="error-icon">⚠️</div>
+            <h1 class="error-title">Произошла ошибка</h1>
+            <p class="error-message">
+                {% if message %}
+                    {{ message }}
+                {% else %}
+                    К сожалению, произошла непредвиденная ошибка. Пожалуйста, попробуйте снова позже.
+                {% endif %}
+            </p>
+
+            {% if error_code %}
+            <p class="error-message">
+                <strong>Код ошибки:</strong> {{ error_code }}
+            </p>
+            {% endif %}
+
+            {% if show_details and (error_type or traceback) %}
+            <div class="error-details">
+                <h4>Детали ошибки</h4>
+                {% if error_type %}
+                <p><strong>Тип:</strong> {{ error_type }}</p>
+                {% endif %}
+                {% if traceback %}
+                <pre>{{ traceback }}</pre>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="error-actions">
+                <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+                <a href="javascript:history.back()" class="btn btn-secondary">Назад</a>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="copyright">© Hockey Shadow League - Создано в 2021 году
+                <a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
+                <a target="_blank" href="https://t.me/whiplash92">@Константином</a>
+            </div>
+        </footer>
+    </div>
 </body>
-</html> 
+</html>

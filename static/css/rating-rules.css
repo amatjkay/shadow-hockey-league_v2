@@ -1,0 +1,100 @@
+/* Rating rules and points tables */
+.rating-rules {
+  max-width: 720px;
+  margin: 0 auto 1.25rem;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid skyblue;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #333;
+}
+
+.rating-rules summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: #00a6ff;
+  list-style: none;
+}
+
+.rating-rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.rating-rules summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.rating-rules[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.rating-rules-body {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(135, 206, 235, 0.5);
+}
+
+.rating-rules ul {
+  margin: 8px 0 0;
+  padding-left: 1.2em;
+  list-style: disc;
+}
+
+/* Points table */
+.rating-rules .points-table {
+  width: 100%;
+  max-width: 500px;
+  margin: 12px auto;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.rating-rules .points-table thead {
+  background: rgba(0, 166, 255, 0.15);
+}
+
+.rating-rules .points-table th,
+.rating-rules .points-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border: 1px solid rgba(135, 206, 235, 0.4);
+}
+
+.rating-rules .points-table th:first-child,
+.rating-rules .points-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+
+.rating-rules .points-table tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.rating-rules .points-table tr:hover {
+  background: rgba(0, 166, 255, 0.08);
+}
+
+.rating-rules .text-muted {
+  color: #555;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.rating-rules h4 {
+  color: #00a6ff;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+
+.rating-rules h4:first-child {
+  margin-top: 12px;
+}

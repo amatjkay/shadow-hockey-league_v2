@@ -28,6 +28,10 @@ coverage.xml
 *.db
 instance/*.db
 
+# Logs
+logs/
+*.log
+
 # Environment
 .env
 .env.local

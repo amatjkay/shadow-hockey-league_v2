@@ -150,11 +150,6 @@ class TestRatingServiceHelpers(unittest.TestCase):
         ach = self._create_achievement("R1", "1", "23/24", "Round 1")
         self.assertEqual(get_achievement_kind(ach), "R1")
 
-    def test_get_achievement_kind_toxic(self) -> None:
-        """Test kind extraction for TOXIC."""
-        ach = self._create_achievement("TOXIC", "1", "N/A", "Toxic")
-        self.assertEqual(get_achievement_kind(ach), "TOXIC")
-
     def test_calculate_points_top1_s23_24(self) -> None:
         """Test points calculation for TOP1 s23/24."""
         ach = self._create_achievement("TOP1", "1", "23/24", "TOP1")
@@ -181,13 +176,6 @@ class TestRatingServiceHelpers(unittest.TestCase):
         self.assertEqual(result["base"], 300)
         self.assertEqual(result["mul"], 0.90)
         self.assertEqual(result["points"], 270)  # 300 * 0.90
-
-    def test_calculate_points_toxic(self) -> None:
-        """Test points calculation for TOXIC (zero points)."""
-        ach = self._create_achievement("TOXIC", "1", "N/A", "Toxic")
-        result = calculate_achievement_points(ach)
-
-        self.assertEqual(result["points"], 0)
 
     def test_calculate_points_s24_25(self) -> None:
         """Test points calculation for season 24/25 (baseline)."""
@@ -373,6 +361,184 @@ class TestSecurityHeaders(unittest.TestCase):
         """Test X-XSS-Protection header."""
         response = self.client.get("/")
         self.assertEqual(response.headers.get("X-XSS-Protection"), "1; mode=block")
+
+
+class TestValidationService(unittest.TestCase):
+    """Tests for validation service."""
+
+    def setUp(self) -> None:
+        self.app = create_app("config.TestingConfig")
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self) -> None:
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_validate_country_data_valid(self) -> None:
+        """Test valid country data validation."""
+        from services.validation_service import validate_country_data
+
+        is_valid, error = validate_country_data("RUS", "/static/img/flags/rus.png")
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_validate_country_data_invalid_code(self) -> None:
+        """Test invalid country code validation."""
+        from services.validation_service import validate_country_data
+
+        is_valid, error = validate_country_data("RU", "/static/img/flags/rus.png")
+        self.assertFalse(is_valid)
+        self.assertIsNotNone(error)
+
+    def test_validate_manager_data_valid(self) -> None:
+        """Test valid manager data validation."""
+        from services.validation_service import validate_manager_data
+
+        is_valid, error = validate_manager_data("Test Manager", 1)
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_validate_achievement_data_valid(self) -> None:
+        """Test valid achievement data validation."""
+        from services.validation_service import validate_achievement_data
+
+        is_valid, error = validate_achievement_data("TOP1", "1", "24/25", "TOP1")
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_validate_achievement_data_invalid_league(self) -> None:
+        """Test invalid league validation."""
+        from services.validation_service import validate_achievement_data
+
+        is_valid, error = validate_achievement_data("TOP1", "3", "24/25", "TOP1")
+        self.assertFalse(is_valid)
+        self.assertIsNotNone(error)
+
+
+class TestAPIEndpoints(unittest.TestCase):
+    """Tests for REST API endpoints."""
+
+    def setUp(self) -> None:
+        self.app = create_app("config.TestingConfig")
+        self.client = self.app.test_client()
+
+        with self.app.app_context():
+            db.create_all()
+            # Create test data
+            country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
+            db.session.add(country)
+            db.session.flush()
+
+            manager = Manager(name="API Test Manager", country_id=country.id)
+            db.session.add(manager)
+            db.session.flush()
+
+            achievement = Achievement(
+                achievement_type="TOP1",
+                league="1",
+                season="24/25",
+                title="TOP1",
+                icon_path="/static/img/cups/top1.svg",
+                manager_id=manager.id,
+            )
+            db.session.add(achievement)
+            db.session.commit()
+
+            self.manager_id = manager.id
+            self.country_id = country.id
+            self.achievement_id = achievement.id
+
+    def tearDown(self) -> None:
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_api_get_countries(self) -> None:
+        """Test GET /api/countries endpoint."""
+        response = self.client.get("/api/countries")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["code"], "RUS")
+
+    def test_api_get_managers(self) -> None:
+        """Test GET /api/managers endpoint."""
+        response = self.client.get("/api/managers")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "API Test Manager")
+
+    def test_api_get_manager_detail(self) -> None:
+        """Test GET /api/managers/<id> endpoint."""
+        response = self.client.get(f"/api/managers/{self.manager_id}")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["name"], "API Test Manager")
+        self.assertIn("achievements", data)
+
+    def test_api_get_achievements(self) -> None:
+        """Test GET /api/achievements endpoint."""
+        response = self.client.get("/api/achievements")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["achievement_type"], "TOP1")
+
+    def test_api_create_manager(self) -> None:
+        """Test POST /api/managers endpoint."""
+        new_manager = {
+            "name": "New Manager",
+            "country_id": self.country_id,
+        }
+        response = self.client.post(
+            "/api/managers",
+            json=new_manager,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.get_json()
+        self.assertEqual(data["name"], "New Manager")
+
+    def test_api_create_manager_duplicate(self) -> None:
+        """Test POST /api/managers with duplicate name."""
+        duplicate_manager = {
+            "name": "API Test Manager",
+            "country_id": self.country_id,
+        }
+        response = self.client.post(
+            "/api/managers",
+            json=duplicate_manager,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 409)
+        data = response.get_json()
+        self.assertIn("error", data)
+
+    def test_api_update_manager(self) -> None:
+        """Test PUT /api/managers/<id> endpoint."""
+        update_data = {"name": "Updated Manager"}
+        response = self.client.put(
+            f"/api/managers/{self.manager_id}",
+            json=update_data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["name"], "Updated Manager")
+
+    def test_api_delete_achievement(self) -> None:
+        """Test DELETE /api/achievements/<id> endpoint."""
+        response = self.client.delete(f"/api/achievements/{self.achievement_id}")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["message"], "Achievement deleted successfully")
 
 
 if __name__ == "__main__":

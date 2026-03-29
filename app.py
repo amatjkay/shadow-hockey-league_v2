@@ -10,7 +10,7 @@ import logging
 import os
 from typing import Any
 
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, redirect, render_template, request, url_for
 from flask.logging import default_handler
 
 from models import db
@@ -78,11 +78,34 @@ def configure_logging(app: Flask) -> None:
         "[%(asctime)s] %(levelname)s in %(module)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
-    # Console handler
+    # Console handler (always enabled)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level)
     console_handler.setFormatter(formatter)
     app.logger.addHandler(console_handler)
+
+    # File handler (production only)
+    if app.config.get("LOG_TO_FILE"):
+        try:
+            from logging.handlers import RotatingFileHandler
+
+            # Create logs directory
+            log_dir = app.config.get("LOG_DIR")
+            if log_dir:
+                log_dir.mkdir(exist_ok=True)
+
+            # Rotating file handler
+            file_handler = RotatingFileHandler(
+                app.config.get("LOG_FILE", "logs/app.log"),
+                maxBytes=app.config.get("LOG_MAX_BYTES", 10 * 1024 * 1024),
+                backupCount=app.config.get("LOG_BACKUP_COUNT", 5)
+            )
+            file_handler.setLevel(log_level)
+            file_handler.setFormatter(formatter)
+            app.logger.addHandler(file_handler)
+            app.logger.info("File logging enabled")
+        except Exception as e:
+            app.logger.warning(f"Could not enable file logging: {e}")
 
     app.logger.setLevel(log_level)
 
@@ -95,8 +118,10 @@ def register_extensions(app: Flask) -> None:
 
 def register_blueprints(app: Flask) -> None:
     """Register Flask blueprints."""
-    # Placeholder for future blueprints
-    pass
+    from services.api import api
+
+    # Register API blueprint
+    app.register_blueprint(api)
 
 
 def register_routes(app: Flask) -> None:
@@ -113,8 +138,17 @@ def register_routes(app: Flask) -> None:
                 rating_rows=leaderboard_data,
             )
         except Exception as e:
+            import traceback as tb
+            error_traceback = tb.format_exc()
             app.logger.error(f"Error building leaderboard: {str(e)}", exc_info=True)
-            return render_template("error.html"), 500
+            return render_template(
+                "error.html",
+                message="Не удалось загрузить рейтинг лиги. Попробуйте обновить страницу.",
+                error_code=500,
+                error_type=type(e).__name__,
+                traceback=error_traceback if app.debug else None,
+                show_details=app.debug,
+            ), 500
 
     @app.route("/rating")
     def rating() -> Any:
@@ -125,6 +159,26 @@ def register_routes(app: Flask) -> None:
     def health_check() -> dict[str, str]:
         """Health check endpoint for monitoring."""
         return {"status": "healthy"}
+
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found_error(error: Any) -> tuple[str, int]:
+        app.logger.warning(f"404 error: {request.url}")
+        return render_template(
+            "error.html",
+            message="Страница не найдена.",
+            error_code=404,
+        ), 404
+
+    @app.errorhandler(500)
+    def internal_error(error: Any) -> tuple[str, int]:
+        db.session.rollback()
+        app.logger.error(f"500 error: {str(error)}", exc_info=True)
+        return render_template(
+            "error.html",
+            message="Внутренняя ошибка сервера. Пожалуйста, попробуйте позже.",
+            error_code=500,
+        ), 500
 
 
 # Create app instance for manage.py and direct execution

@@ -5,7 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Hockey League</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- CSS Modules -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-menu.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sections.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/rating-rules.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 </head>
 
 <body>
@@ -152,14 +161,9 @@
                                         <ul class="rating-ach-list rating-ach-list--textonly">
                                             {% for a in row.achievements %}
                                             <li>
-                                                {% if a.kind == 'toxic' %}
-                                                <span class="achievement-label">🚫 toxic</span>
-                                                <span class="achievement-points"><strong>0</strong> очк.</span>
-                                                {% else %}
                                                 <span class="achievement-label">{{ a.label }}</span>
                                                 <span class="achievement-points"><strong>{{ a.points }}</strong> очк.</span>
                                                 <span class="rating-formula">({{ a.base }} × {{ a.mul_display }})</span>
-                                                {% endif %}
                                             </li>
                                             {% endfor %}
                                         </ul>

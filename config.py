@@ -20,16 +20,22 @@ except ImportError:
 
 class Config:
     """Base configuration class."""
-    
+
     SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-key-change-in-production"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     STATIC_FOLDER = "static"
     TEMPLATES_FOLDER = "templates"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
-    
+
     # Database path - can be overridden via DATABASE_URL
     DATABASE_URL = os.environ.get("DATABASE_URL")
-    
+
+    # Logging
+    LOG_DIR = Path(__file__).parent / "logs"
+    LOG_FILE = LOG_DIR / "app.log"
+    LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+    LOG_BACKUP_COUNT = 5
+
     # Ensure DATABASE_URL is set
     @classmethod
     def get_database_url(cls) -> str:
@@ -47,6 +53,7 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = Config.get_database_url()
     SESSION_COOKIE_SECURE = True
     REMEMBER_COOKIE_SECURE = True
+    LOG_TO_FILE = True
 
 
 class TestingConfig(Config):
