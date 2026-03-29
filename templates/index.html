@@ -121,9 +121,6 @@
                 <table class="table league-table">
                     <thead>
                         <tr>
-                            <th class="table-header" scope="col">
-                                <img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="" class="table-geoloc__img">
-                            </th>
                             <th class="table-header" scope="col">Место</th>
                             <th class="table-header" scope="col">Очки</th>
                             <th class="table-header" scope="col">Участник</th>
@@ -134,13 +131,10 @@
                     <tbody>
                         {% for row in rating_rows %}
                         <tr class="table-row">
-                            <td class="table-items country-cell">
-                                <img src="{{ row.country }}" alt="" class="table-row__countries">
-                            </td>
                             <td class="table-items rank-cell">{{ row.rank }}</td>
                             <td class="table-items score-cell">{{ row.total }}</td>
                             <td class="table-items manager-cell">
-                                <img src="{{ row.country }}" alt="" class="table-row__countries mobile-flag">
+                                <img src="{{ row.country }}" alt="" class="table-row__countries">
                                 <span class="manager-name">{{ row.display_name }}</span>
                                 {% if row.is_tandem %}<span class="tandem-badge" title="Запись тандема">тандем</span>{% endif %}
                             </td>

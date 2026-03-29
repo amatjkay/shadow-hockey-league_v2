@@ -25,6 +25,16 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = db.metadata
 
+# Override sqlalchemy.url from environment if present
+db_url = os.environ.get("DATABASE_URL")
+if db_url:
+    # Handle sqlite:/// (Alembic might need slightly different format or just absolute path)
+    config.set_main_option("sqlalchemy.url", db_url)
+    print(f"Alembic using DATABASE_URL from environment: {db_url}")
+else:
+    print(f"Alembic using default URL from alembic.ini: {config.get_main_option('sqlalchemy.url')}")
+
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")

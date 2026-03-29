@@ -118,10 +118,13 @@ def register_extensions(app: Flask) -> None:
 
 def register_blueprints(app: Flask) -> None:
     """Register Flask blueprints."""
-    from services.api import api
+    if app.config.get("ENABLE_API"):
+        from services.api import api
 
-    # Register API blueprint
-    app.register_blueprint(api)
+        # Register API blueprint
+        app.register_blueprint(api)
+    else:
+        app.logger.info("REST API is disabled in this environment (ENABLE_API=False)")
 
 
 def register_routes(app: Flask) -> None:

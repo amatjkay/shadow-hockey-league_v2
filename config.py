@@ -30,6 +30,7 @@ class Config:
 
     # Database path - can be overridden via DATABASE_URL
     DATABASE_URL = os.environ.get("DATABASE_URL")
+    ENABLE_API = True
 
     # Logging
     LOG_DIR = Path(__file__).parent / "logs"
@@ -55,6 +56,7 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     REMEMBER_COOKIE_SECURE = True
     LOG_TO_FILE = True
+    ENABLE_API = False
 
 
 class TestingConfig(Config):
