@@ -65,7 +65,7 @@
                             <th class="table-header" scope="col">
                                 <img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="" class="table-geoloc__img">
                             </th>
-                            <th class="table-header" scope="col">#</th>
+                            <th class="table-header" scope="col">Место</th>
                             <th class="table-header" scope="col">Очки</th>
                             <th class="table-header" scope="col">Участник</th>
                             <th class="table-header" scope="col">Кубки</th>
@@ -82,8 +82,8 @@
                             <td class="table-items score-cell">{{ row.total }}</td>
                             <td class="table-items manager-cell">
                                 <img src="{{ row.country }}" alt="" class="table-row__countries mobile-flag">
-                                <span class="manager-name">{{ row.name }}</span>
-                                {% if row.is_tandem %}<span class="tandem-badge" title="Запись тандема">тандем</span>{% endif %}
+                                <span class="manager-name">{% if row.name.startswith('Tandem:') %}{{ row.name[7:] | trim }}{% else %}{{ row.name }}{% endif %}</span>
+                                {% if ',' in row.name %}<span class="tandem-badge" title="Запись тандема">тандем</span>{% endif %}
                             </td>
                             <td class="table-items league-cups-cell">
                                 {% if row.achievements %}

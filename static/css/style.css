@@ -137,23 +137,26 @@ tbody {
   display: none; /* Скрываем флаг в десктопной версии */
 }
 
-/* Анимация для топ-10 игроков */
-@keyframes background {
+/* Топ-10: один общий градиент по viewport (fixed), иначе ячейки «плывут» не синхронно */
+@keyframes league-top10-sheen {
   0%, 100% {
-      background-position: 0% 50%;
+    background-position: 0% 50%;
   }
   50% {
-      background-position: 100% 50%;
+    background-position: 100% 50%;
   }
 }
 
+.league-table .table-row:nth-child(-n+10) .rank-cell,
+.league-table .table-row:nth-child(-n+10) .score-cell,
 .league-table .table-row:nth-child(-n+10) .manager-cell {
   background: linear-gradient(270deg, red, yellow);
   background-size: 200% 200%;
+  background-attachment: fixed;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: background 3s infinite;
+  animation: league-top10-sheen 3s linear infinite;
   text-transform: uppercase;
   text-shadow: none;
 }
