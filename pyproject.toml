@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | instance
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = ["instance", "__pycache__"]
+known_first_party = ["app", "data", "config", "models"]
