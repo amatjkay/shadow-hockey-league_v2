@@ -1,21 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
     <meta charset="UTF-8">
-    <!-- Мета-тег viewport для адаптивности -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shadow Hockey League</title>
-    <!-- Подключение внешнего CSS-файла -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
     <div class="container">
-        <!-- Шапка для десктопной версии -->
         <header class="header">
             <div class="header-items">
-                <a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
+                <a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank" rel="noopener noreferrer">
                     <img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="Telegram">
                 </a>
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип" class="img-fluid">
@@ -23,26 +20,19 @@
             </div>
         </header>
 
-        <!-- Мобильное меню -->
         <div class="mobile-menu">
             <button class="mobile-menu-button" aria-label="Открыть меню">☰</button>
             <div class="mobile-menu-content">
                 <button class="close-button" aria-label="Закрыть меню">&times;</button>
-
-                <!-- Контейнер для логотипов -->
                 <div class="mobile-menu-logos">
-                    <a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank">
+                    <a href="https://t.me/+N72ozSs2bD82Yjdi" target="_blank" rel="noopener noreferrer">
                         <img src="{{ url_for('static', filename='img/social/telegram.png') }}" alt="Telegram">
                     </a>
                     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Логотип" class="img-fluid">
                     <img src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png" alt="ESPN">
                 </div>
-
-                <!-- Футер в мобильном меню -->
                 <div class="mobile-menu-footer">
-                    <div class="copyright">
-                        © Hockey Shadow League
-                    </div>
+                    <div class="copyright">© Hockey Shadow League</div>
                     <div class="mobile-menu-creators">
                         Создано в 2021 году<br>
                         <a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a>
@@ -52,48 +42,89 @@
             </div>
         </div>
 
-        <h1>Leaderboard</h1>
+        <h1 class="page-title">Shadow Hockey League</h1>
 
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th class="table-header" scope="col">
-                            <img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="geoloc" class="table-geoloc__img">
-                        </th>
-                        <th class="table-header" scope="col">MANAGERS</th>
-                        <th class="table-header" scope="col">ACHIEVEMENTS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for manager in managers %}
-                    <tr class="table-row">
-                        <!-- Ячейка со страной -->
-                        <td class="table-items country-cell">
-                            <img src="{{ manager.country }}" alt="" class="table-row__countries">
-                        </td>
-                        <!-- Ячейка с именем менеджера -->
-                        <td class="table-items manager-cell">
-                            <!-- Флаг для мобильной версии -->
-                            <img src="{{ manager.country }}" alt="" class="table-row__countries mobile-flag">
-                            <span class="manager-name">
-                                {{ manager.name }}
-                            </span>
-                        </td>
-                        <!-- Ячейка с достижениями -->
-                        <td class="table-items achievements-cell">
-                            {% for achievement in manager.achievements %}
-                            {{ achievement|safe }}
-                            {% endfor %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <section class="page-section page-section--league" id="rating" aria-labelledby="league-heading">
+            <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
+
+            <details class="rating-rules">
+                <summary>Как считаются очки</summary>
+                <div class="rating-rules-body">
+                    <p>За каждую награду: <strong>база</strong> (лига и тип кубка) × <strong>множитель сезона</strong>, округление до целого; итог — сумма по всем кубкам записи. Соло и тандемы в одном списке: каждая строка данных — отдельный участник.</p>
+                    <ul>
+                        <li>Сезоны: <strong>s23/24</strong> ×1,15 · <strong>s22/23</strong> ×1,00 · <strong>s21/22</strong> ×0,85</li>
+                        <li>База: Л1 TOP1 / TOP2 / TOP3 = 600 / 500 / 400; Л2 = 300 / 200 / 100; Best regular 50 / 40; Round 3 — 30 / 20; Round 1 — 10 / 5 (первая цифра — лига&nbsp;1). Toxic = 0.</li>
+                    </ul>
+                </div>
+            </details>
+
+            <div class="table-responsive">
+                <table class="table league-table">
+                    <thead>
+                        <tr>
+                            <th class="table-header" scope="col">
+                                <img src="{{ url_for('static', filename='img/geoloc.svg') }}" alt="" class="table-geoloc__img">
+                            </th>
+                            <th class="table-header" scope="col">#</th>
+                            <th class="table-header" scope="col">Очки</th>
+                            <th class="table-header" scope="col">Участник</th>
+                            <th class="table-header" scope="col">Кубки</th>
+                            <th class="table-header table-header--narrow" scope="col">Расчёт</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rating_rows %}
+                        <tr class="table-row">
+                            <td class="table-items country-cell">
+                                <img src="{{ row.country }}" alt="" class="table-row__countries">
+                            </td>
+                            <td class="table-items rank-cell">{{ row.rank }}</td>
+                            <td class="table-items score-cell">{{ row.total }}</td>
+                            <td class="table-items manager-cell">
+                                <img src="{{ row.country }}" alt="" class="table-row__countries mobile-flag">
+                                <span class="manager-name">{{ row.name }}</span>
+                                {% if row.is_tandem %}<span class="tandem-badge" title="Запись тандема">тандем</span>{% endif %}
+                            </td>
+                            <td class="table-items league-cups-cell">
+                                {% if row.achievements %}
+                                {% for a in row.achievements %}
+                                {{ a.html|safe }}
+                                {% endfor %}
+                                {% else %}
+                                <span class="rating-empty">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="table-items rating-breakdown-cell">
+                                {% if row.achievements %}
+                                <details class="rating-breakdown">
+                                    <summary class="rating-breakdown-summary">Детали</summary>
+                                    <div class="rating-breakdown-body">
+                                        <ul class="rating-ach-list rating-ach-list--textonly">
+                                            {% for a in row.achievements %}
+                                            <li>
+                                                {% if a.kind == 'toxic' %}
+                                                toxic — <strong>0</strong> очк.
+                                                {% else %}
+                                                {{ a.label }} — <strong>{{ a.points }}</strong> очк.
+                                                <span class="rating-formula">(база {{ a.base }} × {{ a.mul_display }})</span>
+                                                {% endif %}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </details>
+                                {% else %}
+                                <span class="rating-empty">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
-    <!-- Футер -->
     <footer class="footer">
         <div class="copyright">© Hockey Shadow League - Создано в 2021 году
             <a target="_blank" href="https://t.me/amaTiiKii">@Алексеем</a> и
@@ -101,10 +132,7 @@
         </div>
     </footer>
 
-    <!-- Оверлей для мобильного меню -->
     <div class="overlay"></div>
-
-    <!-- Подключение внешнего JavaScript-файла -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 

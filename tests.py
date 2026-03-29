@@ -10,6 +10,15 @@ class TestApp(unittest.TestCase):
     def test_home_page(self):
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200)
+        html = response.data.decode('utf-8')
+        self.assertIn('Рейтинг лиги', html)
+        self.assertIn('Кубки', html)
+
+    def test_rating_redirects_to_main(self):
+        response = self.app.get('/rating', follow_redirects=False)
+        self.assertIn(response.status_code, (301, 302, 308))
+        loc = response.headers.get('Location', '')
+        self.assertIn('#rating', loc)
 
     def test_managers_data(self):
         # Проверка наличия данных
