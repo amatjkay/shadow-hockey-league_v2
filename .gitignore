@@ -24,6 +24,10 @@ coverage.xml
 .mypy_cache/
 .hypothesis/
 
+# Database
+*.db
+instance/*.db
+
 # Environment
 .env
 .env.local
