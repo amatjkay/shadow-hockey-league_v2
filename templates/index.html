@@ -51,10 +51,60 @@
                 <summary>Как считаются очки</summary>
                 <div class="rating-rules-body">
                     <p>За каждую награду: <strong>база</strong> (лига и тип кубка) × <strong>множитель сезона</strong>, округление до целого; итог — сумма по всем кубкам записи. Соло и тандемы в одном списке: каждая строка данных — отдельный участник.</p>
+                    
+                    <h4>📊 Множители сезонов</h4>
+                    <p>Текущий сезон — базовый (×1.00), старые сезоны имеют дисконт:</p>
                     <ul>
-                        <li>Сезоны: <strong>s23/24</strong> ×1,15 · <strong>s22/23</strong> ×1,00 · <strong>s21/22</strong> ×0,85</li>
-                        <li>База: Л1 TOP1 / TOP2 / TOP3 = 600 / 500 / 400; Л2 = 300 / 200 / 100; Best regular 50 / 40; Round 3 — 30 / 20; Round 1 — 10 / 5 (первая цифра — лига&nbsp;1). Toxic = 0.</li>
+                        <li><strong>s24/25</strong> ×1.00 (базовый)</li>
+                        <li><strong>s23/24</strong> ×0.95 (−5%)</li>
+                        <li><strong>s22/23</strong> ×0.90 (−10%)</li>
+                        <li><strong>s21/22</strong> ×0.85 (−15%)</li>
                     </ul>
+                    <p class="text-muted"><em>Логика: последние достижения ценнее старых — это мотивирует играть сейчас.</em></p>
+                    
+                    <h4>🏆 Базовые очки</h4>
+                    <table class="points-table">
+                        <thead>
+                            <tr>
+                                <th>Достижение</th>
+                                <th>Лига 1</th>
+                                <th>Лига 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>TOP1</strong></td>
+                                <td>800</td>
+                                <td>300</td>
+                            </tr>
+                            <tr>
+                                <td><strong>TOP2</strong></td>
+                                <td>550</td>
+                                <td>200</td>
+                            </tr>
+                            <tr>
+                                <td><strong>TOP3</strong></td>
+                                <td>450</td>
+                                <td>100</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Best regular</strong></td>
+                                <td>50</td>
+                                <td>40</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Round 3</strong></td>
+                                <td>30</td>
+                                <td>20</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Round 1</strong></td>
+                                <td>10</td>
+                                <td>5</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted"><em>Логика: увеличен разрыв между TOP1 и остальными наградами, чтобы победа в Лиге 1 была значимее.</em></p>
                 </div>
             </details>
 
@@ -82,8 +132,8 @@
                             <td class="table-items score-cell">{{ row.total }}</td>
                             <td class="table-items manager-cell">
                                 <img src="{{ row.country }}" alt="" class="table-row__countries mobile-flag">
-                                <span class="manager-name">{% if row.name.startswith('Tandem:') %}{{ row.name[7:] | trim }}{% else %}{{ row.name }}{% endif %}</span>
-                                {% if ',' in row.name %}<span class="tandem-badge" title="Запись тандема">тандем</span>{% endif %}
+                                <span class="manager-name">{{ row.display_name }}</span>
+                                {% if row.is_tandem %}<span class="tandem-badge" title="Запись тандема">тандем</span>{% endif %}
                             </td>
                             <td class="table-items league-cups-cell">
                                 {% if row.achievements %}
@@ -103,10 +153,12 @@
                                             {% for a in row.achievements %}
                                             <li>
                                                 {% if a.kind == 'toxic' %}
-                                                toxic — <strong>0</strong> очк.
+                                                <span class="achievement-label">🚫 toxic</span>
+                                                <span class="achievement-points"><strong>0</strong> очк.</span>
                                                 {% else %}
-                                                {{ a.label }} — <strong>{{ a.points }}</strong> очк.
-                                                <span class="rating-formula">(база {{ a.base }} × {{ a.mul_display }})</span>
+                                                <span class="achievement-label">{{ a.label }}</span>
+                                                <span class="achievement-points"><strong>{{ a.points }}</strong> очк.</span>
+                                                <span class="rating-formula">({{ a.base }} × {{ a.mul_display }})</span>
                                                 {% endif %}
                                             </li>
                                             {% endfor %}

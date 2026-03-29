@@ -22,6 +22,7 @@ BASE_POINTS: dict[tuple[str, str], int] = {
 }
 
 SEASON_MULTIPLIER: dict[str, float] = {
+    "24/25": 1.00,
     "23/24": 1.15,
     "22/23": 1.00,
     "21/22": 0.85,

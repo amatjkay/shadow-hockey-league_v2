@@ -17,26 +17,31 @@ from models import Achievement, Manager
 
 
 # Base points for each league and achievement type combination
+# Updated: increased gap between TOP1 and other achievements to make L1 victories more meaningful
 BASE_POINTS: dict[tuple[str, str], int] = {
-    ("1", "TOP1"): 600,
-    ("1", "TOP2"): 500,
-    ("1", "TOP3"): 400,
+    # League 1 - Elite division
+    ("1", "TOP1"): 800,
+    ("1", "TOP2"): 550,
+    ("1", "TOP3"): 450,
+    ("1", "BEST"): 50,
+    ("1", "R3"): 30,
+    ("1", "R1"): 10,
+    # League 2 - Second division (50% of L1 values for TOP, similar for others)
     ("2", "TOP1"): 300,
     ("2", "TOP2"): 200,
     ("2", "TOP3"): 100,
-    ("1", "BEST"): 50,
     ("2", "BEST"): 40,
-    ("1", "R3"): 30,
     ("2", "R3"): 20,
-    ("1", "R1"): 10,
     ("2", "R1"): 5,
 }
 
-# Season multipliers
+# Season multipliers - current season is baseline (1.00), older seasons have discount
+# Logic: recent achievements are more valuable than old ones
 SEASON_MULTIPLIER: dict[str, float] = {
-    "23/24": 1.15,
-    "22/23": 1.00,
-    "21/22": 0.85,
+    "24/25": 1.00,  # Current/latest season - baseline
+    "23/24": 0.95,  # Previous season - 5% discount
+    "22/23": 0.90,  # Older season - 10% discount
+    "21/22": 0.85,  # Oldest season - 15% discount
 }
 
 # Human-readable labels for achievement kinds

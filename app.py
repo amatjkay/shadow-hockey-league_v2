@@ -13,7 +13,8 @@ from typing import Any
 from flask import Flask, redirect, render_template, url_for
 from flask.logging import default_handler
 
-from data.rating import build_leaderboard
+from models import db
+from services.rating_service import build_leaderboard
 
 
 def create_app(config_class: str | None = None) -> Flask:
@@ -88,8 +89,8 @@ def configure_logging(app: Flask) -> None:
 
 def register_extensions(app: Flask) -> None:
     """Initialize Flask extensions."""
-    # Placeholder for future extensions (SQLAlchemy, LoginManager, etc.)
-    pass
+    # Initialize SQLAlchemy with app
+    db.init_app(app)
 
 
 def register_blueprints(app: Flask) -> None:
@@ -104,7 +105,8 @@ def register_routes(app: Flask) -> None:
     @app.route("/")
     def index() -> str | tuple[str, int]:
         try:
-            leaderboard_data = build_leaderboard()
+            with db.session.begin():
+                leaderboard_data = build_leaderboard(db.session)
             app.logger.info(f"Built leaderboard with {len(leaderboard_data)} managers")
             return render_template(
                 "index.html",

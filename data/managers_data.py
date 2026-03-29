@@ -87,10 +87,14 @@ managers = [
            ['<img src="/static/img/cups/clap.svg" title="Shadow 1 league Round 1 s22/23">']),
     Manager("Denis Sanzharevskyi", "/static/img/flags/ua.png",
            ['<img src="/static/img/cups/clap.svg" title="Shadow 1 league Round 1 s21/22">']),
-    Manager("Don Georgio", "/static/img/flags/rus.png",
-           ['<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s23/24">']),
-    Manager("Юрий Shestakov", "/static/img/flags/rus.png",
-           ['<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s23/24">']),
+    Manager("Don Georgio", "/static/img/flags/rus.png", [
+        '<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s23/24">',
+        '<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s24/25">'
+    ]),
+    Manager("Юрий Shestakov", "/static/img/flags/rus.png", [
+        '<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s23/24">',
+        '<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s24/25">'
+    ]),
     Manager("Vlad V", "/static/img/flags/rus.png",
            ['<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s23/24">']),
     Manager("Tandem: Sergey Dorokhov, Maxim Shvetsov", "/static/img/flags/rus.png",
@@ -117,10 +121,9 @@ managers = [
     Manager("Sergey Pashkov", "/static/img/flags/rus.png"),
     Manager("Ruslan Shlain", "/static/img/flags/rus.png"),
     Manager("Dmitrii Volkov", "/static/img/flags/rus.png"),
-    Manager("Юрий Shestakov", "/static/img/flags/rus.png",
-           ['<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s24/25">']),
-    Manager("Max Trufanov", "/static/img/flags/ua.png",
-           ['<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s24/25">']),
-    Manager("Don Georgio", "/static/img/flags/rus.png",
-           ['<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s24/25">'])
+    Manager("Max Trufanov", "/static/img/flags/ua.png", [
+        '<img src="/static/img/cups/clap.svg" title="Shadow 1 league Round 1 s22/23">',
+        '<img src="/static/img/cups/clap-b.svg" title="Shadow 1 league Round 3 s21/22">',
+        '<img src="/static/img/cups/clap.svg" title="Shadow 2 league Round 1 s24/25">'
+    ])
 ]
