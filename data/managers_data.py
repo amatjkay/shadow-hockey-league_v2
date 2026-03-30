@@ -180,6 +180,7 @@ managers = [
         "Юрий Shestakov",
         FLAG_RUS,
         [
+            f'<img src="{CUP_BEST}" title="Shadow 2 league Best regular s24/25">',
             f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s23/24">',
             f'<img src="{CUP_R1}" title="Shadow 2 league Round 1 s24/25">',
         ],
