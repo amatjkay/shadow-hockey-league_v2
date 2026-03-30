@@ -132,13 +132,35 @@ def register_routes(app: Flask) -> None:
 
     @app.route("/")
     def index() -> str | tuple[str, int]:
+        from sqlalchemy.exc import OperationalError
+
         try:
             with db.session.begin():
                 leaderboard_data = build_leaderboard(db.session)
-            app.logger.info(f"Built leaderboard with {len(leaderboard_data)} managers")
+            
+            # Handle empty database case
+            if len(leaderboard_data) == 0:
+                app.logger.info("Built leaderboard with 0 managers (empty database)")
+            else:
+                app.logger.info(f"Built leaderboard with {len(leaderboard_data)} managers")
+            
             return render_template(
                 "index.html",
                 rating_rows=leaderboard_data,
+            )
+        except OperationalError as e:
+            # Database connection error or table not found
+            app.logger.error(f"Database operational error: {str(e)}", exc_info=True)
+            return (
+                render_template(
+                    "error.html",
+                    message="Ошибка базы данных. Попробуйте обновить страницу или обратитесь к администратору.",
+                    error_code=500,
+                    error_type="DatabaseError",
+                    traceback=str(e) if app.debug else None,
+                    show_details=app.debug,
+                ),
+                500,
             )
         except Exception as e:
             import traceback as tb
