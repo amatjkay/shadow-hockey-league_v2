@@ -24,6 +24,29 @@ body {
   overflow-x: hidden;
 }
 
+/* Global smooth transitions */
+a, button, summary, .table-header, .table-items,
+.tandem-badge, .tooltip-icon, .achievement-table tr,
+.tooltip-table tr {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fade-in animation for page load */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.container {
+  animation: fadeIn 0.5s ease-out;
+}
+
 ul, ol {
   padding-inline-start: 0;
   list-style-type: none;

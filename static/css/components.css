@@ -35,6 +35,12 @@
   font-weight: 600;
   list-style: none;
   padding: 4px 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rating-breakdown-summary:hover {
+  color: #0077b6;
+  transform: translateX(3px);
 }
 
 .rating-breakdown-summary::-webkit-details-marker {
@@ -97,12 +103,17 @@
   vertical-align: top;
 }
 
+.achievement-table tbody tr {
+  transition: all 0.2s ease;
+}
+
 .achievement-table tbody tr:last-child td {
   border-bottom: none;
 }
 
 .achievement-table tbody tr:hover {
-  background: rgba(0, 166, 255, 0.08);
+  background: rgba(0, 166, 255, 0.1);
+  transform: translateX(3px);
 }
 
 .achievement-table tbody tr:nth-child(even) {
@@ -110,7 +121,7 @@
 }
 
 .achievement-table tbody tr:nth-child(even):hover {
-  background: rgba(0, 166, 255, 0.08);
+  background: rgba(0, 166, 255, 0.1);
 }
 
 /* Table columns */
@@ -182,13 +193,14 @@
   border: 1px solid rgba(0, 166, 255, 0.3);
   border-radius: 50%;
   cursor: help;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
 
 .tooltip-icon:hover {
-  background: rgba(0, 166, 255, 0.2);
+  background: rgba(0, 166, 255, 0.25);
   border-color: #00a6ff;
+  transform: scale(1.15) rotate(15deg);
 }
 
 .tooltip-content {
@@ -201,15 +213,15 @@
   margin-top: 10px;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.2s ease;
+  transform: translateY(-10px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 
 .header-with-tooltip:hover .tooltip-content {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 
@@ -223,6 +235,18 @@
   font-size: 13px;
   line-height: 1.5;
   color: #333;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .tooltip-intro {
@@ -268,6 +292,15 @@
   border-collapse: collapse;
   margin-top: 8px;
   font-size: 12px;
+}
+
+.tooltip-table tr {
+  transition: all 0.2s ease;
+}
+
+.tooltip-table tr:hover {
+  background: rgba(0, 166, 255, 0.12);
+  transform: translateX(2px);
 }
 
 .tooltip-table th,
@@ -408,7 +441,15 @@
   color: #00a6ff;
   border: 1px solid rgba(0, 166, 255, 0.45);
   background: rgba(0, 166, 255, 0.1);
+  border-radius: 6px;
   vertical-align: middle;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tandem-badge:hover {
+  background: rgba(0, 166, 255, 0.2);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 166, 255, 0.3);
 }
 
 .league-table .table-row:nth-child(-n+10) .manager-cell .tandem-badge {
