@@ -53,27 +53,119 @@
 
 .rating-breakdown-body {
   margin-top: 8px;
-  padding: 10px 12px;
+  padding: 0;
   background: rgba(255, 255, 255, 0.35);
   border: 1px solid skyblue;
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.45;
   color: #333;
+  overflow: hidden;
 }
 
-.rating-ach-list--textonly {
-  margin: 0;
-  padding-left: 1.1em;
-  text-align: left;
-  list-style: disc;
-}
-
-.rating-ach-list--textonly li {
-  margin-bottom: 4px;
+/* Achievement table inside details */
+.achievement-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 13px;
+}
+
+.achievement-table thead {
+  background: rgba(0, 166, 255, 0.15);
+}
+
+.achievement-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #0077b6;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(0, 166, 255, 0.3);
+}
+
+.achievement-table th:last-child,
+.achievement-table td:last-child {
+  text-align: right;
+}
+
+.achievement-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(135, 206, 235, 0.25);
+  vertical-align: top;
+}
+
+.achievement-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.achievement-table tbody tr:hover {
+  background: rgba(0, 166, 255, 0.08);
+}
+
+.achievement-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.achievement-table tbody tr:nth-child(even):hover {
+  background: rgba(0, 166, 255, 0.08);
+}
+
+/* Table columns */
+.achievement-table__award {
+  width: 45%;
+  font-weight: 500;
+  color: #282828;
+}
+
+.achievement-table__formula {
+  width: 30%;
+  font-size: 12px;
+  color: #555;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.achievement-table__points {
+  width: 25%;
+  font-weight: 700;
+  color: #0077b6;
+  font-size: 14px;
+}
+
+.achievement-table__points span {
+  font-size: 11px;
   font-weight: normal;
-  line-height: 1.35;
+  color: #666;
+  margin-left: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .achievement-table {
+    font-size: 12px;
+  }
+  
+  .achievement-table th,
+  .achievement-table td {
+    padding: 8px 6px;
+  }
+  
+  .achievement-table__award {
+    width: 50%;
+  }
+  
+  .achievement-table__formula {
+    width: 25%;
+    font-size: 11px;
+  }
+  
+  .achievement-table__points {
+    width: 25%;
+  }
 }
 
 .rating-ach-list {

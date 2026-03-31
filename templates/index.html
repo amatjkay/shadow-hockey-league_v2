@@ -152,15 +152,24 @@
                                 <details class="rating-breakdown">
                                     <summary class="rating-breakdown-summary">Детали</summary>
                                     <div class="rating-breakdown-body">
-                                        <ul class="rating-ach-list rating-ach-list--textonly">
-                                            {% for a in row.achievements %}
-                                            <li>
-                                                <span class="achievement-label">{{ a.label }}</span>
-                                                <span class="achievement-points"><strong>{{ a.points }}</strong> очк.</span>
-                                                <span class="rating-formula">({{ a.base }} × {{ a.mul_display }})</span>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
+                                        <table class="achievement-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="achievement-table__award">Награда</th>
+                                                    <th class="achievement-table__formula">Формула</th>
+                                                    <th class="achievement-table__points">Очки</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for a in row.achievements %}
+                                                <tr>
+                                                    <td class="achievement-table__award">{{ a.label }}</td>
+                                                    <td class="achievement-table__formula">{{ a.base }} × {{ a.mul_display }}</td>
+                                                    <td class="achievement-table__points">{{ a.points }} <span>очк.</span></td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </details>
                                 {% else %}
