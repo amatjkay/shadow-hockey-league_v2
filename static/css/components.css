@@ -127,7 +127,6 @@
   font-family: monospace;
   background: rgba(255, 255, 255, 0.5);
   padding: 8px 12px;
-  border-radius: 4px;
 }
 
 .achievement-table__points {
@@ -218,7 +217,6 @@
   text-transform: uppercase;
   color: #00a6ff;
   border: 1px solid rgba(0, 166, 255, 0.45);
-  border-radius: 6px;
   background: rgba(0, 166, 255, 0.1);
   vertical-align: middle;
 }
