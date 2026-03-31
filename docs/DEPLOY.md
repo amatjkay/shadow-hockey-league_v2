@@ -25,8 +25,8 @@
 1. Войдите в консоль PythonAnywhere (Bash)
 2. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/shadow-hockey-league.git
-   cd shadow-hockey-league
+   git clone https://github.com/amatjkay/shadow-hockey-league_v2.git
+   cd shadow-hockey-league_v2
    ```
 
 #### Вариант B: Через ZIP-архив
@@ -42,11 +42,11 @@
 1. Перейдите в **Web** → **Virtualenv**
 2. Создайте новое окружение:
    ```bash
-   python3 -m venv /home/YOUR_USERNAME/.venvs/shadow-hockey-league
+   python3 -m venv /home/amatjkay/.venvs/shadow-hockey-league_v2
    ```
 3. Активируйте:
    ```bash
-   source /home/YOUR_USERNAME/.venvs/shadow-hockey-league/bin/activate
+   source /home/amatjkay/.venvs/shadow-hockey-league_v2/bin/activate
    ```
 4. Установите зависимости:
    ```bash
@@ -64,7 +64,7 @@
    import sys
    import os
 
-   project_home = '/home/YOUR_USERNAME/shadow-hockey-league'
+   project_home = '/home/amatjkay/shadow-hockey-league_v2'
    if project_home not in sys.path:
        sys.path.insert(0, project_home)
 
@@ -83,7 +83,7 @@
 1. Перейдите в **Web** → **Static files**
 2. Добавьте mapping:
    - **URL:** `/static/`
-   - **Directory:** `/home/YOUR_USERNAME/shadow-hockey-league/static/`
+   - **Directory:** `/home/amatjkay/shadow-hockey-league_v2/static/`
 3. Нажмите **Add another static files mapping**
 
 ---
@@ -93,11 +93,11 @@
 1. Откройте Bash консоль
 2. Активируйте виртуальное окружение:
    ```bash
-   source /home/YOUR_USERNAME/.venvs/shadow-hockey-league/bin/activate
+   source /home/amatjkay/.venvs/shadow-hockey-league_v2/bin/activate
    ```
 3. Инициализируйте БД:
    ```bash
-   cd shadow-hockey-league
+   cd shadow-hockey-league_v2
    python seed_db.py
    ```
 

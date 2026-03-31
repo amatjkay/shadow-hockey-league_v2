@@ -22,14 +22,17 @@ except ImportError:
 class Config:
     """Base configuration class."""
 
+    BASE_DIR = Path(__file__).parent
+
     SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-key-change-in-production"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     STATIC_FOLDER = "static"
     TEMPLATES_FOLDER = "templates"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
-    # Database path - can be overridden via DATABASE_URL
-    DATABASE_URL = os.environ.get("DATABASE_URL")
+    # Database path - uses absolute path for production compatibility
+    # Environment variable can override (use absolute path on PythonAnywhere!)
+    DATABASE_URL = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR}/dev.db"
     ENABLE_API = True
 
     # Logging
