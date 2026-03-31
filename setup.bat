@@ -16,7 +16,7 @@ if errorlevel 1 (
 echo.
 
 echo [2/3] Initializing database...
-python scripts\validate_db.py --init --seed
+python seed_db.py
 if errorlevel 1 (
     echo ERROR: Failed to initialize database
     exit /b 1

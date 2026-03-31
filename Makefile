@@ -43,11 +43,11 @@ format:
 
 # Validate database setup
 validate:
-	python scripts/validate_db.py
+	python seed_db.py
 
 # Initialize database (create tables + seed)
 init-db:
-	python scripts/validate_db.py --init --seed
+	python seed_db.py
 
 # Seed database with initial data
 seed-db:

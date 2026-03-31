@@ -4,6 +4,6 @@ REM Аналог 'make init-db'
 
 echo Initializing database...
 echo.
-python scripts\validate_db.py --init --seed
+python seed_db.py
 echo.
 echo Database initialized successfully!
