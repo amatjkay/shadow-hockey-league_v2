@@ -2,7 +2,7 @@
 .table {
   width: 70%;
   margin: 0 auto;
-  text-align: center;
+  text-align: left;
   font-weight: bold;
   border: 3px solid skyblue;
   border-collapse: collapse;
@@ -22,11 +22,13 @@
 }
 
 .table-header {
-  text-transform: uppercase;
+  text-transform: none;
   width: auto;
   text-align: left;
   vertical-align: middle;
   color: #00a6ff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .table-header:first-child {
@@ -42,12 +44,12 @@
 }
 
 .table-row {
-  text-align: center;
+  text-align: left;
 }
 
 .table-items {
   white-space: nowrap;
-  text-align: center;
+  text-align: left;
   position: relative;
 }
 
@@ -91,7 +93,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: league-top10-sheen 3s linear infinite;
-  text-transform: uppercase;
+  text-transform: none;
   text-shadow: none;
 }
 
@@ -132,7 +134,7 @@
 
 .league-cups-cell {
   white-space: normal;
-  text-align: center;
+  text-align: left;
   vertical-align: middle;
 }
 
