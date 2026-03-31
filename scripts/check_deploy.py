@@ -8,6 +8,17 @@ Usage:
 import os
 from pathlib import Path
 
+# Load .env file if exists (for local development)
+try:
+    from dotenv import load_dotenv
+    base_dir = Path(__file__).parent.parent
+    env_file = base_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        print(f"✅ .env загружен: {env_file}\n")
+except ImportError:
+    pass
+
 
 def check():
     """Run deployment checks."""
