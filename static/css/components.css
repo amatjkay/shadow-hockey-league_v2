@@ -56,7 +56,7 @@
   padding: 0;
   background: rgba(255, 255, 255, 0.35);
   border: 1px solid skyblue;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 14px;
   line-height: 1.45;
   color: #333;
@@ -68,6 +68,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  border-radius: 0;
 }
 
 .achievement-table thead {
@@ -78,7 +79,7 @@
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  color: #0077b6;
+  color: #f3f3f3;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -132,7 +133,7 @@
 .achievement-table__points {
   width: 25%;
   font-weight: 700;
-  color: #0077b6;
+  color: #f3f3f3;
   font-size: 14px;
 }
 
