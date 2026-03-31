@@ -56,67 +56,6 @@
         <section class="page-section page-section--league" id="rating" aria-labelledby="league-heading">
             <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
 
-            <details class="rating-rules">
-                <summary>Как считаются очки</summary>
-                <div class="rating-rules-body">
-                    <p>За каждую награду: <strong>база</strong> (лига и тип кубка) × <strong>множитель сезона</strong>, округление до целого; итог — сумма по всем кубкам записи. Соло и тандемы в одном списке: каждая строка данных — отдельный участник.</p>
-                    
-                    <h4>📊 Множители сезонов</h4>
-                    <p>Текущий сезон — базовый (×1.00), старые сезоны имеют дисконт:</p>
-                    <ul>
-                        <li><strong>s24/25</strong> ×1.00 (базовый)</li>
-                        <li><strong>s23/24</strong> ×0.95 (−5%)</li>
-                        <li><strong>s22/23</strong> ×0.90 (−10%)</li>
-                        <li><strong>s21/22</strong> ×0.85 (−15%)</li>
-                    </ul>
-                    <p class="text-muted"><em>Логика: последние достижения ценнее старых — это мотивирует играть сейчас.</em></p>
-                    
-                    <h4>🏆 Базовые очки</h4>
-                    <table class="points-table">
-                        <thead>
-                            <tr>
-                                <th>Достижение</th>
-                                <th>Лига 1</th>
-                                <th>Лига 2</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>TOP1</strong></td>
-                                <td>800</td>
-                                <td>300</td>
-                            </tr>
-                            <tr>
-                                <td><strong>TOP2</strong></td>
-                                <td>550</td>
-                                <td>200</td>
-                            </tr>
-                            <tr>
-                                <td><strong>TOP3</strong></td>
-                                <td>450</td>
-                                <td>100</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Best regular</strong></td>
-                                <td>50</td>
-                                <td>40</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Round 3</strong></td>
-                                <td>30</td>
-                                <td>20</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Round 1</strong></td>
-                                <td>10</td>
-                                <td>5</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <p class="text-muted"><em>Логика: увеличен разрыв между TOP1 и остальными наградами, чтобы победа в Лиге 1 была значимее.</em></p>
-                </div>
-            </details>
-
             <div class="table-responsive">
                 <table class="table league-table">
                     <thead>
@@ -125,7 +64,36 @@
                             <th class="table-header" scope="col">Очки</th>
                             <th class="table-header" scope="col">Участник</th>
                             <th class="table-header" scope="col">Кубки</th>
-                            <th class="table-header table-header--narrow" scope="col">Расчёт</th>
+                            <th class="table-header table-header--narrow" scope="col">
+                                <span class="header-with-tooltip">
+                                    Расчёт
+                                    <span class="tooltip-icon" aria-label="Система расчёта очков">?</span>
+                                    <div class="tooltip-content">
+                                        <div class="tooltip-body">
+                                            <p class="tooltip-intro"><strong>Формула:</strong> база × множитель сезона</p>
+                                            
+                                            <h5>📊 Множители сезонов</h5>
+                                            <ul class="tooltip-list">
+                                                <li><strong>s24/25</strong> ×1.00</li>
+                                                <li><strong>s23/24</strong> ×0.95</li>
+                                                <li><strong>s22/23</strong> ×0.90</li>
+                                                <li><strong>s21/22</strong> ×0.85</li>
+                                            </ul>
+                                            
+                                            <h5>🏆 Базовые очки</h5>
+                                            <table class="tooltip-table">
+                                                <tr><th>Достижение</th><th>Л1</th><th>Л2</th></tr>
+                                                <tr><td>TOP1</td><td>800</td><td>300</td></tr>
+                                                <tr><td>TOP2</td><td>550</td><td>200</td></tr>
+                                                <tr><td>TOP3</td><td>450</td><td>100</td></tr>
+                                                <tr><td>Best regular</td><td>50</td><td>40</td></tr>
+                                                <tr><td>Round 3</td><td>30</td><td>20</td></tr>
+                                                <tr><td>Round 1</td><td>10</td><td>5</td></tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
