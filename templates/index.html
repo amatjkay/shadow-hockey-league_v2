@@ -56,6 +56,11 @@
         <section class="page-section page-section--league" id="rating" aria-labelledby="league-heading">
             <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
 
+            {% if not rating_rows %}
+            <div class="empty-state">
+                <p class="empty-state__message">Рейтинг пуст. Добавьте менеджеров через API или запустите seed_db.py</p>
+            </div>
+            {% else %}
             <div class="table-responsive">
                 <table class="table league-table">
                     <thead>
@@ -157,6 +162,7 @@
                     </tbody>
                 </table>
             </div>
+            {% endif %}
         </section>
     </div>
 

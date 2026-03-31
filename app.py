@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
 from flask import Flask, redirect, render_template, request, url_for
 from flask.logging import default_handler
 
-from models import db
+from models import Achievement, Country, Manager, db
 from services.rating_service import build_leaderboard
 
 
@@ -135,15 +136,19 @@ def register_routes(app: Flask) -> None:
         from sqlalchemy.exc import OperationalError
 
         try:
+            start_time = time.time()
+
             with db.session.begin():
                 leaderboard_data = build_leaderboard(db.session)
-            
+
+            elapsed_ms = round((time.time() - start_time) * 1000)
+
             # Handle empty database case
             if len(leaderboard_data) == 0:
-                app.logger.info("Built leaderboard with 0 managers (empty database)")
+                app.logger.info(f"Built leaderboard with 0 managers (empty database) in {elapsed_ms}ms")
             else:
-                app.logger.info(f"Built leaderboard with {len(leaderboard_data)} managers")
-            
+                app.logger.info(f"Built leaderboard with {len(leaderboard_data)} managers in {elapsed_ms}ms")
+
             return render_template(
                 "index.html",
                 rating_rows=leaderboard_data,
@@ -185,9 +190,35 @@ def register_routes(app: Flask) -> None:
         return redirect(url_for("index") + "#rating", code=308)
 
     @app.route("/health")
-    def health_check() -> dict[str, str]:
-        """Health check endpoint for monitoring."""
-        return {"status": "healthy"}
+    def health_check() -> dict[str, str | int]:
+        """Health check endpoint for monitoring with metrics."""
+        import time
+
+        start_time = time.time()
+
+        try:
+            # Get database metrics
+            with db.session.begin():
+                managers_count = db.session.query(Manager).count()
+                achievements_count = db.session.query(Achievement).count()
+                countries_count = db.session.query(Country).count()
+
+            response_time_ms = round((time.time() - start_time) * 1000)
+
+            return {
+                "status": "healthy",
+                "managers_count": managers_count,
+                "achievements_count": achievements_count,
+                "countries_count": countries_count,
+                "response_time_ms": response_time_ms,
+            }
+        except Exception as e:
+            app.logger.error(f"Health check failed: {str(e)}", exc_info=True)
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "response_time_ms": round((time.time() - start_time) * 1000),
+            }
 
     # Error handlers
     @app.errorhandler(404)
