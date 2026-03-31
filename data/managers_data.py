@@ -19,8 +19,8 @@ CUP_TOP1 = f"{CUPS_PATH}top1.svg"
 CUP_TOP2 = f"{CUPS_PATH}top2.svg"
 CUP_TOP3 = f"{CUPS_PATH}top3.svg"
 CUP_BEST = f"{CUPS_PATH}best-reg.svg"
-CUP_R3 = f"{CUPS_PATH}clap-b.svg"
-CUP_R1 = f"{CUPS_PATH}clap.svg"
+CUP_R3 = f"{CUPS_PATH}hockey-sticks-and-puck.svg"
+CUP_R1 = f"{CUPS_PATH}hockey-sticks-and-puck.svg"
 
 # Flag files (all PNG format)
 FLAG_RUS = f"{FLAGS_PATH}rus.png"

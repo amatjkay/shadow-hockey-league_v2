@@ -8,7 +8,7 @@ def verify_static_files():
 
     # Проверка файлов достижений
     # Примечание: toxic.png был удалён намеренно, т.к. не используется
-    for cup in ["top1", "top2", "top3", "best-reg", "clap", "clap-b"]:
+    for cup in ["top1", "top2", "top3", "best-reg", "hockey-sticks-and-puck"]:
         ext = "svg"
         if not (static_dir / "img" / "cups" / f"{cup}.{ext}").exists():
             missing_files.append(f"cups/{cup}.{ext}")
