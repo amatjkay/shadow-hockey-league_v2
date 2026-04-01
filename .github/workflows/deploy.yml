@@ -1,0 +1,41 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            cd /home/shadow/shadow-hockey-league_v2
+            
+            # Git pull
+            git pull origin main
+            
+            # Update dependencies
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+            
+            # Reload application
+            systemctl restart shadow-hockey-league
+            
+            echo "✅ Deployment completed!"
+          ENDSSH
+
+      - name: Notify success
+        run: echo "✅ Деплой успешно завершён!"

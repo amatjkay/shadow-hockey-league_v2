@@ -208,31 +208,50 @@ python seed_db.py
 
 ---
 
-## 🌐 Деплой на PythonAnywhere
+## 🌐 Деплой
 
-Проект развёрнут на **PythonAnywhere** (бесплатный тариф):  
-**https://amatjkay.pythonanywhere.com/**
+### Production сервер
 
-### ⚠️ Ограничения бесплатного тарифа
+Проект развёрнут на **VPS (Ubuntu 22.04)**:
+**https://shadow-hockey-league.ru/**
 
-| Функция         | Доступность   | Примечание                   |
-| --------------- | ------------- | ---------------------------- |
-| API для reload  | ❌ Недоступно | Только для платных аккаунтов |
-| SSH доступ      | ❌ Недоступно | Только для платных аккаунтов |
-| Scheduled Tasks | ✅ Доступно   | 1 задача, раз в день         |
-| Git pull        | ✅ Доступно   | Через Bash консоль           |
-| Веб-приложение  | ✅ Доступно   | С ручной перезагрузкой       |
+| Компонент  | Версия/Значение                |
+| ---------- | ------------------------------ |
+| ОС         | Ubuntu 22.04 LTS               |
+| Веб-сервер | Nginx                          |
+| WSGI       | Gunicorn (4 workers)           |
+| Python     | 3.10                           |
+| БД         | SQLite                         |
+| SSL        | Let's Encrypt (автообновление) |
 
-### 📝 Обновление на сервере
+### 📦 Автоматические бэкапы
 
-**Автоматически:** Настроен скрипт `deploy.sh` на сервере + Scheduled Task (ежедневно в 3:00 UTC)
+- **Периодичность:** Ежедневно в 3:00 UTC
+- **Хранение:** 7 дней
+- **Очистка:** Автоматическая (старше 7 дней)
+- **Формат:** `dev.db-YYYYMMDD-HHMMSS.gz`
 
-**Вручную** (через Bash консоль PythonAnywhere):
+### 🔄 Обновление на сервере
+
+**Вручную** (через SSH):
 
 ```bash
-cd /home/amatjkay/shadow-hockey-league_v2 && git pull && source /home/amatjkay/.venvs/shadow-hockey-league_v2/bin/activate && pip install -r requirements.txt --quiet && touch /var/www/amatjkay_pythonanywhere_com_wsgi.py
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+git pull origin main
+pip install -r requirements.txt --quiet
+systemctl restart shadow-hockey-league
 ```
 
-Затем нажмите кнопку **Reload** на вкладке **Web**.
+**Автоматически:** Настроено через GitHub Actions (CI/CD)
 
-📖 **Подробная инструкция:** [`docs/DEPLOY.md`](docs/DEPLOY.md)
+📖 **Подробная инструкция:** [`docs/VPS_DEPLOY.md`](docs/VPS_DEPLOY.md)
+
+---
+
+### PythonAnywhere (архив)
+
+Старая версия на PythonAnywhere доступна по адресу:
+**https://amatjkay.pythonanywhere.com/**
+
+📖 **Инструкция по деплою на PythonAnywhere:** [`docs/DEPLOY.md`](docs/DEPLOY.md)
