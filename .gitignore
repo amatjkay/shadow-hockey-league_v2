@@ -38,6 +38,12 @@ logs/
 *.env.*
 !.env.example
 
+# SSH Keys
+*.key
+*.pem
+github_actions_key*
+pa_deploy_key*
+
 # IDE
 .vscode/
 .idea/

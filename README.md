@@ -100,7 +100,7 @@ make run
 | `migrations/`                | Alembic миграции БД                                 |
 | `data/managers_data.py`      | Исходные данные для импорта в БД                    |
 | `templates/index.html`       | Главная страница                                    |
-| `static/css/style.css`       | Стили                                               |
+| `static/`                    | Статические файлы (CSS, JS, изображения)            |
 | `.env`                       | Переменные окружения (не коммитить в git)           |
 | `.env.example`               | Пример переменных окружения                         |
 
@@ -167,37 +167,16 @@ python seed_db.py
 
 Убедитесь, что `DATABASE_URL` в `.env` и `sqlalchemy.url` в `alembic.ini` указывают на один файл.
 
-## 📁 Структура проекта
-
-| Путь                             | Назначение                                          |
-| -------------------------------- | --------------------------------------------------- |
-| `app.py`                         | Приложение Flask, маршруты `/` и редирект `/rating` |
-| `models.py`                      | SQLAlchemy модели (Country, Manager, Achievement)   |
-| `config.py`                      | Конфигурация с поддержкой `.env`                    |
-| `services/rating_service.py`     | Сервис расчёта рейтинга из БД                       |
-| `services/api.py`                | REST API для CRUD операций                          |
-| `services/validation_service.py` | Валидация данных перед записью в БД                 |
-| `seed_db.py`                     | Скрипт наполнения БД начальными данными             |
-| `data/managers_data.py`          | Исходные данные для импорта в БД                    |
-| `templates/index.html`           | Главная страница                                    |
-| `static/css/`                    | Модульные CSS файлы (11 файлов)                     |
-| `docs/`                          | Документация проекта                                |
-| `.env`                           | Переменные окружения (не коммитить в git)           |
-| `.env.example`                   | Пример переменных окружения                         |
-
 ## 📚 Документация
 
-Вся документация находится в папке `docs/`:
-
-| Файл                        | Описание                                  |
-| --------------------------- | ----------------------------------------- |
-| `README.md`                 | Этот файл — быстрый старт                 |
-| `docs/API.md`               | REST API документация                     |
-| `docs/DEPLOY.md`            | Инструкция по деплою на PythonAnywhere    |
-| `docs/MANUAL_UPDATE.md`     | Руководство по ручному обновлению проекта |
-| `docs/INTEGRATION_TESTS.md` | План интеграционных тестов                |
-| `docs/TROUBLESHOOTING.md`   | Руководство по устранению неполадок       |
-| `docs/REFACTORING_PLAN.md`  | План рефакторинга и история проекта       |
+| Файл                      | Описание                                  |
+| ------------------------- | ----------------------------------------- |
+| `README.md`               | Этот файл — быстрый старт                 |
+| `docs/API.md`             | REST API документация                     |
+| `docs/DEPLOY.md`          | Инструкция по деплою на PythonAnywhere    |
+| `docs/VPS_DEPLOY.md`      | Инструкция по деплою на VPS (Ubuntu)      |
+| `docs/MANUAL_UPDATE.md`   | Руководство по ручному обновлению проекта |
+| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок       |
 
 ## 📊 Статус
 
@@ -212,7 +191,7 @@ python seed_db.py
 
 ### Production сервер
 
-Проект развёрнут на **VPS (Ubuntu 22.04)**:
+Проект развёрнут на **VPS (Ubuntu 22.04)**:  
 **https://shadow-hockey-league.ru/**
 
 | Компонент  | Версия/Значение                |
@@ -223,6 +202,7 @@ python seed_db.py
 | Python     | 3.10                           |
 | БД         | SQLite                         |
 | SSL        | Let's Encrypt (автообновление) |
+| Домен      | shadow-hockey-league.ru        |
 
 ### 📦 Автоматические бэкапы
 
@@ -230,10 +210,26 @@ python seed_db.py
 - **Хранение:** 7 дней
 - **Очистка:** Автоматическая (старше 7 дней)
 - **Формат:** `dev.db-YYYYMMDD-HHMMSS.gz`
+- **Расположение:** `/backup/`
 
-### 🔄 Обновление на сервере
+### 🔄 CI/CD (GitHub Actions)
 
-**Вручную** (через SSH):
+Настроен автоматический деплой при пуше в ветку `main`:
+
+```bash
+git push origin main
+```
+
+**Workflow:** `.github/workflows/deploy.yml`
+
+**Что делает:**
+
+1. Подключается по SSH к серверу
+2. Выполняет `git pull`
+3. Обновляет зависимости
+4. Перезапускает приложение
+
+### 📝 Ручное обновление на сервере
 
 ```bash
 cd /home/shleague/shadow-hockey-league_v2
@@ -243,15 +239,13 @@ pip install -r requirements.txt --quiet
 systemctl restart shadow-hockey-league
 ```
 
-**Автоматически:** Настроено через GitHub Actions (CI/CD)
-
 📖 **Подробная инструкция:** [`docs/VPS_DEPLOY.md`](docs/VPS_DEPLOY.md)
 
 ---
 
 ### PythonAnywhere (архив)
 
-Старая версия на PythonAnywhere доступна по адресу:
+Старая версия на PythonAnywhere доступна по адресу:  
 **https://amatjkay.pythonanywhere.com/**
 
 📖 **Инструкция по деплою на PythonAnywhere:** [`docs/DEPLOY.md`](docs/DEPLOY.md)

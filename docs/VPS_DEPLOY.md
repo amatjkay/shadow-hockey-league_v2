@@ -175,18 +175,7 @@ systemctl restart nginx
 
 ---
 
-## 📦 Шаг 8: Настройка прав доступа
-
-```bash
-# Даём права на чтение
-chmod 755 /home/shleague
-chmod 755 /home/shleague/shadow-hockey-league_v2
-chmod -R 755 /home/shleague/shadow-hockey-league_v2/static
-```
-
----
-
-## 🔒 Шаг 9: Настройка HTTPS (Let's Encrypt)
+## 🔒 Шаг 8: Настройка HTTPS (Let's Encrypt)
 
 ```bash
 # Установите Certbot
@@ -208,9 +197,9 @@ systemctl start certbot.timer
 
 ---
 
-## 📦 Шаг 10: Настройка автоматических бэкапов
+## 📦 Шаг 9: Настройка автоматических бэкапов
 
-### 10.1: Создание скрипта бэкапа
+### 9.1: Создание скрипта бэкапа
 
 ```bash
 # Создать директорию для бэкапов
@@ -243,7 +232,7 @@ EOF
 chmod +x /usr/local/bin/backup-db.sh
 ```
 
-### 10.2: Настройка cron (ежедневно в 3:00)
+### 9.2: Настройка cron (ежедневно в 3:00)
 
 ```bash
 # Открыть crontab
@@ -253,7 +242,7 @@ crontab -e
 0 3 * * * /usr/local/bin/backup-db.sh >> /var/log/backup-db.log 2>&1
 ```
 
-### 10.3: Проверка бэкапов
+### 9.3: Проверка бэкапов
 
 ```bash
 # Тестовый запуск
@@ -268,20 +257,23 @@ crontab -l
 
 ---
 
-## 🔐 Шаг 11: Настройка CI/CD (GitHub Actions)
+## 🔐 Шаг 10: Настройка CI/CD (GitHub Actions)
 
-### 11.1: Генерация SSH ключа (локально)
+### 10.1: Генерация SSH ключа (локально)
 
 ```powershell
 # В PowerShell на вашем компьютере
-ssh-keygen -t ed25519 -C "github-actions" -f C:\dev\shadow\shadow-hockey-league_v2\github_actions_key -N ""
+cd C:\dev\shadow\shadow-hockey-league_v2
+
+# Генерация ключа (нажмите Enter на passphrase)
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f github_actions_key
 ```
 
-### 11.2: Копирование публичного ключа на сервер
+### 10.2: Копирование публичного ключа на сервер
 
 ```powershell
-# Получаем содержимое публичного ключа
-Get-Content C:\dev\shadow\shadow-hockey-league_v2\github_actions_key.pub
+# Показать публичный ключ
+Get-Content github_actions_key.pub
 ```
 
 ```bash
@@ -293,7 +285,10 @@ chmod 700 /home/shleague/.ssh
 chmod 600 /home/shleague/.ssh/authorized_keys
 ```
 
-### 11.3: Добавление секретов в GitHub
+### 10.3: Добавление секретов в GitHub
+
+1. Откройте: **Settings** → **Secrets and variables** → **Actions**
+2. Добавьте 3 секрета:
 
 | Название          | Значение                        |
 | ----------------- | ------------------------------- |
@@ -301,9 +296,9 @@ chmod 600 /home/shleague/.ssh/authorized_keys
 | `SSH_USER`        | `shleague`                      |
 | `SSH_PRIVATE_KEY` | Содержимое `github_actions_key` |
 
-### 11.4: Workflow файл
+### 10.4: Workflow файл
 
-Создайте `.github/workflows/deploy.yml`:
+Файл уже создан: `.github/workflows/deploy.yml`
 
 ```yaml
 name: Deploy to VPS
@@ -345,7 +340,9 @@ jobs:
 
 ---
 
-## 🛠 Управление сервисом
+## 🔧 Управление сервисами
+
+### Shadow Hockey League
 
 ```bash
 # Статус
@@ -361,9 +358,7 @@ systemctl stop shadow-hockey-league
 journalctl -u shadow-hockey-league -f
 ```
 
----
-
-## 🛠 Управление Nginx
+### Nginx
 
 ```bash
 # Статус
@@ -372,13 +367,66 @@ systemctl status nginx
 # Перезапуск
 systemctl restart nginx
 
-# Логи ошибок
+# Тест конфига
+nginx -t
+
+# Логи
+tail -f /var/log/nginx/access.log
 tail -f /var/log/nginx/error.log
+```
+
+### Бэкапы
+
+```bash
+# Ручной запуск
+/usr/local/bin/backup-db.sh
+
+# Проверка бэкапов
+ls -lh /backup/
+
+# Логи
+cat /var/log/backup-db.log
 ```
 
 ---
 
-## 🔧 Устранение неполадок
+## 🔍 Диагностика
+
+### Проверка портов
+
+```bash
+# Какие порты слушаются
+ss -tlnp
+
+# Проверка Gunicorn (порт 8000)
+ss -tlnp | grep 8000
+
+# Проверка Nginx (порт 80)
+ss -tlnp | grep 80
+```
+
+### Проверка DNS
+
+```bash
+# Проверка домена
+ping shadow-hockey-league.ru
+
+# Должен показать IP 46.29.239.8
+```
+
+### Проверка SSL
+
+```bash
+# Статус сертификатов
+certbot certificates
+
+# Автообновление
+systemctl status certbot.timer
+```
+
+---
+
+## 🛠 Устранение неполадок
 
 ### Ошибка: "Permission denied" для статики
 
@@ -413,25 +461,17 @@ journalctl -u shadow-hockey-league -n 50
 tail -20 /var/log/nginx/error.log
 ```
 
----
-
-## 📊 Мониторинг
-
-### Проверка здоровья
+### CI/CD не работает
 
 ```bash
-curl http://46.29.239.8/health
-```
+# Проверка SSH ключа
+cat /home/shleague/.ssh/authorized_keys
 
-### Логи приложения
+# Проверка логов SSH
+tail -20 /var/log/auth.log | grep ssh
 
-```bash
-# Логи Gunicorn
-journalctl -u shadow-hockey-league -f
-
-# Логи Nginx
-tail -f /var/log/nginx/access.log
-tail -f /var/log/nginx/error.log
+# Тест подключения (локально)
+ssh -i github_actions_key -o StrictHostKeyChecking=no shleague@46.29.239.8 "echo success"
 ```
 
 ---
@@ -442,7 +482,7 @@ tail -f /var/log/nginx/error.log
 
 - [ ] VPS с Ubuntu 22.04
 - [ ] SSH доступ (root)
-- [ ] Домен/IP настроен
+- [ ] Домен настроен (A-запись на IP)
 
 ### Развёртывание:
 
@@ -456,6 +496,13 @@ tail -f /var/log/nginx/error.log
 - [ ] Systemd сервис создан и запущен
 - [ ] Nginx настроен
 - [ ] Права доступа настроены
+- [ ] HTTPS настроен (Certbot)
+
+### Бэкапы:
+
+- [ ] Скрипт бэкапа создан
+- [ ] Cron настроен (ежедневно в 3:00)
+- [ ] Тестовый бэкап успешен
 
 ### CI/CD:
 
@@ -467,11 +514,21 @@ tail -f /var/log/nginx/error.log
 
 ### Проверка:
 
-- [ ] Сайт открывается
+- [ ] Сайт открывается по HTTPS
 - [ ] Статика загружается
 - [ ] Ошибки в логах отсутствуют
 
 ---
 
+## 🔗 Полезные ссылки
+
+| Ресурс             | URL                                                         |
+| ------------------ | ----------------------------------------------------------- |
+| Сайт               | https://shadow-hockey-league.ru/                            |
+| Репозиторий GitHub | https://github.com/amatjkay/shadow-hockey-league_v2         |
+| GitHub Actions     | https://github.com/amatjkay/shadow-hockey-league_v2/actions |
+
+---
+
 **Последнее обновление:** 1 апреля 2026 г.  
-**Версия документа:** 1.0
+**Версия документа:** 2.0 (VPS с CI/CD)
