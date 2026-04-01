@@ -15,11 +15,17 @@ jobs:
       - name: Trigger PythonAnywhere reload
         run: |
           echo "🚀 Triggering reload on PythonAnywhere..."
+          echo "Username: ${{ secrets.PA_USERNAME }}"
+          echo "Domain: ${{ secrets.PA_DOMAIN }}"
 
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+          RESPONSE=$(curl -v -o response.txt -w "%{http_code}" \
             -X POST \
             "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
             -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
+
+          echo "HTTP Status: $RESPONSE"
+          echo "Response body:"
+          cat response.txt
 
           if [ "$RESPONSE" == "200" ]; then
             echo "✅ Reload successful!"
