@@ -48,5 +48,4 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
-```"*.pub"  
-"pa_deploy_key*"  
+```

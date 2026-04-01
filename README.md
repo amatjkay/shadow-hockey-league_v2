@@ -205,3 +205,34 @@ python seed_db.py
 - ✅ Код отформатирован (black, isort, flake8)
 - ✅ REST API документирован (`docs/API.md`)
 - ✅ Поддержка Windows (кодировка, пути)
+
+---
+
+## 🌐 Деплой на PythonAnywhere
+
+Проект развёрнут на **PythonAnywhere** (бесплатный тариф):  
+**https://amatjkay.pythonanywhere.com/**
+
+### ⚠️ Ограничения бесплатного тарифа
+
+| Функция         | Доступность   | Примечание                   |
+| --------------- | ------------- | ---------------------------- |
+| API для reload  | ❌ Недоступно | Только для платных аккаунтов |
+| SSH доступ      | ❌ Недоступно | Только для платных аккаунтов |
+| Scheduled Tasks | ✅ Доступно   | 1 задача, раз в день         |
+| Git pull        | ✅ Доступно   | Через Bash консоль           |
+| Веб-приложение  | ✅ Доступно   | С ручной перезагрузкой       |
+
+### 📝 Обновление на сервере
+
+**Автоматически:** Настроен скрипт `deploy.sh` на сервере + Scheduled Task (ежедневно в 3:00 UTC)
+
+**Вручную** (через Bash консоль PythonAnywhere):
+
+```bash
+cd /home/amatjkay/shadow-hockey-league_v2 && git pull && source /home/amatjkay/.venvs/shadow-hockey-league_v2/bin/activate && pip install -r requirements.txt --quiet && touch /var/www/amatjkay_pythonanywhere_com_wsgi.py
+```
+
+Затем нажмите кнопку **Reload** на вкладке **Web**.
+
+📖 **Подробная инструкция:** [`docs/DEPLOY.md`](docs/DEPLOY.md)
