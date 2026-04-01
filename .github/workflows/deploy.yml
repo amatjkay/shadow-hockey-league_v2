@@ -3,7 +3,7 @@ name: Deploy to PythonAnywhere
 on:
   push:
     branches: [main]
-  workflow_dispatch: # Ручной запуск из UI GitHub
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -18,40 +18,32 @@ jobs:
           echo "Username: ${{ secrets.PA_USERNAME }}"
           echo "Domain: ${{ secrets.PA_DOMAIN }}"
 
-          # Пробуем два формата URL
-          # Формат 1: с полным доменом
-          RESPONSE1=$(curl -s -w "\n%{http_code}" \
+          # Получаем ответ с телом и статусом
+          HTTP_CODE=$(curl -s -w "%{http_code}" \
             -X POST \
-            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}.pythonanywhere.com/reload/" \
+            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
             -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
 
-          HTTP_CODE1=$(echo "$RESPONSE1" | tail -n1)
-          BODY1=$(echo "$RESPONSE1" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
 
-          echo "Attempt 1 (with .pythonanywhere.com): $HTTP_CODE1"
-          echo "Response: $BODY1"
-
-          if [ "$HTTP_CODE1" == "200" ]; then
+          if [ "$HTTP_CODE" == "200" ]; then
             echo "✅ Reload successful!"
             exit 0
+          elif [ "$HTTP_CODE" == "404" ]; then
+            echo "❌ Web app not found. Check PA_DOMAIN secret."
+            echo "Expected format: just the subdomain (e.g., 'amatjkay' for amatjkay.pythonanywhere.com)"
+            exit 1
+          elif [ "$HTTP_CODE" == "403" ]; then
+            echo "❌ Forbidden. Check PA_API_KEY secret."
+            exit 1
+          elif [ "$HTTP_CODE" == "500" ]; then
+            echo "❌ Server error from PythonAnywhere."
+            echo "Possible causes:"
+            echo "  - Web app doesn't exist yet (create it in Web tab first)"
+            echo "  - Free account has API limitations"
+            echo "Try manual reload: Web → Reload button"
+            exit 1
+          else
+            echo "❌ Unexpected status code: $HTTP_CODE"
+            exit 1
           fi
-
-          # Формат 2: без домена (только username)
-          RESPONSE2=$(curl -s -w "\n%{http_code}" \
-            -X POST \
-            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_USERNAME }}/reload/" \
-            -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
-
-          HTTP_CODE2=$(echo "$RESPONSE2" | tail -n1)
-          BODY2=$(echo "$RESPONSE2" | head -n -1)
-
-          echo "Attempt 2 (username only): $HTTP_CODE2"
-          echo "Response: $BODY2"
-
-          if [ "$HTTP_CODE2" == "200" ]; then
-            echo "✅ Reload successful!"
-            exit 0
-          fi
-
-          echo "❌ All attempts failed"
-          exit 1
