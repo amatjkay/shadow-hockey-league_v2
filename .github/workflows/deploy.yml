@@ -1,8 +1,10 @@
-name: Deploy to PythonAnywhere
+name: Deploy to PythonAnywhere (Manual Trigger)
+
+# ⚠️ Примечание: На бесплатном тарифе PythonAnywhere API и SSH недоступны.
+# Используйте Scheduled Tasks или ручной деплой через консоль.
+# Этот workflow может работать только на платном тарифе.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -12,32 +14,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Notify
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PA_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan ssh.pythonanywhere.com >> ~/.ssh/known_hosts
-          echo "StrictHostKeyChecking no" >> ~/.ssh/config
-
-      - name: Deploy via SSH
-        run: |
-          echo "🚀 Deploying to PythonAnywhere..."
-
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.PA_USERNAME }}@ssh.pythonanywhere.com << 'ENDSSH'
-            cd /home/${{ secrets.PA_USERNAME }}/shadow-hockey-league_v2
-            
-            echo "📦 Pulling latest changes..."
-            git pull origin main
-            
-            echo "🔧 Installing dependencies..."
-            source /home/${{ secrets.PA_USERNAME }}/.venvs/shadow-hockey-league_v2/bin/activate
-            pip install -r requirements.txt --quiet
-            
-            echo "🔄 Reloading web app..."
-            touch /var/www/${{ secrets.PA_USERNAME }}_pythonanywhere_com_wsgi.py
-            
-            echo "✅ Deployment completed!"
-          ENDSSH
-
-          echo "✅ Deploy successful!"
+          echo "⚠️ PythonAnywhere бесплатный тариф не поддерживает API для деплоя."
+          echo ""
+          echo "Используйте один из вариантов:"
+          echo "1. Scheduled Tasks на PythonAnywhere (см. docs/DEPLOY.md)"
+          echo "2. Ручной деплой через Bash консоль:"
+          echo "   cd /home/amatjkay/shadow-hockey-league_v2 && git pull && source /home/amatjkay/.venvs/shadow-hockey-league_v2/bin/activate && pip install -r requirements.txt --quiet && touch /var/www/amatjkay_pythonanywhere_com_wsgi.py"
+          echo ""
+          echo "3. Платный тариф PythonAnywhere для автоматического деплоя"

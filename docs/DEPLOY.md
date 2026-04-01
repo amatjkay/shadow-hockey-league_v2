@@ -153,7 +153,12 @@ tail -f /var/log/username.pythonanywhere.com/error.log
 
 ### Автоматический деплой (CI/CD)
 
-#### Вариант 1: GitHub Actions (Рекомендуется)
+> **⚠️ Важно:** На **бесплатном тарифе** PythonAnywhere API для reload и SSH недоступны.
+> Используйте **Scheduled Tasks** (Вариант 2) или ручной деплой через консоль.
+
+---
+
+#### Вариант 1: GitHub Actions (Только для платного тарифа)
 
 Настройте автоматический деплой при каждом пуше в ветку `main`:
 
@@ -210,16 +215,21 @@ jobs:
 - ✅ Безопасно (ключи хранятся в секретах GitHub)
 - ✅ Мгновенный деплой после пуша
 
+**⚠️ Ограничение:** Не работает на бесплатном тарифе PythonAnywhere
+
 ---
 
-#### Вариант 2: Scheduled Task (Планировщик задач)
+#### Вариант 2: Scheduled Task (Рекомендуется для бесплатного тарифа)
 
-Если не хотите использовать GitHub Actions, настройте периодическую синхронизацию:
+Настройте периодическую синхронизацию через планировщик задач PythonAnywhere:
 
 **1. Создайте скрипт деплоя на сервере:**
 
+Откройте **Bash консоль** на PythonAnywhere и выполните:
+
 ```bash
 cd /home/amatjkay/shadow-hockey-league_v2
+
 cat > deploy.sh << 'EOF'
 #!/bin/bash
 set -e
@@ -240,18 +250,48 @@ touch /var/www/amatjkay_pythonanywhere_com_wsgi.py
 
 echo "✅ Deployment completed at $(date)"
 EOF
+
 chmod +x deploy.sh
 ```
 
 **2. Настройте планировщик:**
 
 - В PythonAnywhere перейдите в **Tasks** → **Schedule**
-- Добавьте задачу: `0 3 * * *` (каждый день в 3:00)
-- Команда: `/home/amatjkay/shadow-hockey-league_v2/deploy.sh`
+- Нажмите **Add a new task** → выберите **Bash**
+- **Command:** `/home/amatjkay/shadow-hockey-league_v2/deploy.sh`
+- **Расписание:** Например, `Hour: 3, Minute: 0` (каждый день в 3:00)
+
+**Преимущества:**
+
+- ✅ Работает на бесплатном тарифе
+- ✅ Простая настройка
+- ✅ Автоматическое обновление по расписанию
+
+**Недостатки:**
+
+- ⏰ Не мгновенный деплой (только по расписанию)
+- 🔧 Требуется ручное создание скрипта на сервере
 
 ---
 
-#### Вариант 3: Webhook через Flask-эндпоинт
+#### Вариант 3: Ручной деплой через консоль
+
+Быстрое обновление вручную через Bash консоль PythonAnywhere:
+
+```bash
+cd /home/amatjkay/shadow-hockey-league_v2 && git pull && source /home/amatjkay/.venvs/shadow-hockey-league_v2/bin/activate && pip install -r requirements.txt --quiet && touch /var/www/amatjkay_pythonanywhere_com_wsgi.py
+```
+
+**Шаги:**
+
+1. Откройте **Consoles** → **Bash console**
+2. Вставьте команду выше
+3. Нажмите Enter
+4. Перезагрузите сайт через кнопку **Reload** на вкладке **Web**
+
+---
+
+#### Вариант 4: Webhook через Flask-эндпоинт
 
 Создайте эндпоинт для триггера деплоя из GitHub webhooks:
 
