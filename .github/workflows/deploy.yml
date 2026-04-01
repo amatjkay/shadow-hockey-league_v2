@@ -18,18 +18,40 @@ jobs:
           echo "Username: ${{ secrets.PA_USERNAME }}"
           echo "Domain: ${{ secrets.PA_DOMAIN }}"
 
-          RESPONSE=$(curl -v -o response.txt -w "%{http_code}" \
+          # Пробуем два формата URL
+          # Формат 1: с полным доменом
+          RESPONSE1=$(curl -s -w "\n%{http_code}" \
             -X POST \
-            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
+            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}.pythonanywhere.com/reload/" \
             -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
 
-          echo "HTTP Status: $RESPONSE"
-          echo "Response body:"
-          cat response.txt
+          HTTP_CODE1=$(echo "$RESPONSE1" | tail -n1)
+          BODY1=$(echo "$RESPONSE1" | head -n -1)
 
-          if [ "$RESPONSE" == "200" ]; then
+          echo "Attempt 1 (with .pythonanywhere.com): $HTTP_CODE1"
+          echo "Response: $BODY1"
+
+          if [ "$HTTP_CODE1" == "200" ]; then
             echo "✅ Reload successful!"
-          else
-            echo "❌ Reload failed with status code: $RESPONSE"
-            exit 1
+            exit 0
           fi
+
+          # Формат 2: без домена (только username)
+          RESPONSE2=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_USERNAME }}/reload/" \
+            -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
+
+          HTTP_CODE2=$(echo "$RESPONSE2" | tail -n1)
+          BODY2=$(echo "$RESPONSE2" | head -n -1)
+
+          echo "Attempt 2 (username only): $HTTP_CODE2"
+          echo "Response: $BODY2"
+
+          if [ "$HTTP_CODE2" == "200" ]; then
+            echo "✅ Reload successful!"
+            exit 0
+          fi
+
+          echo "❌ All attempts failed"
+          exit 1
