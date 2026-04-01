@@ -12,38 +12,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Trigger PythonAnywhere reload
+      - name: Setup SSH
         run: |
-          echo "🚀 Triggering reload on PythonAnywhere..."
-          echo "Username: ${{ secrets.PA_USERNAME }}"
-          echo "Domain: ${{ secrets.PA_DOMAIN }}"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PA_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan ssh.pythonanywhere.com >> ~/.ssh/known_hosts
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
 
-          # Получаем ответ с телом и статусом
-          HTTP_CODE=$(curl -s -w "%{http_code}" \
-            -X POST \
-            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
-            -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
+      - name: Deploy via SSH
+        run: |
+          echo "🚀 Deploying to PythonAnywhere..."
 
-          echo "HTTP Status: $HTTP_CODE"
+          ssh -i ~/.ssh/id_ed25519 ${{ secrets.PA_USERNAME }}@ssh.pythonanywhere.com << 'ENDSSH'
+            cd /home/${{ secrets.PA_USERNAME }}/shadow-hockey-league_v2
+            
+            echo "📦 Pulling latest changes..."
+            git pull origin main
+            
+            echo "🔧 Installing dependencies..."
+            source /home/${{ secrets.PA_USERNAME }}/.venvs/shadow-hockey-league_v2/bin/activate
+            pip install -r requirements.txt --quiet
+            
+            echo "🔄 Reloading web app..."
+            touch /var/www/${{ secrets.PA_USERNAME }}_pythonanywhere_com_wsgi.py
+            
+            echo "✅ Deployment completed!"
+          ENDSSH
 
-          if [ "$HTTP_CODE" == "200" ]; then
-            echo "✅ Reload successful!"
-            exit 0
-          elif [ "$HTTP_CODE" == "404" ]; then
-            echo "❌ Web app not found. Check PA_DOMAIN secret."
-            echo "Expected format: just the subdomain (e.g., 'amatjkay' for amatjkay.pythonanywhere.com)"
-            exit 1
-          elif [ "$HTTP_CODE" == "403" ]; then
-            echo "❌ Forbidden. Check PA_API_KEY secret."
-            exit 1
-          elif [ "$HTTP_CODE" == "500" ]; then
-            echo "❌ Server error from PythonAnywhere."
-            echo "Possible causes:"
-            echo "  - Web app doesn't exist yet (create it in Web tab first)"
-            echo "  - Free account has API limitations"
-            echo "Try manual reload: Web → Reload button"
-            exit 1
-          else
-            echo "❌ Unexpected status code: $HTTP_CODE"
-            exit 1
-          fi
+          echo "✅ Deploy successful!"
