@@ -2,7 +2,7 @@ name: Deploy to VPS
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -22,18 +22,18 @@ jobs:
       - name: Deploy to server
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            cd /home/shadow/shadow-hockey-league_v2
-            
+            cd /home/shleague/shadow-hockey-league_v2
+
             # Git pull
             git pull origin main
-            
+
             # Update dependencies
             source venv/bin/activate
             pip install -r requirements.txt --quiet
-            
+
             # Reload application
             systemctl restart shadow-hockey-league
-            
+
             echo "✅ Deployment completed!"
           ENDSSH
 
