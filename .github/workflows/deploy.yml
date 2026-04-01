@@ -2,8 +2,8 @@ name: Deploy to PythonAnywhere
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:  # Ручной запуск из UI GitHub
+    branches: [main]
+  workflow_dispatch: # Ручной запуск из UI GitHub
 
 jobs:
   deploy:
@@ -12,20 +12,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to PythonAnywhere
-        uses: pythonanywhere/action-pythonanywhere@v1
-        with:
-          username: ${{ secrets.PA_USERNAME }}
-          api_key: ${{ secrets.PA_API_KEY }}
-          domain: ${{ secrets.PA_DOMAIN }}
-          action: reload
-
-      - name: Notify deployment status
-        if: always()
+      - name: Trigger PythonAnywhere reload
         run: |
-          if [ ${{ job.status }} == 'success' ]; then
-            echo "✅ Деплой успешно завершён!"
+          echo "🚀 Triggering reload on PythonAnywhere..."
+
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
+            -H "Authorization: Token ${{ secrets.PA_API_KEY }}")
+
+          if [ "$RESPONSE" == "200" ]; then
+            echo "✅ Reload successful!"
           else
-            echo "❌ Деплой не удался. Проверьте логи."
+            echo "❌ Reload failed with status code: $RESPONSE"
             exit 1
           fi
