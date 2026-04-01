@@ -31,7 +31,12 @@ def create_app(config_class: str | None = None) -> Flask:
     Returns:
         Configured Flask application instance.
     """
+    import time
+    
     app = Flask(__name__)
+    
+    # Store app start time for uptime calculation
+    app.config['APP_START_TIME'] = time.time()
 
     # Load configuration
     if config_class:
@@ -150,9 +155,17 @@ def register_extensions(app: Flask) -> None:
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get('TESTING') is not True:
         try:
-            metrics = PrometheusMetrics(app, defaults_prefix='shadow_hockey_league')
+            # Initialize Prometheus with default metrics (HTTP requests, latency)
+            metrics = PrometheusMetrics(
+                app, 
+                defaults_prefix='shadow_hockey_league',
+                excluded_endpoints=['/static', '/metrics']  # Exclude static and metrics itself
+            )
             metrics.register_endpoint('/health')
+            
+            # Add custom metrics info
             app.logger.info("Prometheus metrics enabled at /metrics")
+            app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
 
@@ -231,20 +244,31 @@ def register_routes(app: Flask) -> None:
         return redirect(url_for("index") + "#rating", code=308)
 
     @app.route("/health")
-    def health_check() -> dict[str, str | int]:
-        """Health check endpoint for monitoring with metrics."""
+    def health_check() -> dict[str, Any]:
+        """Health check endpoint for monitoring with metrics.
+        
+        Returns comprehensive status including:
+        - Database status (connection, size, record counts)
+        - Redis status (connection, memory)
+        - Cache status (type, functionality)
+        - Application info (uptime, version)
+        """
         import time
-
+        from pathlib import Path
+        
         start_time = time.time()
 
-        health_status = {
+        health_status: dict[str, Any] = {
             "status": "healthy",
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "uptime_seconds": round(time.time() - app.config.get('APP_START_TIME', time.time())),
             "managers_count": 0,
             "achievements_count": 0,
             "countries_count": 0,
             "response_time_ms": 0,
             "redis_status": "unknown",
             "cache_status": "unknown",
+            "database_status": "unknown",
         }
 
         # Check database
@@ -253,10 +277,22 @@ def register_routes(app: Flask) -> None:
                 health_status["managers_count"] = db.session.query(Manager).count()
                 health_status["achievements_count"] = db.session.query(Achievement).count()
                 health_status["countries_count"] = db.session.query(Country).count()
+            health_status["database_status"] = "connected"
+            
+            # Get database file size
+            db_path = app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')
+            if db_path and db_path != ':memory:':
+                try:
+                    db_size = Path(db_path).stat().st_size
+                    health_status["database_size_bytes"] = db_size
+                    health_status["database_size_mb"] = round(db_size / 1024 / 1024, 2)
+                except Exception:
+                    pass
         except Exception as e:
             app.logger.error(f"Database health check failed: {str(e)}")
             health_status["status"] = "degraded"
-            health_status["db_status"] = "error"
+            health_status["database_status"] = "error"
+            health_status["database_error"] = str(e)
 
         # Check Redis connection
         try:
@@ -269,6 +305,11 @@ def register_routes(app: Flask) -> None:
             redis_client.ping()
             health_status["redis_status"] = "connected"
             
+            # Get Redis info
+            redis_info = redis_client.info('memory')
+            health_status["redis_used_memory_bytes"] = redis_info.get('used_memory', 0)
+            health_status["redis_used_memory_mb"] = round(redis_info.get('used_memory', 0) / 1024 / 1024, 2)
+            
             # Check cache functionality
             cache.set('_health_check', 'ok', timeout=5)
             if cache.get('_health_check') == 'ok':
@@ -276,9 +317,10 @@ def register_routes(app: Flask) -> None:
             else:
                 health_status["cache_status"] = "error"
                 health_status["status"] = "degraded"
-        except (redis.ConnectionError, redis.TimeoutError, Exception) as e:
+        except (redis.ConnectionError, redis.TimeoutError, ImportError) as e:
             health_status["redis_status"] = "disconnected"
             health_status["cache_status"] = "fallback"
+            health_status["cache_type"] = app.config.get('CACHE_TYPE', 'unknown')
             # Not critical - fallback to simple cache
 
         health_status["response_time_ms"] = round((time.time() - start_time) * 1000)
