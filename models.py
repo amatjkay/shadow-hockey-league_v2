@@ -4,8 +4,31 @@ Database schema for storing managers, countries, and achievements.
 """
 
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 db = SQLAlchemy()
+
+
+class AdminUser(db.Model, UserMixin):
+    """Admin user table for authentication."""
+
+    __tablename__ = "admin_users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+
+    def set_password(self, password: str) -> None:
+        """Hash and set the password."""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Check if the provided password matches the hash."""
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self) -> str:
+        return f"<AdminUser {self.username}>"
 
 
 class Country(db.Model):

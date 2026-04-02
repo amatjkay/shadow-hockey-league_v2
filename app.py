@@ -18,6 +18,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from models import Achievement, Country, Manager, db
 from services.rating_service import build_leaderboard
 from services.cache_service import cache
+from services.admin import init_admin
 
 
 def create_app(config_class: str | None = None) -> Flask:
@@ -151,6 +152,14 @@ def register_extensions(app: Flask) -> None:
     
     app.config.update(cache_config)
     cache.init_app(app)
+    
+    # Initialize Flask-Admin and Flask-Login (only in non-testing environments)
+    if app.config.get('TESTING') is not True:
+        try:
+            init_admin(app)
+            app.logger.info("Flask-Admin initialized at /admin/")
+        except Exception as e:
+            app.logger.warning(f"Could not initialize Flask-Admin: {e}")
     
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get('TESTING') is not True:

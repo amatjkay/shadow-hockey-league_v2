@@ -1,0 +1,28 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Shadow Hockey League Admin</h1>
+            <p class="lead">Welcome to the admin panel.</p>
+            
+            {% if current_user.is_authenticated %}
+                <div class="alert alert-success">
+                    Logged in as <strong>{{ current_user.username }}</strong>
+                </div>
+                <p>Use the menu above to manage:</p>
+                <ul>
+                    <li><strong>Countries</strong> - Manage country flags and codes</li>
+                    <li><strong>Managers</strong> - Manage hockey league managers</li>
+                    <li><strong>Achievements</strong> - Manage awards and achievements</li>
+                </ul>
+            {% else %}
+                <div class="alert alert-info">
+                    Please <a href="{{ url_for('admin_login') }}">log in</a> to access the admin panel.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
