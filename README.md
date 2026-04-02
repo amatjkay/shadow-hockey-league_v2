@@ -132,6 +132,40 @@ make test
 python -m unittest discover -v
 ```
 
+## 📊 Мониторинг
+
+Приложение предоставляет эндпоинты для мониторинга:
+
+### Health Check (`/health`)
+
+```bash
+curl https://shadow-hockey-league.ru/health
+```
+
+**Пример ответа:**
+
+```json
+{
+  "status": "healthy",
+  "managers_count": 50,
+  "achievements_count": 200,
+  "countries_count": 8,
+  "response_time_ms": 15,
+  "redis_status": "connected",
+  "cache_status": "working",
+  "database_status": "connected"
+}
+```
+
+### Prometheus Metrics (`/metrics`)
+
+Метрики в формате Prometheus для сбора статистики:
+
+- `http_requests_total` — всего запросов
+- `http_request_duration_seconds` — время ответа
+
+**Подробная документация:** [`docs/MONITORING.md`](docs/MONITORING.md)
+
 ## 🔐 Переменные окружения
 
 Проект использует файл `.env` для конфигурации:
