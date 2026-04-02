@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -26,13 +27,24 @@ if config.config_file_name is not None:
 target_metadata = db.metadata
 
 # Override sqlalchemy.url from environment if present
+# ALWAYS use absolute path to prevent 'instance/' folder issues
 db_url = os.environ.get("DATABASE_URL")
 if db_url:
-    # Handle sqlite:/// (Alembic might need slightly different format or just absolute path)
+    # If it's a relative SQLite path, convert to absolute
+    if db_url.startswith("sqlite:///") and not db_url.startswith("sqlite:////"):
+        db_filename = db_url.replace("sqlite:///", "")
+        absolute_path = Path(__file__).parent.parent / db_filename
+        db_url = f"sqlite:///{absolute_path}"
+    
     config.set_main_option("sqlalchemy.url", db_url)
     print(f"Alembic using DATABASE_URL from environment: {db_url}")
 else:
-    print(f"Alembic using default URL from alembic.ini: {config.get_main_option('sqlalchemy.url')}")
+    # Default: absolute path to dev.db in project root
+    base_dir = Path(__file__).parent.parent
+    default_db_path = base_dir / "dev.db"
+    db_url = f"sqlite:///{default_db_path}"
+    config.set_main_option("sqlalchemy.url", db_url)
+    print(f"Alembic using absolute path: {db_url}")
 
 
 # other values from the config, defined by the needs of env.py,
