@@ -10,10 +10,10 @@
 
 ```cmd
 REM 1. Установка и настройка
-setup.bat
+.\setup.bat
 
 REM 2. Запуск сервера
-run.bat
+.\run.bat
 ```
 
 #### Вариант 2: Прямые команды PowerShell

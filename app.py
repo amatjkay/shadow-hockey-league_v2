@@ -164,17 +164,20 @@ def register_extensions(app: Flask) -> None:
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get('TESTING') is not True:
         try:
-            # Initialize Prometheus with default metrics (HTTP requests, latency)
-            metrics = PrometheusMetrics(
-                app, 
-                defaults_prefix='shadow_hockey_league',
-                excluded_endpoints=['/static', '/metrics']  # Exclude static and metrics itself
-            )
-            metrics.register_endpoint('/health')
-            
-            # Add custom metrics info
-            app.logger.info("Prometheus metrics enabled at /metrics")
-            app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
+            # Check if Prometheus is already initialized (prevent duplicate registration)
+            if not hasattr(app, 'prometheus_metrics'):
+                # Initialize Prometheus with default metrics (HTTP requests, latency)
+                metrics = PrometheusMetrics(
+                    app,
+                    defaults_prefix='shadow_hockey_league',
+                    excluded_endpoints=['/static', '/metrics']  # Exclude static and metrics itself
+                )
+                metrics.register_endpoint('/health')
+                app.prometheus_metrics = metrics  # Mark as initialized
+
+                # Add custom metrics info
+                app.logger.info("Prometheus metrics enabled at /metrics")
+                app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
 

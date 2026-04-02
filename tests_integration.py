@@ -435,22 +435,22 @@ class TestRatingCalculationIntegration(unittest.TestCase):
             db.session.commit()
             
             manager_id = manager.id
-            
-            # TOP1 s24/25: 800 × 1.00 = 800
+
+            # TOP1 s25/26: 800 × 1.00 = 800
             db.session.add(Achievement(
                 achievement_type="TOP1",
                 league="1",
-                season="24/25",
+                season="25/26",
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager_id
             ))
-            
-            # TOP2 s23/24: 550 × 0.95 = 522.5 → 522 (banker's rounding)
+
+            # TOP2 s24/25: 550 × 0.95 = 522.5 → 522 (banker's rounding)
             db.session.add(Achievement(
                 achievement_type="TOP2",
                 league="1",
-                season="23/24",
+                season="24/25",
                 title="TOP2",
                 icon_path="/static/img/cups/top2.svg",
                 manager_id=manager_id
@@ -461,8 +461,8 @@ class TestRatingCalculationIntegration(unittest.TestCase):
         # Act
         with self.app.app_context():
             leaderboard = build_leaderboard(db.session)
-        
-        # Assert: 800 + 522 = 1322 (Python uses banker's rounding: 522.5 → 522)
+
+        # Assert: 800 + 522 = 1322 (TOP1 s25/26: 800×1.00=800, TOP2 s24/25: 550×0.95=522.5→522 banker's rounding)
         test_entry = next(e for e in leaderboard if e['name'] == 'Rating Test')
         self.assertEqual(test_entry['total'], 1322)
 

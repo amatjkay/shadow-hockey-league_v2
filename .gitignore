@@ -50,6 +50,7 @@ pa_deploy_key*
 *.swp
 *.swo
 *.tmp
+.qwen/
 
 # OS
 .DS_Store
