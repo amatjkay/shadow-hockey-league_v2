@@ -1,7 +1,7 @@
 """Shadow Hockey League Flask Application.
 
 Application Factory pattern implementation with proper extension initialization,
-logging configuration, and security headers.
+logging configuration, security headers, caching and metrics.
 """
 
 from __future__ import annotations
@@ -13,9 +13,11 @@ from typing import Any
 
 from flask import Flask, redirect, render_template, request, url_for
 from flask.logging import default_handler
+from prometheus_flask_exporter import PrometheusMetrics
 
 from models import Achievement, Country, Manager, db
 from services.rating_service import build_leaderboard
+from services.cache_service import cache
 
 
 def create_app(config_class: str | None = None) -> Flask:
@@ -115,6 +117,44 @@ def register_extensions(app: Flask) -> None:
     """Initialize Flask extensions."""
     # Initialize SQLAlchemy with app
     db.init_app(app)
+    
+    # Initialize caching with Redis (or fallback to simple cache)
+    cache_config = {
+        'CACHE_TYPE': 'RedisCache',
+        'CACHE_REDIS_HOST': os.environ.get('REDIS_HOST', 'localhost'),
+        'CACHE_REDIS_PORT': int(os.environ.get('REDIS_PORT', 6379)),
+        'CACHE_REDIS_DB': int(os.environ.get('REDIS_DB', 0)),
+        'CACHE_REDIS_PASSWORD': os.environ.get('REDIS_PASSWORD', None),
+        'CACHE_DEFAULT_TIMEOUT': 300,  # 5 minutes
+    }
+    
+    # Fallback to simple cache if Redis is not available
+    try:
+        import redis
+        redis_client = redis.Redis(
+            host=cache_config['CACHE_REDIS_HOST'],
+            port=cache_config['CACHE_REDIS_PORT'],
+            db=cache_config['CACHE_REDIS_DB'],
+            password=cache_config['CACHE_REDIS_PASSWORD'],
+            socket_connect_timeout=2,
+        )
+        redis_client.ping()
+        app.logger.info(f"Redis connection established: {cache_config['CACHE_REDIS_HOST']}:{cache_config['CACHE_REDIS_PORT']}")
+    except (redis.ConnectionError, redis.TimeoutError, ImportError) as e:
+        app.logger.warning(f"Redis not available, falling back to simple cache: {e}")
+        cache_config['CACHE_TYPE'] = 'SimpleCache'
+    
+    app.config.update(cache_config)
+    cache.init_app(app)
+    
+    # Initialize Prometheus metrics (only in non-testing environments)
+    if app.config.get('TESTING') is not True:
+        try:
+            metrics = PrometheusMetrics(app, defaults_prefix='shadow_hockey_league')
+            metrics.register_endpoint('/health')
+            app.logger.info("Prometheus metrics enabled at /metrics")
+        except Exception as e:
+            app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
 
 
 def register_blueprints(app: Flask) -> None:
@@ -132,6 +172,7 @@ def register_routes(app: Flask) -> None:
     """Register application routes."""
 
     @app.route("/")
+    @cache.cached(timeout=300, key_prefix='leaderboard')  # Cache for 5 minutes
     def index() -> str | tuple[str, int]:
         from sqlalchemy.exc import OperationalError
 
@@ -196,29 +237,53 @@ def register_routes(app: Flask) -> None:
 
         start_time = time.time()
 
+        health_status = {
+            "status": "healthy",
+            "managers_count": 0,
+            "achievements_count": 0,
+            "countries_count": 0,
+            "response_time_ms": 0,
+            "redis_status": "unknown",
+            "cache_status": "unknown",
+        }
+
+        # Check database
         try:
-            # Get database metrics
             with db.session.begin():
-                managers_count = db.session.query(Manager).count()
-                achievements_count = db.session.query(Achievement).count()
-                countries_count = db.session.query(Country).count()
-
-            response_time_ms = round((time.time() - start_time) * 1000)
-
-            return {
-                "status": "healthy",
-                "managers_count": managers_count,
-                "achievements_count": achievements_count,
-                "countries_count": countries_count,
-                "response_time_ms": response_time_ms,
-            }
+                health_status["managers_count"] = db.session.query(Manager).count()
+                health_status["achievements_count"] = db.session.query(Achievement).count()
+                health_status["countries_count"] = db.session.query(Country).count()
         except Exception as e:
-            app.logger.error(f"Health check failed: {str(e)}", exc_info=True)
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "response_time_ms": round((time.time() - start_time) * 1000),
-            }
+            app.logger.error(f"Database health check failed: {str(e)}")
+            health_status["status"] = "degraded"
+            health_status["db_status"] = "error"
+
+        # Check Redis connection
+        try:
+            import redis
+            redis_client = redis.Redis(
+                host=os.environ.get('REDIS_HOST', 'localhost'),
+                port=int(os.environ.get('REDIS_PORT', 6379)),
+                socket_connect_timeout=2,
+            )
+            redis_client.ping()
+            health_status["redis_status"] = "connected"
+            
+            # Check cache functionality
+            cache.set('_health_check', 'ok', timeout=5)
+            if cache.get('_health_check') == 'ok':
+                health_status["cache_status"] = "working"
+            else:
+                health_status["cache_status"] = "error"
+                health_status["status"] = "degraded"
+        except (redis.ConnectionError, redis.TimeoutError, Exception) as e:
+            health_status["redis_status"] = "disconnected"
+            health_status["cache_status"] = "fallback"
+            # Not critical - fallback to simple cache
+
+        health_status["response_time_ms"] = round((time.time() - start_time) * 1000)
+
+        return health_status
 
     # Error handlers
     @app.errorhandler(404)
