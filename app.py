@@ -33,9 +33,10 @@ def create_app(config_class: str | None = None) -> Flask:
         Configured Flask application instance.
     """
     import time
-    
-    app = Flask(__name__)
-    
+
+    # IMPORTANT: Disable instance_relative_config to prevent SQLite from using instance/ folder
+    app = Flask(__name__, instance_relative_config=False)
+
     # Store app start time for uptime calculation
     app.config['APP_START_TIME'] = time.time()
 
