@@ -38,11 +38,12 @@ class Country(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(3), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, default="Unknown")  # Название страны (например, "Russia")
     flag_path = db.Column(db.String(100), nullable=False)
     managers = db.relationship("Manager", backref="country", lazy="select")
 
     def __repr__(self) -> str:
-        return f"<Country {self.code}>"
+        return f"<Country {self.name} ({self.code})>"
 
 
 class Manager(db.Model):
