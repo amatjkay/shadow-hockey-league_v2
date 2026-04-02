@@ -18,6 +18,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from models import Achievement, Country, Manager, db
 from services.rating_service import build_leaderboard
 from services.cache_service import cache
+from services.admin import init_admin
 
 
 def create_app(config_class: str | None = None) -> Flask:
@@ -152,20 +153,31 @@ def register_extensions(app: Flask) -> None:
     app.config.update(cache_config)
     cache.init_app(app)
     
+    # Initialize Flask-Admin and Flask-Login (only in non-testing environments)
+    if app.config.get('TESTING') is not True:
+        try:
+            init_admin(app)
+            app.logger.info("Flask-Admin initialized at /admin/")
+        except Exception as e:
+            app.logger.warning(f"Could not initialize Flask-Admin: {e}")
+    
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get('TESTING') is not True:
         try:
-            # Initialize Prometheus with default metrics (HTTP requests, latency)
-            metrics = PrometheusMetrics(
-                app, 
-                defaults_prefix='shadow_hockey_league',
-                excluded_endpoints=['/static', '/metrics']  # Exclude static and metrics itself
-            )
-            metrics.register_endpoint('/health')
-            
-            # Add custom metrics info
-            app.logger.info("Prometheus metrics enabled at /metrics")
-            app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
+            # Check if Prometheus is already initialized (prevent duplicate registration)
+            if not hasattr(app, 'prometheus_metrics'):
+                # Initialize Prometheus with default metrics (HTTP requests, latency)
+                metrics = PrometheusMetrics(
+                    app,
+                    defaults_prefix='shadow_hockey_league',
+                    excluded_endpoints=['/static', '/metrics']  # Exclude static and metrics itself
+                )
+                metrics.register_endpoint('/health')
+                app.prometheus_metrics = metrics  # Mark as initialized
+
+                # Add custom metrics info
+                app.logger.info("Prometheus metrics enabled at /metrics")
+                app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
 

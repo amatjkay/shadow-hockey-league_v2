@@ -37,10 +37,11 @@ BASE_POINTS: dict[tuple[str, str], int] = {
 # Season multipliers - current season is baseline (1.00), older seasons have discount
 # Logic: recent achievements are more valuable than old ones
 SEASON_MULTIPLIER: dict[str, float] = {
-    "24/25": 1.00,  # Current/latest season - baseline
-    "23/24": 0.95,  # Previous season - 5% discount
-    "22/23": 0.90,  # Older season - 10% discount
-    "21/22": 0.85,  # Oldest season - 15% discount
+    "25/26": 1.00,  # Current/latest season - baseline
+    "24/25": 0.95,  # Previous season - 5% discount
+    "23/24": 0.90,  # Older season - 10% discount
+    "22/23": 0.85,  # Oldest season - 15% discount
+    "21/22": 0.80,  # Ancient season - 20% discount
 }
 
 # Human-readable labels for achievement kinds

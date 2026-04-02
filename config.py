@@ -2,6 +2,8 @@
 
 Uses python-dotenv to load environment variables from .env file.
 All configuration values can be overridden via environment variables.
+
+Database path is ALWAYS absolute to prevent 'instance/' folder issues.
 """
 
 import os
@@ -30,22 +32,37 @@ class Config:
     TEMPLATES_FOLDER = "templates"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
-    # Database path - uses absolute path for production compatibility
-    # Environment variable can override (use absolute path on PythonAnywhere!)
-    DATABASE_URL = os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR}/dev.db"
-    ENABLE_API = True
-
     # Logging
     LOG_DIR = Path(__file__).parent / "logs"
     LOG_FILE = LOG_DIR / "app.log"
     LOG_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
     LOG_BACKUP_COUNT = 5
 
-    # Ensure DATABASE_URL is set
+    # Database path - ALWAYS use absolute path to prevent 'instance/' folder issues
     @classmethod
     def get_database_url(cls) -> str:
-        """Get database URL with fallback to default."""
-        return cls.DATABASE_URL or "sqlite:///dev.db"
+        """Get database URL with absolute path.
+        
+        Returns:
+            Absolute SQLite path (e.g., sqlite:///C:/project/dev.db)
+        """
+        # Check environment variable first
+        env_db_url = os.environ.get("DATABASE_URL")
+        if env_db_url:
+            # If it's a relative SQLite path, convert to absolute
+            if env_db_url.startswith("sqlite:///") and not env_db_url.startswith("sqlite:////"):
+                # Relative path - convert to absolute
+                db_filename = env_db_url.replace("sqlite:///", "")
+                absolute_path = cls.BASE_DIR / db_filename
+                return f"sqlite:///{absolute_path}"
+            return env_db_url
+        
+        # Default: absolute path to dev.db in project root
+        default_db_path = cls.BASE_DIR / "dev.db"
+        return f"sqlite:///{default_db_path}"
+
+    # Set DATABASE_URL for consistency
+    DATABASE_URL = property(get_database_url)
 
 
 class DevelopmentConfig(Config):
@@ -66,3 +83,4 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
+    ENABLE_API = True  # Enable API for tests

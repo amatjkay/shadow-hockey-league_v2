@@ -21,3 +21,7 @@ redis>=5.0.0
 
 # Metrics ( Этап 2: Prometheus metrics )
 prometheus-flask-exporter>=0.23.0
+
+# Admin Panel ( Этап 3: Flask-Admin )
+Flask-Admin>=1.6.0
+Flask-Login>=0.6.0
