@@ -104,37 +104,39 @@ class SecureModelView(ModelView):
 class CountryModelView(SecureModelView):
     """Admin view for Country CRUD operations."""
     
+    # Display settings
     column_list = ('id', 'code', 'name', 'flag_path')
     column_searchable_list = ('code', 'name')
     column_filters = ('code', 'name')
     form_columns = ('code', 'name', 'flag_path')
     column_default_sort = ('id', False)
     
-    # Column labels for better readability
+    # Page titles
+    page_title = 'Countries'
+    create_modal_title = 'Create Country'
+    edit_modal_title = 'Edit Country'
+    
+    # Labels for columns
     column_labels = {
         'code': 'Code',
         'name': 'Country Name',
         'flag_path': 'Flag Image',
     }
     
-    # Form labels
+    # Labels for form fields
     form_labels = {
         'code': 'Country Code (e.g., RUS)',
         'name': 'Country Name (e.g., Russia)',
         'flag_path': 'Flag Image',
     }
     
-    # Override form_columns to use Select2 for flag_path
+    # Widget configuration for flag_path (dropdown)
     form_widget_args = {
         'flag_path': {
             'class': 'form-control select2',
             'data-placeholder': 'Select a flag...',
         }
     }
-    
-    def on_form_prefill(self, form, id):
-        """Pre-fill flag_path choices."""
-        form.flag_path.choices = [('', '-- Select Flag --')] + FLAG_CHOICES
     
     def create_form(self):
         """Create form with flag choices."""
@@ -160,20 +162,26 @@ class CountryModelView(SecureModelView):
 class ManagerModelView(SecureModelView):
     """Admin view for Manager CRUD operations."""
     
-    column_list = ('id', 'name', 'country', 'is_tandem')
+    # Display settings - only use columns, not relationships or properties
+    column_list = ('id', 'name', 'country_id')
     column_searchable_list = ('name',)
-    column_filters = ('country', 'is_tandem')
+    column_filters = ('country_id',)
     form_columns = ('name', 'country_id')
     column_default_sort = ('id', False)
     
-    # Column labels
+    # Page titles
+    page_title = 'Managers'
+    create_modal_title = 'Create Manager'
+    edit_modal_title = 'Edit Manager'
+    
+    # Labels for columns
     column_labels = {
+        'id': 'ID',
         'name': 'Manager Name',
-        'country': 'Country',
-        'is_tandem': 'Is Tandem',
+        'country_id': 'Country',
     }
     
-    # Form labels
+    # Labels for form fields
     form_labels = {
         'name': 'Manager Name',
         'country_id': 'Country',
@@ -191,23 +199,30 @@ class ManagerModelView(SecureModelView):
 class AchievementModelView(SecureModelView):
     """Admin view for Achievement CRUD operations."""
     
-    column_list = ('id', 'achievement_type', 'league', 'season', 'manager', 'title')
+    # Display settings - only use columns, not relationships
+    column_list = ('id', 'achievement_type', 'league', 'season', 'manager_id', 'title')
     column_searchable_list = ('title', 'achievement_type')
-    column_filters = ('league', 'season', 'achievement_type')
+    column_filters = ('league', 'season', 'achievement_type', 'manager_id')
     form_columns = ('achievement_type', 'league', 'season', 'title', 'icon_path', 'manager_id')
     column_default_sort = ('id', False)
     
-    # Column labels
+    # Page titles
+    page_title = 'Achievements'
+    create_modal_title = 'Create Achievement'
+    edit_modal_title = 'Edit Achievement'
+    
+    # Labels for columns
     column_labels = {
+        'id': 'ID',
         'achievement_type': 'Type',
         'league': 'League',
         'season': 'Season',
-        'manager': 'Manager',
+        'manager_id': 'Manager ID',
         'title': 'Title',
         'icon_path': 'Icon',
     }
     
-    # Form labels
+    # Labels for form fields
     form_labels = {
         'achievement_type': 'Achievement Type',
         'league': 'League (1 or 2)',
