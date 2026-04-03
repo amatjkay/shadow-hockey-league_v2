@@ -1,4 +1,7 @@
-"""Tests for cache service and admin authentication."""
+"""Tests for cache service and admin authentication.
+
+Migrated from tests_cache_and_admin.py
+"""
 
 import unittest
 

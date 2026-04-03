@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Test metrics service."""
+"""Test metrics service.
+
+Migrated from test_metrics.py
+"""
 
 from app import create_app
 from services.metrics_service import get_metrics, reset_metrics

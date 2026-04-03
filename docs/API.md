@@ -13,6 +13,7 @@ REST API provides CRUD operations for managing countries, managers, and achievem
 ### Authentication
 
 Currently, the API does not require authentication. In production, consider adding:
+
 - API keys
 - JWT tokens
 - OAuth 2.0
@@ -22,6 +23,7 @@ Currently, the API does not require authentication. In production, consider addi
 All responses are returned in JSON format:
 
 **Success Response:**
+
 ```json
 {
   "id": 1,
@@ -31,6 +33,7 @@ All responses are returned in JSON format:
 ```
 
 **Error Response:**
+
 ```json
 {
   "error": "Error description"
@@ -39,14 +42,14 @@ All responses are returned in JSON format:
 
 ### HTTP Status Codes
 
-| Code | Description |
-|------|-------------|
-| 200 | OK - Request successful |
-| 201 | Created - Resource created successfully |
-| 400 | Bad Request - Invalid data provided |
-| 404 | Not Found - Resource not found |
-| 409 | Conflict - Resource already exists |
-| 500 | Internal Server Error |
+| Code | Description                             |
+| ---- | --------------------------------------- |
+| 200  | OK - Request successful                 |
+| 201  | Created - Resource created successfully |
+| 400  | Bad Request - Invalid data provided     |
+| 404  | Not Found - Resource not found          |
+| 409  | Conflict - Resource already exists      |
+| 500  | Internal Server Error                   |
 
 ---
 
@@ -57,6 +60,7 @@ All responses are returned in JSON format:
 **Endpoint:** `GET /api/countries`
 
 **Response:**
+
 ```json
 [
   {
@@ -73,6 +77,7 @@ All responses are returned in JSON format:
 ```
 
 **Example (curl):**
+
 ```bash
 curl http://127.0.0.1:5000/api/countries
 ```
@@ -84,6 +89,7 @@ curl http://127.0.0.1:5000/api/countries
 **Endpoint:** `GET /api/countries/<id>`
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -93,6 +99,7 @@ curl http://127.0.0.1:5000/api/countries
 ```
 
 **Example (curl):**
+
 ```bash
 curl http://127.0.0.1:5000/api/countries/1
 ```
@@ -104,6 +111,7 @@ curl http://127.0.0.1:5000/api/countries/1
 **Endpoint:** `POST /api/countries`
 
 **Request Body:**
+
 ```json
 {
   "code": "USA",
@@ -112,10 +120,12 @@ curl http://127.0.0.1:5000/api/countries/1
 ```
 
 **Requirements:**
+
 - `code`: 3 characters, unique
 - `flag_path`: Valid path to flag image
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 3,
@@ -126,6 +136,7 @@ curl http://127.0.0.1:5000/api/countries/1
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X POST http://127.0.0.1:5000/api/countries \
   -H "Content-Type: application/json" \
@@ -139,6 +150,7 @@ curl -X POST http://127.0.0.1:5000/api/countries \
 **Endpoint:** `PUT /api/countries/<id>`
 
 **Request Body:**
+
 ```json
 {
   "code": "USA",
@@ -147,6 +159,7 @@ curl -X POST http://127.0.0.1:5000/api/countries \
 ```
 
 **Response:**
+
 ```json
 {
   "id": 3,
@@ -157,6 +170,7 @@ curl -X POST http://127.0.0.1:5000/api/countries \
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X PUT http://127.0.0.1:5000/api/countries/3 \
   -H "Content-Type: application/json" \
@@ -170,6 +184,7 @@ curl -X PUT http://127.0.0.1:5000/api/countries/3 \
 **Endpoint:** `DELETE /api/countries/<id>`
 
 **Response:**
+
 ```json
 {
   "message": "Country deleted successfully"
@@ -179,6 +194,7 @@ curl -X PUT http://127.0.0.1:5000/api/countries/3 \
 **Note:** Cannot delete a country with existing managers (returns 409 Conflict).
 
 **Example (curl):**
+
 ```bash
 curl -X DELETE http://127.0.0.1:5000/api/countries/3
 ```
@@ -192,10 +208,12 @@ curl -X DELETE http://127.0.0.1:5000/api/countries/3
 **Endpoint:** `GET /api/managers`
 
 **Query Parameters:**
+
 - `country_id` (optional): Filter by country ID
 - `search` (optional): Search by name (case-insensitive)
 
 **Response:**
+
 ```json
 [
   {
@@ -211,6 +229,7 @@ curl -X DELETE http://127.0.0.1:5000/api/countries/3
 ```
 
 **Examples (curl):**
+
 ```bash
 # Get all managers
 curl http://127.0.0.1:5000/api/managers
@@ -229,6 +248,7 @@ curl "http://127.0.0.1:5000/api/managers?search=feel"
 **Endpoint:** `GET /api/managers/<id>`
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -251,6 +271,7 @@ curl "http://127.0.0.1:5000/api/managers?search=feel"
 ```
 
 **Example (curl):**
+
 ```bash
 curl http://127.0.0.1:5000/api/managers/1
 ```
@@ -262,6 +283,7 @@ curl http://127.0.0.1:5000/api/managers/1
 **Endpoint:** `POST /api/managers`
 
 **Request Body:**
+
 ```json
 {
   "name": "John Doe",
@@ -270,10 +292,12 @@ curl http://127.0.0.1:5000/api/managers/1
 ```
 
 **Requirements:**
+
 - `name`: Unique manager name
 - `country_id`: Must reference existing country
 
 **For Tandems:**
+
 ```json
 {
   "name": "Tandem: Player One, Player Two",
@@ -282,6 +306,7 @@ curl http://127.0.0.1:5000/api/managers/1
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 5,
@@ -294,6 +319,7 @@ curl http://127.0.0.1:5000/api/managers/1
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X POST http://127.0.0.1:5000/api/managers \
   -H "Content-Type: application/json" \
@@ -307,6 +333,7 @@ curl -X POST http://127.0.0.1:5000/api/managers \
 **Endpoint:** `PUT /api/managers/<id>`
 
 **Request Body:**
+
 ```json
 {
   "name": "Jane Doe",
@@ -315,6 +342,7 @@ curl -X POST http://127.0.0.1:5000/api/managers \
 ```
 
 **Response:**
+
 ```json
 {
   "id": 5,
@@ -327,6 +355,7 @@ curl -X POST http://127.0.0.1:5000/api/managers \
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X PUT http://127.0.0.1:5000/api/managers/5 \
   -H "Content-Type: application/json" \
@@ -340,6 +369,7 @@ curl -X PUT http://127.0.0.1:5000/api/managers/5 \
 **Endpoint:** `DELETE /api/managers/<id>`
 
 **Response:**
+
 ```json
 {
   "message": "Manager deleted successfully"
@@ -349,6 +379,7 @@ curl -X PUT http://127.0.0.1:5000/api/managers/5 \
 **Note:** Deleting a manager also deletes all their achievements (CASCADE).
 
 **Example (curl):**
+
 ```bash
 curl -X DELETE http://127.0.0.1:5000/api/managers/5
 ```
@@ -362,12 +393,14 @@ curl -X DELETE http://127.0.0.1:5000/api/managers/5
 **Endpoint:** `GET /api/achievements`
 
 **Query Parameters:**
+
 - `manager_id` (optional): Filter by manager ID
 - `league` (optional): Filter by league ("1" or "2")
 - `season` (optional): Filter by season (e.g., "24/25")
 - `achievement_type` (optional): Filter by type (e.g., "TOP1")
 
 **Response:**
+
 ```json
 [
   {
@@ -384,6 +417,7 @@ curl -X DELETE http://127.0.0.1:5000/api/managers/5
 ```
 
 **Examples (curl):**
+
 ```bash
 # Get all achievements
 curl http://127.0.0.1:5000/api/achievements
@@ -402,6 +436,7 @@ curl "http://127.0.0.1:5000/api/achievements?league=1&season=23/24"
 **Endpoint:** `GET /api/achievements/<id>`
 
 **Response:**
+
 ```json
 {
   "id": 1,
@@ -416,6 +451,7 @@ curl "http://127.0.0.1:5000/api/achievements?league=1&season=23/24"
 ```
 
 **Example (curl):**
+
 ```bash
 curl http://127.0.0.1:5000/api/achievements/1
 ```
@@ -427,6 +463,7 @@ curl http://127.0.0.1:5000/api/achievements/1
 **Endpoint:** `POST /api/achievements`
 
 **Request Body:**
+
 ```json
 {
   "achievement_type": "TOP1",
@@ -439,6 +476,7 @@ curl http://127.0.0.1:5000/api/achievements/1
 ```
 
 **Requirements:**
+
 - `achievement_type`: TOP1, TOP2, TOP3, BEST, R3, R1
 - `league`: "1" or "2"
 - `season`: Format "YY/YY" (e.g., "24/25")
@@ -447,6 +485,7 @@ curl http://127.0.0.1:5000/api/achievements/1
 - `manager_id`: Must reference existing manager
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 10,
@@ -461,6 +500,7 @@ curl http://127.0.0.1:5000/api/achievements/1
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X POST http://127.0.0.1:5000/api/achievements \
   -H "Content-Type: application/json" \
@@ -481,6 +521,7 @@ curl -X POST http://127.0.0.1:5000/api/achievements \
 **Endpoint:** `PUT /api/achievements/<id>`
 
 **Request Body:**
+
 ```json
 {
   "achievement_type": "TOP2",
@@ -493,6 +534,7 @@ curl -X POST http://127.0.0.1:5000/api/achievements \
 ```
 
 **Response:**
+
 ```json
 {
   "id": 10,
@@ -507,6 +549,7 @@ curl -X POST http://127.0.0.1:5000/api/achievements \
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X PUT http://127.0.0.1:5000/api/achievements/10 \
   -H "Content-Type: application/json" \
@@ -520,6 +563,7 @@ curl -X PUT http://127.0.0.1:5000/api/achievements/10 \
 **Endpoint:** `DELETE /api/achievements/<id>`
 
 **Response:**
+
 ```json
 {
   "message": "Achievement deleted successfully"
@@ -527,6 +571,7 @@ curl -X PUT http://127.0.0.1:5000/api/achievements/10 \
 ```
 
 **Example (curl):**
+
 ```bash
 curl -X DELETE http://127.0.0.1:5000/api/achievements/10
 ```
@@ -544,7 +589,7 @@ points = base_points(league, achievement_type) × season_multiplier
 ### Base Points
 
 | Achievement  | League 1 | League 2 |
-|--------------|----------|----------|
+| ------------ | -------- | -------- |
 | TOP1         | 800      | 300      |
 | TOP2         | 550      | 200      |
 | TOP3         | 450      | 100      |
@@ -555,7 +600,7 @@ points = base_points(league, achievement_type) × season_multiplier
 ### Season Multipliers
 
 | Season | Multiplier |
-|--------|------------|
+| ------ | ---------- |
 | 24/25  | ×1.00      |
 | 23/24  | ×0.95      |
 | 22/23  | ×0.90      |
@@ -570,6 +615,7 @@ points = base_points(league, achievement_type) × season_multiplier
 All errors return a JSON response with an `error` field:
 
 **404 Not Found:**
+
 ```json
 {
   "error": "Manager with ID 999 not found"
@@ -577,6 +623,7 @@ All errors return a JSON response with an `error` field:
 ```
 
 **409 Conflict:**
+
 ```json
 {
   "error": "Manager with name 'John Doe' already exists"
@@ -584,6 +631,7 @@ All errors return a JSON response with an `error` field:
 ```
 
 **400 Bad Request:**
+
 ```json
 {
   "error": "Manager name is required; Valid country ID is required"
@@ -607,5 +655,42 @@ python -m unittest discover -v
 API tests are located in `tests.py` under `TestAPIEndpoints`.
 
 ---
+
+## 🔄 Cache Invalidation
+
+All API endpoints that modify data (CREATE/UPDATE/DELETE) automatically invalidate the leaderboard cache. This ensures the main page displays up-to-date ratings.
+
+| Operation                    | Cache Invalidation |
+| ---------------------------- | ------------------ |
+| POST /api/countries          | ✅                 |
+| PUT /api/countries/:id       | ✅                 |
+| DELETE /api/countries/:id    | ✅                 |
+| POST /api/managers           | ✅                 |
+| PUT /api/managers/:id        | ✅                 |
+| DELETE /api/managers/:id     | ✅                 |
+| POST /api/achievements       | ✅                 |
+| PUT /api/achievements/:id    | ✅                 |
+| DELETE /api/achievements/:id | ✅                 |
+
+---
+
+## 🔒 Unique Constraints
+
+### Achievements
+
+Achievements have a composite unique constraint: `(manager_id, league, season, achievement_type)`.
+
+Attempting to create a duplicate returns `409 Conflict`:
+
+```json
+{
+  "error": "Achievement already exists for this manager, league, season, and type"
+}
+```
+
+---
+
+**Версия:** 1.1
+**Дата:** 3 апреля 2026 г.
 
 **Last Updated:** 29 марта 2026 г.

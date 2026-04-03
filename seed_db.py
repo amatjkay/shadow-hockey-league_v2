@@ -120,7 +120,9 @@ def seed_database() -> None:
             # Track country (avoid duplicates)
             if country_code not in countries_to_create:
                 countries_to_create[country_code] = Country(
-                    code=country_code, flag_path=country_path
+                    code=country_code,
+                    name=Country.resolve_name(country_code),
+                    flag_path=country_path,
                 )
 
             # Track manager (avoid duplicates within input)

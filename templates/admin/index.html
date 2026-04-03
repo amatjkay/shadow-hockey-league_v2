@@ -15,23 +15,60 @@
           {% endif %}
         </div>
       </div>
-      
-      <p class="lead">Welcome to the admin panel.</p>
 
       {% if current_user.is_authenticated %}
-      <div class="alert alert-success">
-        Use the menu above to manage:
+      <!-- Dashboard Statistics -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card text-white bg-primary mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">🏒 Менеджеры</h5>
+              <h2 class="card-text">{{ manager_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-success mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">🏆 Достижения</h5>
+              <h2 class="card-text">{{ achievement_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-info mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">🌍 Страны</h5>
+              <h2 class="card-text">{{ country_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-warning mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">👥 Админы</h5>
+              <h2 class="card-text">{{ admin_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <div class="alert alert-success">
+        <strong>Добро пожаловать!</strong> Используйте меню выше для управления данными лиги.
+        <br><small class="text-muted">Кэш leaderboard автоматически инвалидируется при изменении данных.</small>
+      </div>
+
+      <h5>Быстрые действия:</h5>
       <ul>
-        <li><strong>Countries</strong> - Manage country flags and codes</li>
-        <li><strong>Managers</strong> - Manage hockey league managers</li>
-        <li><strong>Achievements</strong> - Manage awards and achievements</li>
-        <li><strong>Admin Users</strong> - Manage admin panel users</li>
+        <li><a href="{{ url_for('country.index_view') }}"><strong>Страны</strong></a> — управление флагами и кодами стран</li>
+        <li><a href="{{ url_for('manager.index_view') }}"><strong>Менеджеры</strong></a> — управление участниками лиги</li>
+        <li><a href="{{ url_for('achievement.index_view') }}"><strong>Достижения</strong></a> — управление наградами (с inline редактированием в менеджерах)</li>
+        <li><a href="{{ url_for('adminuser.index_view') }}"><strong>Администраторы</strong></a> — управление пользователями админки</li>
       </ul>
+
       {% else %}
       <div class="alert alert-info">
-        Please <a href="{{ url_for('admin_login.index') }}">log in</a> to access
-        the admin panel.
+        Пожалуйста, <a href="{{ url_for('admin_login.index') }}">войдите</a> для доступа к админ-панели.
       </div>
       {% endif %}
     </div>

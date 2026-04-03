@@ -1,7 +1,6 @@
-"""Tests for Shadow Hockey League application.
+"""Unit tests for rating service, routes, security headers, validation, and API.
 
-Includes unit tests for rating service, integration tests for Flask routes,
-and data validation tests.
+Migrated from tests.py
 """
 
 import unittest
@@ -90,7 +89,7 @@ class TestAppRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data["status"], "healthy")
-        
+
         # Check extended health fields (Этап 2)
         self.assertIn("timestamp", data)
         self.assertIn("response_time_ms", data)
@@ -100,10 +99,10 @@ class TestAppRoutes(unittest.TestCase):
         self.assertIn("managers_count", data)
         self.assertIn("achievements_count", data)
         self.assertIn("countries_count", data)
-        
+
         # Database should be connected in test environment
         self.assertEqual(data["database_status"], "connected")
-        
+
         # Redis may be disconnected (fallback to simple cache)
         self.assertIn(data["redis_status"], ["connected", "disconnected", "unknown"])
 
@@ -112,7 +111,7 @@ class TestAppRoutes(unittest.TestCase):
         # Note: Prometheus metrics are disabled in testing mode
         # This test verifies the endpoint exists or is properly excluded
         response = self.client.get("/metrics")
-        
+
         # In testing mode, /metrics may return 404 or empty response
         # Just verify it doesn't crash
         self.assertIn(response.status_code, [200, 404, 500])

@@ -9,6 +9,7 @@ from flask import redirect, url_for, request, flash
 from flask_admin import Admin, AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.form import Select2Widget
+from wtforms import Form, StringField
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import SelectField
@@ -18,6 +19,15 @@ from services.cache_service import invalidate_leaderboard_cache
 
 # Logger for admin operations
 admin_logger = logging.getLogger('shleague.admin')
+
+
+class AchievementInlineForm(Form):
+    """Form for inline achievement editing."""
+    achievement_type = StringField('Type')
+    league = StringField('League')
+    season = StringField('Season')
+    title = StringField('Title')
+    icon_path = StringField('Icon')
 
 # List of available flag images (updated to match actual file names)
 FLAG_CHOICES = [
@@ -66,14 +76,36 @@ def init_admin(app) -> None:
         """Load user by ID for Flask-Login."""
         return db.session.get(AdminUser, int(user_id))
 
+    # Create custom admin index with dashboard stats
+    class StatsAdminIndexView(AdminIndexView):
+        """Custom admin index view with dashboard statistics."""
+
+        @expose('/')
+        def index(self):
+            """Render dashboard with statistics."""
+            try:
+                manager_count = db.session.query(Manager).count()
+                achievement_count = db.session.query(Achievement).count()
+                country_count = db.session.query(Country).count()
+                admin_count = db.session.query(AdminUser).count()
+            except Exception:
+                manager_count = achievement_count = country_count = admin_count = 0
+
+            return self.render(
+                'admin/index.html',
+                manager_count=manager_count,
+                achievement_count=achievement_count,
+                country_count=country_count,
+                admin_count=admin_count,
+            )
+
     # Create admin interface
-    # Note: AdminIndexView url='/admin/' is the main admin page
     admin = Admin(
         app,
         name='Shadow Hockey League Admin',
         url='/admin/',
         endpoint='admin',
-        index_view=AdminIndexView(
+        index_view=StatsAdminIndexView(
             name='Home',
             template='admin/index.html'
         )
@@ -186,7 +218,15 @@ class CountryModelView(SecureModelView):
         return form
 
     def on_model_change(self, form, model, is_created):
-        """Invalidate cache when country is created/updated."""
+        """Auto-fill country name from code and invalidate cache."""
+        from models import Country
+
+        if is_created and model.code:
+            # Auto-fill name from reference data (only if not manually set)
+            resolved_name = Country.resolve_name(model.code)
+            if resolved_name != "Unknown" and (not model.name or model.name == "Unknown"):
+                model.name = resolved_name
+
         invalidate_leaderboard_cache()
 
     def on_model_delete(self, model):
@@ -203,6 +243,13 @@ class ManagerModelView(SecureModelView):
     column_filters = ('country_id',)
     form_columns = ('name', 'country_id')
     column_default_sort = ('id', False)
+
+    # Inline achievements
+    form_subdocuments = {
+        'achievements': {
+            'form_class': AchievementInlineForm,
+        }
+    }
 
     # Labels for columns
     column_labels = {

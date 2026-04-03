@@ -21,6 +21,9 @@ from services.validation_service import (
     validate_manager_exists,
     validate_manager_unique,
 )
+from services.cache_service import invalidate_leaderboard_cache
+
+from sqlalchemy.exc import IntegrityError
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -92,6 +95,9 @@ def create_country() -> tuple[Any, int]:
     country = Country(code=code, flag_path=flag_path)
     db.session.add(country)
     db.session.commit()
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return (
         jsonify(
@@ -172,6 +178,9 @@ def update_country(country_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -207,6 +216,9 @@ def delete_country(country_id: int) -> tuple[Any, int]:
 
     db.session.delete(country)
     db.session.commit()
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return jsonify({"message": "Country deleted successfully"}), 200
 
@@ -297,6 +309,9 @@ def create_manager() -> tuple[Any, int]:
     manager = Manager(name=name, country_id=country_id)
     db.session.add(manager)
     db.session.commit()
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return (
         jsonify(
@@ -399,6 +414,9 @@ def update_manager(manager_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -431,6 +449,9 @@ def delete_manager(manager_id: int) -> tuple[Any, int]:
 
     db.session.delete(manager)
     db.session.commit()
+
+    # Invalidate leaderboard cache (achievements deleted via CASCADE)
+    invalidate_leaderboard_cache()
 
     return jsonify({"message": "Manager deleted successfully"}), 200
 
@@ -519,7 +540,7 @@ def create_achievement() -> tuple[Any, int]:
     season = data.get("season", "")
     title = data.get("title", "")
     icon_path = data.get("icon_path", "")
-    manager_id = data.get("manager_id", type=int)
+    manager_id = data.get("manager_id")
 
     # Validate data format
     is_valid, error = validate_achievement_data(achievement_type, league, season, title)
@@ -532,16 +553,23 @@ def create_achievement() -> tuple[Any, int]:
         return jsonify({"error": error}), 400
 
     # Create achievement
-    achievement = Achievement(
-        achievement_type=achievement_type,
-        league=league,
-        season=season,
-        title=title,
-        icon_path=icon_path,
-        manager_id=manager_id,
-    )
-    db.session.add(achievement)
-    db.session.commit()
+    try:
+        achievement = Achievement(
+            achievement_type=achievement_type,
+            league=league,
+            season=season,
+            title=title,
+            icon_path=icon_path,
+            manager_id=manager_id,
+        )
+        db.session.add(achievement)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Achievement already exists for this manager, league, season, and type"}), 409
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return (
         jsonify(
@@ -647,6 +675,9 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -681,5 +712,8 @@ def delete_achievement(achievement_id: int) -> tuple[Any, int]:
 
     db.session.delete(achievement)
     db.session.commit()
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return jsonify({"message": "Achievement deleted successfully"}), 200
