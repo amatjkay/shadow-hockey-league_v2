@@ -34,6 +34,56 @@ class AdminUser(db.Model, UserMixin):
         return f"<AdminUser {self.username}>"
 
 
+class ApiKey(db.Model):
+    """API key table for authentication and rate limiting.
+
+    Supports three scopes:
+    - read: GET endpoints only
+    - write: GET + POST/PUT/DELETE
+    - admin: Full access (including key management in future)
+    """
+
+    __tablename__ = "api_keys"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key_hash = db.Column(db.String(256), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)  # Human-readable name
+    scope = db.Column(db.String(20), nullable=False, default="read")  # read/write/admin
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    expires_at = db.Column(db.DateTime, nullable=True)
+    revoked = db.Column(db.Boolean, nullable=False, default=False)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+
+    # Valid scopes
+    VALID_SCOPES = {"read", "write", "admin"}
+
+    def __repr__(self) -> str:
+        return f"<ApiKey {self.name} ({self.scope})>"
+
+    @property
+    def is_expired(self) -> bool:
+        """Check if key has expired."""
+        if self.expires_at is None:
+            return False
+        from datetime import datetime
+        return datetime.utcnow() > self.expires_at
+
+    @property
+    def is_active(self) -> bool:
+        """Check if key is active (not revoked and not expired)."""
+        return not self.revoked and not self.is_expired
+
+    def has_scope(self, required_scope: str) -> bool:
+        """Check if key has required scope.
+
+        Scope hierarchy: admin > write > read
+        """
+        scope_levels = {"read": 1, "write": 2, "admin": 3}
+        key_level = scope_levels.get(self.scope, 0)
+        required_level = scope_levels.get(required_scope, 0)
+        return key_level >= required_level
+
+
 # ==================== Reference (dictionary) tables ====================
 
 

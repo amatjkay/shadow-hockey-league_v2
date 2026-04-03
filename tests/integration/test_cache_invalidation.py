@@ -55,12 +55,33 @@ class TestAPICacheInvalidation(unittest.TestCase):
             db.session.flush()
             self.achievement_id = achievement.id
 
+            # Create API key
+            from services.api_auth import generate_api_key, hash_api_key
+            from models import ApiKey
+            self.api_key = generate_api_key()
+            db.session.add(ApiKey(
+                key_hash=hash_api_key(self.api_key),
+                name="Test API Key",
+                scope="admin",
+            ))
             db.session.commit()
 
     def tearDown(self) -> None:
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+
+    def _get(self, url: str) -> Any:
+        return self.client.get(url, headers={"X-API-Key": self.api_key})
+
+    def _post(self, url: str, json: dict) -> Any:
+        return self.client.post(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _put(self, url: str, json: dict) -> Any:
+        return self.client.put(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _delete(self, url: str) -> Any:
+        return self.client.delete(url, headers={"X-API-Key": self.api_key})
 
     def _get_cached_leaderboard(self) -> list | None:
         """Get cached leaderboard data."""
@@ -114,7 +135,7 @@ class TestAPICacheInvalidation(unittest.TestCase):
             db.session.commit()
             country_id = country.id
 
-        response = self.client.delete(f"/api/countries/{country_id}")
+        response = self._delete(f"/api/countries/{country_id}")
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
 
@@ -151,7 +172,7 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.delete(f"/api/managers/{self.manager_id}")
+        response = self._delete(f"/api/managers/{self.manager_id}")
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
 
@@ -195,7 +216,7 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.delete(f"/api/achievements/{self.achievement_id}")
+        response = self._delete(f"/api/achievements/{self.achievement_id}")
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
 
@@ -306,7 +327,7 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
         self.assertIn("800", initial_html)
 
         # Delete achievement via API
-        response2 = self.client.delete(f"/api/achievements/{achievement_id}")
+        response2 = self._delete(f"/api/achievements/{achievement_id}")
         self.assertEqual(response2.status_code, 200)
 
         # Get updated leaderboard - score should be 0
@@ -326,7 +347,7 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
         self.assertIn("Initial Manager", initial_html)
 
         # Delete manager via API
-        response2 = self.client.delete(f"/api/managers/{self.manager_id}")
+        response2 = self._delete(f"/api/managers/{self.manager_id}")
         self.assertEqual(response2.status_code, 200)
 
         # Get updated leaderboard - manager should be gone

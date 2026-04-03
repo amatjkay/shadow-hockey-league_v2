@@ -323,6 +323,17 @@ class TestAPICRUDOperations(unittest.TestCase):
             db.session.add(country)
             db.session.commit()
 
+            # Create API key
+            from services.api_auth import generate_api_key, hash_api_key
+            from models import ApiKey
+            self.api_key = generate_api_key()
+            db.session.add(ApiKey(
+                key_hash=hash_api_key(self.api_key),
+                name="Test API Key",
+                scope="admin",
+            ))
+            db.session.commit()
+
     def tearDown(self) -> None:
         """Clean up after tests."""
         with self.app.app_context():
@@ -334,6 +345,18 @@ class TestAPICRUDOperations(unittest.TestCase):
             os.unlink(self.db_path)
         except OSError:
             pass
+
+    def _post(self, url: str, json: dict):
+        return self.client.post(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _get(self, url: str):
+        return self.client.get(url, headers={"X-API-Key": self.api_key})
+
+    def _put(self, url: str, json: dict):
+        return self.client.put(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _delete(self, url: str):
+        return self.client.delete(url, headers={"X-API-Key": self.api_key})
 
     def test_api_crud_cycle(self) -> None:
         """Complete CRUD cycle through API."""

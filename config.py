@@ -81,7 +81,8 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     REMEMBER_COOKIE_SECURE = True
     LOG_TO_FILE = True
-    ENABLE_API = False
+    ENABLE_API = True  # Этап 5: API включено с аутентификацией
+    API_KEY_SECRET = os.environ.get("API_KEY_SECRET") or "api-key-secret-change-in-production"
 
 
 class TestingConfig(Config):
