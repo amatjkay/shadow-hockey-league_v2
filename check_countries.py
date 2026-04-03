@@ -13,16 +13,16 @@ with app.app_context():
     print("=" * 50)
     
     for c in countries:
-        status = "✅" if c.name != "Unknown" else "⚠️"
-        print(f"  {status} {c.code}: {c.name} ({c.flag_path})")
+        status = "OK" if c.name != "Unknown" else "WARN"
+        print(f"  [{status}] {c.code}: {c.name} ({c.flag_path})")
     
     print("=" * 50)
     
     # Check for any "Unknown" countries
     unknown = [c for c in countries if c.name == "Unknown"]
     if unknown:
-        print(f"\n⚠️  Found {len(unknown)} countries with 'Unknown' name:")
+        print(f"\nWARN - Found {len(unknown)} countries with 'Unknown' name:")
         for c in unknown:
             print(f"   - {c.code}")
     else:
-        print(f"\n✅ All {len(countries)} countries have proper names!")
+        print(f"\nOK - All {len(countries)} countries have proper names!")
