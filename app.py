@@ -13,7 +13,6 @@ from typing import Any
 
 from flask import Flask, redirect, render_template, request, url_for
 from flask.logging import default_handler
-from prometheus_flask_exporter import PrometheusMetrics
 
 from models import Achievement, Country, Manager, db
 from services.rating_service import build_leaderboard
@@ -165,18 +164,10 @@ def register_extensions(app: Flask) -> None:
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get('TESTING') is not True:
         try:
-            # Check if Prometheus is already initialized (prevent duplicate registration)
-            if not hasattr(app, 'prometheus_metrics'):
-                # Initialize Prometheus with default metrics (HTTP requests, latency)
-                metrics = PrometheusMetrics(
-                    app,
-                    defaults_prefix='shadow_hockey_league',
-                    excluded_endpoints=['/static', '/metrics']  # Exclude static and metrics itself
-                )
-                metrics.register_endpoint('/health')
-                app.prometheus_metrics = metrics  # Mark as initialized
+            from services.metrics_service import get_metrics
 
-                # Add custom metrics info
+            metrics = get_metrics(app)
+            if metrics is not None:
                 app.logger.info("Prometheus metrics enabled at /metrics")
                 app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
         except Exception as e:
