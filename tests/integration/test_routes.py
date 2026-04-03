@@ -369,7 +369,7 @@ class TestAPICRUDOperations(unittest.TestCase):
         manager_id = response.get_json()['id']
 
         # Read
-        response = self.client.get(f'/api/managers/{manager_id}')
+        response = self._get(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()['name'], "CRUD Test Manager")
 
@@ -386,7 +386,7 @@ class TestAPICRUDOperations(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Verify deletion
-        response = self.client.get(f'/api/managers/{manager_id}')
+        response = self._get(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 404)
 
     def test_api_validation_errors(self) -> None:
@@ -513,6 +513,17 @@ class TestCascadeDelete(unittest.TestCase):
             db.session.add(country)
             db.session.commit()
 
+            # Create API key
+            from services.api_auth import generate_api_key, hash_api_key
+            from models import ApiKey
+            self.api_key = generate_api_key()
+            db.session.add(ApiKey(
+                key_hash=hash_api_key(self.api_key),
+                name="Test API Key",
+                scope="admin",
+            ))
+            db.session.commit()
+
     def tearDown(self) -> None:
         """Clean up after tests."""
         with self.app.app_context():
@@ -524,6 +535,9 @@ class TestCascadeDelete(unittest.TestCase):
             os.unlink(self.db_path)
         except OSError:
             pass
+
+    def _delete(self, url: str):
+        return self.client.delete(url, headers={"X-API-Key": self.api_key})
 
     def test_manager_delete_cascades_to_achievements(self) -> None:
         """Deleting manager also deletes achievements (CASCADE)."""

@@ -296,7 +296,7 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
         self.assertIn("Initial Manager", initial_html)
 
         # Add achievement via API
-        response2 = self.client.post(
+        response2 = self._post(
             "/api/achievements",
             json={
                 "achievement_type": "TOP1",
@@ -306,7 +306,6 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
                 "icon_path": "/static/img/cups/top1.svg",
                 "manager_id": self.manager_id,
             },
-            content_type="application/json",
         )
         self.assertEqual(response2.status_code, 201)
 
@@ -427,18 +426,16 @@ class TestAPIAchievementUniquenessConstraint(unittest.TestCase):
         }
 
         # Create first achievement
-        response1 = self.client.post(
+        response1 = self._post(
             "/api/achievements",
             json=achievement_data,
-            content_type="application/json",
         )
         self.assertEqual(response1.status_code, 201)
 
         # Try to create duplicate - should be rejected by unique constraint
-        response2 = self.client.post(
+        response2 = self._post(
             "/api/achievements",
             json=achievement_data,
-            content_type="application/json",
         )
         # Should return 409 (conflict - unique constraint violation)
         self.assertEqual(response2.status_code, 409)
