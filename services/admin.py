@@ -15,30 +15,30 @@ from wtforms import SelectField
 from models import db, AdminUser, Country, Manager, Achievement
 from services.cache_service import invalidate_leaderboard_cache
 
-# List of available flag images
+# List of available flag images (updated to match actual file names)
 FLAG_CHOICES = [
-    ('/static/img/flags/rus.png', 'Russia'),
-    ('/static/img/flags/bel.png', 'Belarus'),
-    ('/static/img/flags/kz.png', 'Kazakhstan'),
-    ('/static/img/flags/vietnam.png', 'Vietnam'),
-    ('/static/img/flags/ua.png', 'Ukraine'),
-    ('/static/img/flags/mexico.png', 'Mexico'),
-    ('/static/img/flags/pol.png', 'Poland'),
-    ('/static/img/flags/china.png', 'China'),
-    ('/static/img/flags/usa.png', 'USA'),
-    ('/static/img/flags/canada.png', 'Canada'),
-    ('/static/img/flags/fin.png', 'Finland'),
-    ('/static/img/flags/swe.png', 'Sweden'),
-    ('/static/img/flags/cze.png', 'Czech Republic'),
-    ('/static/img/flags/svk.png', 'Slovakia'),
-    ('/static/img/flags/ger.png', 'Germany'),
-    ('/static/img/flags/sui.png', 'Switzerland'),
-    ('/static/img/flags/aut.png', 'Austria'),
-    ('/static/img/flags/nor.png', 'Norway'),
-    ('/static/img/flags/den.png', 'Denmark'),
-    ('/static/img/flags/fra.png', 'France'),
-    ('/static/img/flags/gbr.png', 'United Kingdom'),
-    ('/static/img/flags/lat.png', 'Latvia'),
+    ('/static/img/flags/BLR.png', 'Belarus'),
+    ('/static/img/flags/RUS.png', 'Russia'),
+    ('/static/img/flags/KAZ.png', 'Kazakhstan'),
+    ('/static/img/flags/CHN.png', 'China'),
+    ('/static/img/flags/VNM.png', 'Vietnam'),
+    ('/static/img/flags/UKR.png', 'Ukraine'),
+    ('/static/img/flags/MEX.png', 'Mexico'),
+    ('/static/img/flags/POL.png', 'Poland'),
+    ('/static/img/flags/USA.png', 'USA'),
+    ('/static/img/flags/CAN.png', 'Canada'),
+    ('/static/img/flags/FIN.png', 'Finland'),
+    ('/static/img/flags/SWE.png', 'Sweden'),
+    ('/static/img/flags/CZE.png', 'Czech Republic'),
+    ('/static/img/flags/SVK.png', 'Slovakia'),
+    ('/static/img/flags/GER.png', 'Germany'),
+    ('/static/img/flags/SUI.png', 'Switzerland'),
+    ('/static/img/flags/AUT.png', 'Austria'),
+    ('/static/img/flags/NOR.png', 'Norway'),
+    ('/static/img/flags/DEN.png', 'Denmark'),
+    ('/static/img/flags/FRA.png', 'France'),
+    ('/static/img/flags/GBR.png', 'United Kingdom'),
+    ('/static/img/flags/LAT.png', 'Latvia'),
 ]
 
 
@@ -103,33 +103,33 @@ class SecureModelView(ModelView):
 
 class CountryModelView(SecureModelView):
     """Admin view for Country CRUD operations."""
-    
+
     # Display settings
     column_list = ('id', 'code', 'name', 'flag_path')
     column_searchable_list = ('code', 'name')
     column_filters = ('code', 'name')
     form_columns = ('code', 'name', 'flag_path')
     column_default_sort = ('id', False)
-    
+
     # Page titles
-    page_title = 'Countries'
-    create_modal_title = 'Create Country'
-    edit_modal_title = 'Edit Country'
-    
+    list_template = 'admin/model/list.html'
+    edit_template = 'admin/model/edit.html'
+    create_template = 'admin/model/create.html'
+
     # Labels for columns
     column_labels = {
         'code': 'Code',
         'name': 'Country Name',
         'flag_path': 'Flag Image',
     }
-    
+
     # Labels for form fields
     form_labels = {
         'code': 'Country Code (e.g., RUS)',
         'name': 'Country Name (e.g., Russia)',
         'flag_path': 'Flag Image',
     }
-    
+
     # Widget configuration for flag_path (dropdown)
     form_widget_args = {
         'flag_path': {
@@ -137,23 +137,23 @@ class CountryModelView(SecureModelView):
             'data-placeholder': 'Select a flag...',
         }
     }
-    
+
     def create_form(self):
         """Create form with flag choices."""
         form = super().create_form()
         form.flag_path.choices = [('', '-- Select Flag --')] + FLAG_CHOICES
         return form
-    
+
     def edit_form(self, obj):
         """Edit form with flag choices."""
         form = super().edit_form(obj)
         form.flag_path.choices = [('', '-- Select Flag --')] + FLAG_CHOICES
         return form
-    
+
     def on_model_change(self, form, model, is_created):
         """Invalidate cache when country is created/updated."""
         invalidate_leaderboard_cache()
-    
+
     def on_model_delete(self, model):
         """Invalidate cache when country is deleted."""
         invalidate_leaderboard_cache()
@@ -161,36 +161,31 @@ class CountryModelView(SecureModelView):
 
 class ManagerModelView(SecureModelView):
     """Admin view for Manager CRUD operations."""
-    
+
     # Display settings - only use columns, not relationships or properties
     column_list = ('id', 'name', 'country_id')
     column_searchable_list = ('name',)
     column_filters = ('country_id',)
     form_columns = ('name', 'country_id')
     column_default_sort = ('id', False)
-    
-    # Page titles
-    page_title = 'Managers'
-    create_modal_title = 'Create Manager'
-    edit_modal_title = 'Edit Manager'
-    
+
     # Labels for columns
     column_labels = {
         'id': 'ID',
         'name': 'Manager Name',
         'country_id': 'Country',
     }
-    
+
     # Labels for form fields
     form_labels = {
         'name': 'Manager Name',
         'country_id': 'Country',
     }
-    
+
     def on_model_change(self, form, model, is_created):
         """Invalidate cache when manager is created/updated."""
         invalidate_leaderboard_cache()
-    
+
     def on_model_delete(self, model):
         """Invalidate cache when manager is deleted."""
         invalidate_leaderboard_cache()
@@ -198,19 +193,14 @@ class ManagerModelView(SecureModelView):
 
 class AchievementModelView(SecureModelView):
     """Admin view for Achievement CRUD operations."""
-    
+
     # Display settings - only use columns, not relationships
     column_list = ('id', 'achievement_type', 'league', 'season', 'manager_id', 'title')
     column_searchable_list = ('title', 'achievement_type')
     column_filters = ('league', 'season', 'achievement_type', 'manager_id')
     form_columns = ('achievement_type', 'league', 'season', 'title', 'icon_path', 'manager_id')
     column_default_sort = ('id', False)
-    
-    # Page titles
-    page_title = 'Achievements'
-    create_modal_title = 'Create Achievement'
-    edit_modal_title = 'Edit Achievement'
-    
+
     # Labels for columns
     column_labels = {
         'id': 'ID',
@@ -221,7 +211,7 @@ class AchievementModelView(SecureModelView):
         'title': 'Title',
         'icon_path': 'Icon',
     }
-    
+
     # Labels for form fields
     form_labels = {
         'achievement_type': 'Achievement Type',
@@ -231,11 +221,11 @@ class AchievementModelView(SecureModelView):
         'icon_path': 'Icon Path',
         'manager_id': 'Manager',
     }
-    
+
     def on_model_change(self, form, model, is_created):
         """Invalidate cache when achievement is created/updated."""
         invalidate_leaderboard_cache()
-    
+
     def on_model_delete(self, model):
         """Invalidate cache when achievement is deleted."""
         invalidate_leaderboard_cache()

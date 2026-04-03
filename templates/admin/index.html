@@ -1,19 +1,32 @@
-{% extends 'admin/master.html' %} {% block body %}
+{% extends 'admin/master.html' %}
+
+{% block body %}
 <div class="container">
   <div class="row">
     <div class="col-md-12">
-      <h1>Shadow Hockey League Admin</h1>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Shadow Hockey League Admin</h1>
+        <div>
+          {% if current_user.is_authenticated %}
+            <span class="text-muted me-2">Logged in as <strong>{{ current_user.username }}</strong></span>
+            <a href="{{ url_for('admin_logout.index') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+          {% else %}
+            <a href="{{ url_for('admin_login.index') }}" class="btn btn-primary btn-sm">Login</a>
+          {% endif %}
+        </div>
+      </div>
+      
       <p class="lead">Welcome to the admin panel.</p>
 
       {% if current_user.is_authenticated %}
       <div class="alert alert-success">
-        Logged in as <strong>{{ current_user.username }}</strong>
+        Use the menu above to manage:
       </div>
-      <p>Use the menu above to manage:</p>
       <ul>
         <li><strong>Countries</strong> - Manage country flags and codes</li>
         <li><strong>Managers</strong> - Manage hockey league managers</li>
         <li><strong>Achievements</strong> - Manage awards and achievements</li>
+        <li><strong>Admin Users</strong> - Manage admin panel users</li>
       </ul>
       {% else %}
       <div class="alert alert-info">
