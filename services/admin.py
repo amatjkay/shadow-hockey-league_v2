@@ -81,7 +81,7 @@ def init_admin(app) -> None:
         """Custom admin index view with dashboard statistics."""
 
         # Use custom master template with login/logout links (BUG-001)
-        base_template = 'admin/master.html'
+        base_template = 'admin/shl_master.html'
 
         @expose('/')
         def index(self):

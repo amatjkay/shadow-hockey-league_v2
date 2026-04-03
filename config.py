@@ -73,6 +73,8 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = Config.get_database_url()
+    ENABLE_API = True  # API включено для локальной разработки
+    API_KEY_SECRET = os.environ.get("API_KEY_SECRET") or "dev-api-key-secret"
 
 
 class ProductionConfig(Config):

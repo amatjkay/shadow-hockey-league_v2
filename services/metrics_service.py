@@ -32,9 +32,8 @@ def get_metrics(app=None) -> Optional[PrometheusMetrics]:
         _metrics_instance = PrometheusMetrics(
             app,
             defaults_prefix='shadow_hockey_league',
-            excluded_endpoints=['/static', '/metrics']
+            excluded_endpoints=['/static', '/metrics', '/health']
         )
-        _metrics_instance.register_endpoint('/health')
         return _metrics_instance
     except Exception:
         # If initialization fails, return None

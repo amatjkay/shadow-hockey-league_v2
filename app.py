@@ -209,6 +209,16 @@ def register_blueprints(app: Flask) -> None:
     else:
         app.logger.info("REST API is disabled in this environment (ENABLE_API=False)")
 
+    # Exempt Flask-Admin from CSRF (has its own auth)
+    try:
+        from services.admin import login_manager
+        # Exempt all admin views from CSRF
+        admin_bp = app.blueprints.get('admin')
+        if admin_bp:
+            app.extensions['csrf'].exempt(admin_bp)
+    except Exception as e:
+        app.logger.warning(f"Could not exempt admin from CSRF: {e}")
+
 
 def register_error_handlers(app: Flask) -> None:
     """Register error handlers."""
