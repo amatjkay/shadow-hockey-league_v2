@@ -120,6 +120,12 @@ def register_extensions(app: Flask) -> None:
     # Initialize SQLAlchemy with app
     db.init_app(app)
 
+    # Initialize CSRF protection (Этап 3.1)
+    from flask_wtf.csrf import CSRFProtect
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+    app.logger.info("CSRF protection initialized")
+
     # Initialize caching with Redis (or fallback to simple cache)
     cache_config = {
         "CACHE_TYPE": "RedisCache",

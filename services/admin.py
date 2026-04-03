@@ -80,6 +80,9 @@ def init_admin(app) -> None:
     class StatsAdminIndexView(AdminIndexView):
         """Custom admin index view with dashboard statistics."""
 
+        # Use custom master template with login/logout links (BUG-001)
+        base_template = 'admin/master.html'
+
         @expose('/')
         def index(self):
             """Render dashboard with statistics."""
@@ -171,6 +174,9 @@ class SecureModelView(ModelView):
 class CountryModelView(SecureModelView):
     """Admin view for Country CRUD operations."""
 
+    # Page title (BUG-002)
+    name = 'Countries'
+
     # Display settings
     column_list = ('id', 'code', 'name', 'flag_path')
     column_searchable_list = ('code', 'name')
@@ -237,6 +243,9 @@ class CountryModelView(SecureModelView):
 class ManagerModelView(SecureModelView):
     """Admin view for Manager CRUD operations."""
 
+    # Page title (BUG-002)
+    name = 'Managers'
+
     # Display settings - only use columns, not relationships or properties
     column_list = ('id', 'name', 'country_id')
     column_searchable_list = ('name',)
@@ -275,6 +284,9 @@ class ManagerModelView(SecureModelView):
 
 class AchievementModelView(SecureModelView):
     """Admin view for Achievement CRUD operations."""
+
+    # Page title (BUG-002)
+    name = 'Achievements'
 
     # Display settings - only use columns, not relationships
     column_list = ('id', 'achievement_type', 'league', 'season', 'manager_id', 'title')
@@ -315,7 +327,10 @@ class AchievementModelView(SecureModelView):
 
 class AdminUserModelView(SecureModelView):
     """Admin view for managing admin users."""
-    
+
+    # Page title (BUG-002)
+    name = 'Admin Users'
+
     column_list = ('username',)
     column_searchable_list = ('username',)
     form_columns = ('username', 'password_hash')

@@ -18,6 +18,7 @@
                     {% endwith %}
                     
                     <form method="POST" action="{{ url_for('admin_login.index') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
                         <div class="form-group">
                             <label for="username">Username</label>
