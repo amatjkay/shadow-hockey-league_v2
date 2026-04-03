@@ -207,6 +207,9 @@ def register_routes(app: Flask) -> None:
             else:
                 app.logger.info(f"Built leaderboard with {len(leaderboard_data)} managers in {elapsed_ms}ms")
 
+            # Store generation time for health check
+            app.config['LAST_LEADERBOARD_GEN_MS'] = elapsed_ms
+
             return render_template(
                 "index.html",
                 rating_rows=leaderboard_data,

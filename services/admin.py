@@ -4,6 +4,7 @@ This module sets up the admin interface with authentication and CRUD views
 for managing countries, managers, and achievements.
 """
 
+import logging
 from flask import redirect, url_for, request, flash
 from flask_admin import Admin, AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
@@ -14,6 +15,9 @@ from wtforms import SelectField
 
 from models import db, AdminUser, Country, Manager, Achievement
 from services.cache_service import invalidate_leaderboard_cache
+
+# Logger for admin operations
+admin_logger = logging.getLogger('shleague.admin')
 
 # List of available flag images (updated to match actual file names)
 FLAG_CHOICES = [
@@ -89,16 +93,47 @@ def init_admin(app) -> None:
 
 
 class SecureModelView(ModelView):
-    """Base model view with authentication."""
-    
+    """Base model view with authentication and audit logging."""
+
     def is_accessible(self):
         """Check if user is authenticated."""
         return current_user.is_authenticated
-    
+
     def inaccessible_callback(self, name, **kwargs):
         """Redirect to login if not accessible."""
         flash('Please log in to access this page.', 'warning')
         return redirect(url_for('admin_login', next=request.url))
+
+    def create_model(self, form):
+        """Log model creation."""
+        model = super().create_model(form)
+        if model:
+            admin_logger.info(
+                f"CREATE {self.model.__name__} by {current_user.username}: "
+                f"id={getattr(model, 'id', 'N/A')}"
+            )
+        return model
+
+    def update_model(self, form, model):
+        """Log model update."""
+        result = super().update_model(form, model)
+        if result:
+            admin_logger.info(
+                f"UPDATE {self.model.__name__} by {current_user.username}: "
+                f"id={getattr(model, 'id', 'N/A')}"
+            )
+        return result
+
+    def delete_model(self, model):
+        """Log model deletion."""
+        model_id = getattr(model, 'id', 'N/A')
+        model_name = self.model.__name__
+        result = super().delete_model(model)
+        if result:
+            admin_logger.info(
+                f"DELETE {model_name} by {current_user.username}: id={model_id}"
+            )
+        return result
 
 
 class CountryModelView(SecureModelView):
