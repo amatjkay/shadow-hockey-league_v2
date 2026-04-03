@@ -49,7 +49,9 @@
 
 ## 🗂️ Детализация этапов
 
-### Этап 5: Аутентификация и пагинация API (13 SP) — ОБНОВЛЕНО
+### Этап 5: Аутентификация и пагинация API (13 SP) — ОБНОВЛЕНО (ARCHITECT)
+
+**Аутентификация API:**
 
 - [ ] Добавить `Flask-Limiter` в `requirements.txt`
 - [ ] Создать модель `ApiKey` в `models.py` (key_hash, user_id, created_at, expires_at, revoked, scope: read/write/admin)
@@ -57,11 +59,25 @@
 - [ ] Middleware аутентификации API (`X-API-Key` header, проверка scope)
 - [ ] CRUD для API-ключей в админ-панели (создание, отзыв, просмотр)
 - [ ] Flask-Limiter с rate limiting (100 req/min на ключ)
-- [ ] Пагинация для GET endpoints (схема уточняется у ARCHITECT)
+
+**Пагинация (ARCHITECT: Offset/Limit схема):**
+
+- [ ] `GET /api/managers` — добавить пагинацию (`page`, `per_page`, max 100)
+- [ ] `GET /api/achievements` — добавить пагинацию (`page`, `per_page`, max 100)
+- [ ] `GET /api/countries` — **без пагинации** (~22 записи, не растёт)
+- [ ] Response wrapper: `{data: [...], pagination: {page, per_page, total, pages, has_next, has_prev}}`
+- [ ] Обратная совместимость: без параметров → все записи (legacy behaviour)
+
+**Тесты:**
+
 - [ ] Unit-тесты на аутентификацию API (валидный, просроченный, отозванный, отсутствует, неверный scope)
-- [ ] Unit-тесты на пагинацию
+- [ ] Unit-тесты на пагинацию (page 1, page N,超出范围, per_page limits, max cap)
 - [ ] Обновить `docs/API.md` с документацией auth + pagination + scopes
+
+**Конфигурация:**
+
 - [ ] Включить API в production (`ENABLE_API=True` в ProductionConfig)
+- [ ] Добавить `API_KEY_SECRET` в config
 
 **Файлы:** `models.py`, `services/api.py`, `services/admin.py`, `config.py`, `requirements.txt`, `tests/test_api.py`, `docs/API.md`
 **Критерий приёмки:** API требует ключ с scopes, rate limiting 100 req/min работает, пагинация возвращает корректный wrapper, API включено в production
