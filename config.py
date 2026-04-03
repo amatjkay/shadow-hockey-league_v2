@@ -32,6 +32,11 @@ class Config:
     TEMPLATES_FOLDER = "templates"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
+    # CSRF Protection (Этап 3.1)
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_SECRET_KEY = os.environ.get("WTF_CSRF_SECRET_KEY") or "csrf-dev-key-change-in-production"
+    WTF_CSRF_TIME_LIMIT = None  # No expiration for CSRF tokens
+
     # Logging
     LOG_DIR = Path(__file__).parent / "logs"
     LOG_FILE = LOG_DIR / "app.log"
@@ -76,7 +81,8 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SECURE = True
     REMEMBER_COOKIE_SECURE = True
     LOG_TO_FILE = True
-    ENABLE_API = False
+    ENABLE_API = True  # Этап 5: API включено с аутентификацией
+    API_KEY_SECRET = os.environ.get("API_KEY_SECRET") or "api-key-secret-change-in-production"
 
 
 class TestingConfig(Config):

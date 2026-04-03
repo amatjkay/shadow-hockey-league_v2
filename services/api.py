@@ -2,13 +2,18 @@
 
 This module provides REST endpoints for CRUD operations on managers,
 countries, and achievements.
+
+Этап 5: Добавлена аутентификация API ключами и пагинация.
 """
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from flask import Blueprint, jsonify, request
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from models import Achievement, Country, Manager, db
@@ -21,8 +26,18 @@ from services.validation_service import (
     validate_manager_exists,
     validate_manager_unique,
 )
+from services.cache_service import invalidate_leaderboard_cache
+from services.api_auth import authenticate_api_key
+
+from sqlalchemy.exc import IntegrityError
 
 api = Blueprint("api", __name__, url_prefix="/api")
+
+# Rate limiter for API endpoints (100 requests per minute per key)
+api_limiter = Limiter(
+    key_func=lambda: request.headers.get("X-API-Key", get_remote_address()),
+    default_limits=["100 per minute"],
+)
 
 
 def get_session() -> Session:
@@ -30,10 +45,52 @@ def get_session() -> Session:
     return db.session
 
 
+def paginate_query(query, schema, default_per_page: int = 20, max_per_page: int = 100):
+    """Apply offset/limit pagination to a query.
+
+    Args:
+        query: SQLAlchemy query object
+        schema: Schema function to serialize results
+        default_per_page: Default items per page
+        max_per_page: Maximum allowed items per page
+
+    Returns:
+        Tuple of (response_dict, status_code)
+    """
+    # Get pagination parameters
+    page = request.args.get("page", default=1, type=int)
+    per_page = request.args.get("per_page", default=default_per_page, type=int)
+
+    # Enforce limits
+    page = max(1, page)
+    per_page = min(max(per_page, 1), max_per_page)
+
+    # Get total count
+    total = query.count()
+    pages = math.ceil(total / per_page) if total > 0 else 0
+
+    # Apply offset/limit
+    offset = (page - 1) * per_page
+    items = query.offset(offset).limit(per_page).all()
+
+    return {
+        "data": [schema(item) for item in items],
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": pages,
+            "has_next": page < pages,
+            "has_prev": page > 1,
+        },
+    }, 200
+
+
 # ============== Countries ==============
 
 
 @api.route("/countries", methods=["GET"])
+@api_limiter.limit("100 per minute")
 def get_countries() -> tuple[Any, int]:
     """Get all countries.
 
@@ -58,6 +115,8 @@ def get_countries() -> tuple[Any, int]:
 
 
 @api.route("/countries", methods=["POST"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("write")
 def create_country() -> tuple[Any, int]:
     """Create a new country.
 
@@ -93,6 +152,9 @@ def create_country() -> tuple[Any, int]:
     db.session.add(country)
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -107,6 +169,7 @@ def create_country() -> tuple[Any, int]:
 
 
 @api.route("/countries/<int:country_id>", methods=["GET"])
+@api_limiter.limit("100 per minute")
 def get_country(country_id: int) -> tuple[Any, int]:
     """Get a specific country by ID.
 
@@ -134,6 +197,8 @@ def get_country(country_id: int) -> tuple[Any, int]:
 
 
 @api.route("/countries/<int:country_id>", methods=["PUT"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("write")
 def update_country(country_id: int) -> tuple[Any, int]:
     """Update a country.
 
@@ -172,6 +237,9 @@ def update_country(country_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -186,6 +254,8 @@ def update_country(country_id: int) -> tuple[Any, int]:
 
 
 @api.route("/countries/<int:country_id>", methods=["DELETE"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("admin")
 def delete_country(country_id: int) -> tuple[Any, int]:
     """Delete a country.
 
@@ -208,6 +278,9 @@ def delete_country(country_id: int) -> tuple[Any, int]:
     db.session.delete(country)
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return jsonify({"message": "Country deleted successfully"}), 200
 
 
@@ -215,15 +288,19 @@ def delete_country(country_id: int) -> tuple[Any, int]:
 
 
 @api.route("/managers", methods=["GET"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("read")
 def get_managers() -> tuple[Any, int]:
-    """Get all managers with optional filtering.
+    """Get all managers with optional filtering and pagination.
 
     Query params:
         country_id: Filter by country ID
         search: Search by name (case-insensitive)
+        page: Page number (default: 1)
+        per_page: Items per page (default: 20, max: 100)
 
     Returns:
-        JSON list of managers
+        JSON with paginated list of managers
     """
     query = db.session.query(Manager).join(Country)
 
@@ -236,28 +313,25 @@ def get_managers() -> tuple[Any, int]:
     if search:
         query = query.filter(Manager.name.ilike(f"%{search}%"))
 
-    managers = query.order_by(Manager.name).all()
+    query = query.order_by(Manager.name)
 
-    return (
-        jsonify(
-            [
-                {
-                    "id": m.id,
-                    "name": m.name,
-                    "display_name": m.display_name,
-                    "is_tandem": m.is_tandem,
-                    "country_id": m.country_id,
-                    "country_code": m.country.code,
-                    "achievements_count": len(m.achievements),
-                }
-                for m in managers
-            ]
-        ),
-        200,
-    )
+    def serialize_manager(m: Manager) -> dict:
+        return {
+            "id": m.id,
+            "name": m.name,
+            "display_name": m.display_name,
+            "is_tandem": m.is_tandem,
+            "country_id": m.country_id,
+            "country_code": m.country.code,
+            "achievements_count": len(m.achievements),
+        }
+
+    return paginate_query(query, serialize_manager)
 
 
 @api.route("/managers", methods=["POST"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("write")
 def create_manager() -> tuple[Any, int]:
     """Create a new manager.
 
@@ -298,6 +372,9 @@ def create_manager() -> tuple[Any, int]:
     db.session.add(manager)
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -314,6 +391,8 @@ def create_manager() -> tuple[Any, int]:
 
 
 @api.route("/managers/<int:manager_id>", methods=["GET"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("read")
 def get_manager(manager_id: int) -> tuple[Any, int]:
     """Get a specific manager by ID with achievements.
 
@@ -355,6 +434,8 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
 
 
 @api.route("/managers/<int:manager_id>", methods=["PUT"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("write")
 def update_manager(manager_id: int) -> tuple[Any, int]:
     """Update a manager.
 
@@ -399,6 +480,9 @@ def update_manager(manager_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -415,6 +499,8 @@ def update_manager(manager_id: int) -> tuple[Any, int]:
 
 
 @api.route("/managers/<int:manager_id>", methods=["DELETE"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("admin")
 def delete_manager(manager_id: int) -> tuple[Any, int]:
     """Delete a manager (and all achievements via CASCADE).
 
@@ -432,6 +518,9 @@ def delete_manager(manager_id: int) -> tuple[Any, int]:
     db.session.delete(manager)
     db.session.commit()
 
+    # Invalidate leaderboard cache (achievements deleted via CASCADE)
+    invalidate_leaderboard_cache()
+
     return jsonify({"message": "Manager deleted successfully"}), 200
 
 
@@ -439,17 +528,21 @@ def delete_manager(manager_id: int) -> tuple[Any, int]:
 
 
 @api.route("/achievements", methods=["GET"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("read")
 def get_achievements() -> tuple[Any, int]:
-    """Get all achievements with optional filtering.
+    """Get all achievements with optional filtering and pagination.
 
     Query params:
         manager_id: Filter by manager ID
         league: Filter by league (1 or 2)
         season: Filter by season (e.g., "24/25")
         achievement_type: Filter by type (e.g., "TOP1")
+        page: Page number (default: 1)
+        per_page: Items per page (default: 20, max: 100)
 
     Returns:
-        JSON list of achievements
+        JSON with paginated list of achievements
     """
     query = db.session.query(Achievement)
 
@@ -470,29 +563,26 @@ def get_achievements() -> tuple[Any, int]:
     if achievement_type:
         query = query.filter(Achievement.achievement_type == achievement_type)
 
-    achievements = query.order_by(Achievement.season.desc()).all()
+    query = query.order_by(Achievement.season.desc())
 
-    return (
-        jsonify(
-            [
-                {
-                    "id": a.id,
-                    "achievement_type": a.achievement_type,
-                    "league": a.league,
-                    "season": a.season,
-                    "title": a.title,
-                    "icon_path": a.icon_path,
-                    "manager_id": a.manager_id,
-                    "manager_name": a.manager.name,
-                }
-                for a in achievements
-            ]
-        ),
-        200,
-    )
+    def serialize_achievement(a: Achievement) -> dict:
+        return {
+            "id": a.id,
+            "achievement_type": a.achievement_type,
+            "league": a.league,
+            "season": a.season,
+            "title": a.title,
+            "icon_path": a.icon_path,
+            "manager_id": a.manager_id,
+            "manager_name": a.manager.name,
+        }
+
+    return paginate_query(query, serialize_achievement)
 
 
 @api.route("/achievements", methods=["POST"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("write")
 def create_achievement() -> tuple[Any, int]:
     """Create a new achievement.
 
@@ -519,7 +609,7 @@ def create_achievement() -> tuple[Any, int]:
     season = data.get("season", "")
     title = data.get("title", "")
     icon_path = data.get("icon_path", "")
-    manager_id = data.get("manager_id", type=int)
+    manager_id = data.get("manager_id")
 
     # Validate data format
     is_valid, error = validate_achievement_data(achievement_type, league, season, title)
@@ -532,16 +622,23 @@ def create_achievement() -> tuple[Any, int]:
         return jsonify({"error": error}), 400
 
     # Create achievement
-    achievement = Achievement(
-        achievement_type=achievement_type,
-        league=league,
-        season=season,
-        title=title,
-        icon_path=icon_path,
-        manager_id=manager_id,
-    )
-    db.session.add(achievement)
-    db.session.commit()
+    try:
+        achievement = Achievement(
+            achievement_type=achievement_type,
+            league=league,
+            season=season,
+            title=title,
+            icon_path=icon_path,
+            manager_id=manager_id,
+        )
+        db.session.add(achievement)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "Achievement already exists for this manager, league, season, and type"}), 409
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return (
         jsonify(
@@ -561,6 +658,8 @@ def create_achievement() -> tuple[Any, int]:
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["GET"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("read")
 def get_achievement(achievement_id: int) -> tuple[Any, int]:
     """Get a specific achievement by ID.
 
@@ -593,6 +692,8 @@ def get_achievement(achievement_id: int) -> tuple[Any, int]:
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["PUT"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("write")
 def update_achievement(achievement_id: int) -> tuple[Any, int]:
     """Update an achievement.
 
@@ -647,6 +748,9 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
 
     db.session.commit()
 
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
+
     return (
         jsonify(
             {
@@ -665,6 +769,8 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["DELETE"])
+@api_limiter.limit("100 per minute")
+@authenticate_api_key("admin")
 def delete_achievement(achievement_id: int) -> tuple[Any, int]:
     """Delete an achievement.
 
@@ -681,5 +787,8 @@ def delete_achievement(achievement_id: int) -> tuple[Any, int]:
 
     db.session.delete(achievement)
     db.session.commit()
+
+    # Invalidate leaderboard cache
+    invalidate_leaderboard_cache()
 
     return jsonify({"message": "Achievement deleted successfully"}), 200

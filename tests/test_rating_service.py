@@ -1,7 +1,6 @@
-"""Tests for Shadow Hockey League application.
+"""Unit tests for rating service, routes, security headers, validation, and API.
 
-Includes unit tests for rating service, integration tests for Flask routes,
-and data validation tests.
+Migrated from tests.py
 """
 
 import unittest
@@ -90,7 +89,7 @@ class TestAppRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data["status"], "healthy")
-        
+
         # Check extended health fields (Этап 2)
         self.assertIn("timestamp", data)
         self.assertIn("response_time_ms", data)
@@ -100,10 +99,10 @@ class TestAppRoutes(unittest.TestCase):
         self.assertIn("managers_count", data)
         self.assertIn("achievements_count", data)
         self.assertIn("countries_count", data)
-        
+
         # Database should be connected in test environment
         self.assertEqual(data["database_status"], "connected")
-        
+
         # Redis may be disconnected (fallback to simple cache)
         self.assertIn(data["redis_status"], ["connected", "disconnected", "unknown"])
 
@@ -112,7 +111,7 @@ class TestAppRoutes(unittest.TestCase):
         # Note: Prometheus metrics are disabled in testing mode
         # This test verifies the endpoint exists or is properly excluded
         response = self.client.get("/metrics")
-        
+
         # In testing mode, /metrics may return 404 or empty response
         # Just verify it doesn't crash
         self.assertIn(response.status_code, [200, 404, 500])
@@ -514,14 +513,41 @@ class TestAPIEndpoints(unittest.TestCase):
             self.country_id = country.id
             self.achievement_id = achievement.id
 
+            # Create API key for tests
+            from services.api_auth import generate_api_key, hash_api_key
+            from models import ApiKey
+            self.api_key = generate_api_key()
+            db.session.add(ApiKey(
+                key_hash=hash_api_key(self.api_key),
+                name="Test API Key",
+                scope="admin",
+            ))
+            db.session.commit()
+
     def tearDown(self) -> None:
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
 
+    def _get(self, url: str) -> Any:
+        """Helper to make authenticated GET requests."""
+        return self.client.get(url, headers={"X-API-Key": self.api_key})
+
+    def _post(self, url: str, json: dict) -> Any:
+        """Helper to make authenticated POST requests."""
+        return self.client.post(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _put(self, url: str, json: dict) -> Any:
+        """Helper to make authenticated PUT requests."""
+        return self.client.put(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _delete(self, url: str) -> Any:
+        """Helper to make authenticated DELETE requests."""
+        return self.client.delete(url, headers={"X-API-Key": self.api_key})
+
     def test_api_get_countries(self) -> None:
         """Test GET /api/countries endpoint."""
-        response = self.client.get("/api/countries")
+        response = self._get("/api/countries")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertIsInstance(data, list)
@@ -530,16 +556,17 @@ class TestAPIEndpoints(unittest.TestCase):
 
     def test_api_get_managers(self) -> None:
         """Test GET /api/managers endpoint."""
-        response = self.client.get("/api/managers")
+        response = self._get("/api/managers")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["name"], "API Test Manager")
+        # Now returns paginated response
+        self.assertIn("data", data)
+        self.assertEqual(len(data["data"]), 1)
+        self.assertEqual(data["data"][0]["name"], "API Test Manager")
 
     def test_api_get_manager_detail(self) -> None:
         """Test GET /api/managers/<id> endpoint."""
-        response = self.client.get(f"/api/managers/{self.manager_id}")
+        response = self._get(f"/api/managers/{self.manager_id}")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data["name"], "API Test Manager")
@@ -547,12 +574,13 @@ class TestAPIEndpoints(unittest.TestCase):
 
     def test_api_get_achievements(self) -> None:
         """Test GET /api/achievements endpoint."""
-        response = self.client.get("/api/achievements")
+        response = self._get("/api/achievements")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["achievement_type"], "TOP1")
+        # Now returns paginated response
+        self.assertIn("data", data)
+        self.assertEqual(len(data["data"]), 1)
+        self.assertEqual(data["data"][0]["achievement_type"], "TOP1")
 
     def test_api_create_manager(self) -> None:
         """Test POST /api/managers endpoint."""
@@ -560,10 +588,9 @@ class TestAPIEndpoints(unittest.TestCase):
             "name": "New Manager",
             "country_id": self.country_id,
         }
-        response = self.client.post(
+        response = self._post(
             "/api/managers",
             json=new_manager,
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         data = response.get_json()
@@ -575,10 +602,9 @@ class TestAPIEndpoints(unittest.TestCase):
             "name": "API Test Manager",
             "country_id": self.country_id,
         }
-        response = self.client.post(
+        response = self._post(
             "/api/managers",
             json=duplicate_manager,
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 409)
         data = response.get_json()
@@ -587,10 +613,9 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_api_update_manager(self) -> None:
         """Test PUT /api/managers/<id> endpoint."""
         update_data = {"name": "Updated Manager"}
-        response = self.client.put(
+        response = self._put(
             f"/api/managers/{self.manager_id}",
             json=update_data,
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
@@ -598,7 +623,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     def test_api_delete_achievement(self) -> None:
         """Test DELETE /api/achievements/<id> endpoint."""
-        response = self.client.delete(f"/api/achievements/{self.achievement_id}")
+        response = self._delete(f"/api/achievements/{self.achievement_id}")
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data["message"], "Achievement deleted successfully")

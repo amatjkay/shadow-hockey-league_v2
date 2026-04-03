@@ -169,6 +169,7 @@ npx playwright install chromium
 ## 📚 Документация
 
 - **MCP конфигурация:** `docs/MCP.md`
+- **Redis:** `docs/REDIS.md` (новый!)
 - **Кэширование:** `docs/MONITORING.md`
 - **Админ-панель:** `docs/ADMIN.md`
 - **Развёртывание:** `docs/DEPLOYMENT.md`
@@ -176,3 +177,5 @@ npx playwright install chromium
 ---
 
 _Настройка завершена успешно! 🎉_
+
+**Последнее обновление:** 3 апреля 2026 г.

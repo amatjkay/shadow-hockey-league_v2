@@ -122,7 +122,7 @@ make run
 
 ## 🧪 Тесты
 
-Проект содержит 36 тестов, покрывающих логику рейтинга, API и маршруты.
+Проект содержит **72 теста**, покрывающих логику рейтинга, API, маршруты, инвалидацию кэша и уникальные ограничения.
 
 ```bash
 # Используя Makefile
@@ -131,6 +131,13 @@ make test
 # Или вручную
 python -m unittest discover -v
 ```
+
+**Покрытие:**
+
+- Unit тесты: rating service, validation, security headers
+- Integration тесты: routes, API, database, constraints
+- Cache & Admin тесты: cache invalidation, admin auth
+- API Cache Invalidation тесты: API → cache invalidation, leaderboard refresh
 
 ## 🛠 Админ-панель
 
@@ -225,21 +232,26 @@ python seed_db.py
 
 ## 📚 Документация
 
-| Файл                      | Описание                                  |
-| ------------------------- | ----------------------------------------- |
-| `README.md`               | Этот файл — быстрый старт                 |
-| `docs/API.md`             | REST API документация                     |
-| `docs/DEPLOY.md`          | Инструкция по деплою на PythonAnywhere    |
-| `docs/VPS_DEPLOY.md`      | Инструкция по деплою на VPS (Ubuntu)      |
-| `docs/MANUAL_UPDATE.md`   | Руководство по ручному обновлению проекта |
-| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок       |
+| Файл                      | Описание                                   |
+| ------------------------- | ------------------------------------------ |
+| `README.md`               | Этот файл — быстрый старт                  |
+| `docs/API.md`             | REST API документация                      |
+| `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем |
+| `docs/DEPLOY.md`          | Инструкция по деплою на PythonAnywhere     |
+| `docs/VPS_DEPLOY.md`      | Инструкция по деплою на VPS (Ubuntu)       |
+| `docs/MANUAL_UPDATE.md`   | Руководство по ручному обновлению проекта  |
+| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок        |
 
 ## 📊 Статус
 
-- ✅ Все 48 тестов проходят (36 unit + 12 integration)
+- ✅ Все **72 теста** проходят (unit + integration + cache invalidation)
 - ✅ Код отформатирован (black, isort, flake8)
 - ✅ REST API документирован (`docs/API.md`)
 - ✅ Поддержка Windows (кодировка, пути)
+- ✅ Кэширование Redis с fallback на SimpleCache
+- ✅ Автоматическая инвалидация кэша (Admin + API)
+- ✅ UniqueConstraint на достижениях (нет дубликатов)
+- ✅ Alembic миграции
 
 ---
 

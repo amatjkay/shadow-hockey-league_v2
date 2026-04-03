@@ -1,24 +1,74 @@
-{% extends 'admin/master.html' %} {% block body %}
+{% extends 'admin/master.html' %}
+
+{% block body %}
 <div class="container">
   <div class="row">
     <div class="col-md-12">
-      <h1>Shadow Hockey League Admin</h1>
-      <p class="lead">Welcome to the admin panel.</p>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Shadow Hockey League Admin</h1>
+        <div>
+          {% if current_user.is_authenticated %}
+            <span class="text-muted me-2">Logged in as <strong>{{ current_user.username }}</strong></span>
+            <a href="{{ url_for('admin_logout.index') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+          {% else %}
+            <a href="{{ url_for('admin_login.index') }}" class="btn btn-primary btn-sm">Login</a>
+          {% endif %}
+        </div>
+      </div>
 
       {% if current_user.is_authenticated %}
-      <div class="alert alert-success">
-        Logged in as <strong>{{ current_user.username }}</strong>
+      <!-- Dashboard Statistics -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card text-white bg-primary mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">🏒 Менеджеры</h5>
+              <h2 class="card-text">{{ manager_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-success mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">🏆 Достижения</h5>
+              <h2 class="card-text">{{ achievement_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-info mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">🌍 Страны</h5>
+              <h2 class="card-text">{{ country_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-white bg-warning mb-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">👥 Админы</h5>
+              <h2 class="card-text">{{ admin_count or 0 }}</h2>
+            </div>
+          </div>
+        </div>
       </div>
-      <p>Use the menu above to manage:</p>
+
+      <div class="alert alert-success">
+        <strong>Добро пожаловать!</strong> Используйте меню выше для управления данными лиги.
+        <br><small class="text-muted">Кэш leaderboard автоматически инвалидируется при изменении данных.</small>
+      </div>
+
+      <h5>Быстрые действия:</h5>
       <ul>
-        <li><strong>Countries</strong> - Manage country flags and codes</li>
-        <li><strong>Managers</strong> - Manage hockey league managers</li>
-        <li><strong>Achievements</strong> - Manage awards and achievements</li>
+        <li><a href="{{ url_for('country.index_view') }}"><strong>Страны</strong></a> — управление флагами и кодами стран</li>
+        <li><a href="{{ url_for('manager.index_view') }}"><strong>Менеджеры</strong></a> — управление участниками лиги</li>
+        <li><a href="{{ url_for('achievement.index_view') }}"><strong>Достижения</strong></a> — управление наградами (с inline редактированием в менеджерах)</li>
+        <li><a href="{{ url_for('adminuser.index_view') }}"><strong>Администраторы</strong></a> — управление пользователями админки</li>
       </ul>
+
       {% else %}
       <div class="alert alert-info">
-        Please <a href="{{ url_for('admin_login.index') }}">log in</a> to access
-        the admin panel.
+        Пожалуйста, <a href="{{ url_for('admin_login.index') }}">войдите</a> для доступа к админ-панели.
       </div>
       {% endif %}
     </div>

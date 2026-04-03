@@ -49,20 +49,20 @@
 
 ### 1.2 Компоненты
 
-| Компонент | Технология | Версия | Назначение |
-|-----------|------------|--------|------------|
-| **OS** | Ubuntu Server | 22.04 LTS | Операционная система |
-| **Web Server** | Nginx | 1.18.0 | Reverse proxy, SSL |
-| **WSGI** | Gunicorn | 20.1.0 | Application server |
-| **Language** | Python | 3.10+ | Язык разработки |
-| **Framework** | Flask | 3.1+ | Web framework |
-| **ORM** | SQLAlchemy | 2.0+ | Database ORM |
-| **Database** | SQLite | 3.x | Реляционная БД |
-| **Cache** | Redis / SimpleCache | 6+ / built-in | Кэширование |
-| **Migrations** | Alembic | 1.14+ | Миграции БД |
-| **Admin** | Flask-Admin | 2.0+ | Админ-панель |
-| **Auth** | Flask-Login | 0.6+ | Аутентификация |
-| **Metrics** | Prometheus Exporter | 0.23+ | Экспорт метрик |
+| Компонент      | Технология          | Версия        | Назначение           |
+| -------------- | ------------------- | ------------- | -------------------- |
+| **OS**         | Ubuntu Server       | 22.04 LTS     | Операционная система |
+| **Web Server** | Nginx               | 1.18.0        | Reverse proxy, SSL   |
+| **WSGI**       | Gunicorn            | 20.1.0        | Application server   |
+| **Language**   | Python              | 3.10+         | Язык разработки      |
+| **Framework**  | Flask               | 3.1+          | Web framework        |
+| **ORM**        | SQLAlchemy          | 2.0+          | Database ORM         |
+| **Database**   | SQLite              | 3.x           | Реляционная БД       |
+| **Cache**      | Redis / SimpleCache | 6+ / built-in | Кэширование          |
+| **Migrations** | Alembic             | 1.14+         | Миграции БД          |
+| **Admin**      | Flask-Admin         | 2.0+          | Админ-панель         |
+| **Auth**       | Flask-Login         | 0.6+          | Аутентификация       |
+| **Metrics**    | Prometheus Exporter | 0.23+         | Экспорт метрик       |
 
 ---
 
@@ -96,7 +96,8 @@ CREATE TABLE achievements (
     title VARCHAR(100) NOT NULL,
     icon_path VARCHAR(100) NOT NULL,
     manager_id INTEGER NOT NULL,
-    FOREIGN KEY (manager_id) REFERENCES managers(id) ON DELETE CASCADE
+    FOREIGN KEY (manager_id) REFERENCES managers(id) ON DELETE CASCADE,
+    UNIQUE(manager_id, league, season, achievement_type)
 );
 
 -- Admin Users: пользователи админ-панели
@@ -120,10 +121,11 @@ CREATE INDEX idx_admin_users_username ON admin_users(username);
 ### 2.2 SQLAlchemy модели
 
 #### Country
+
 ```python
 class Country(db.Model):
     __tablename__ = "countries"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(3), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False, default="Unknown")
@@ -132,28 +134,29 @@ class Country(db.Model):
 ```
 
 #### Manager
+
 ```python
 class Manager(db.Model):
     __tablename__ = "managers"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True, index=True)
     country_id = db.Column(
-        db.Integer, 
-        db.ForeignKey("countries.id", ondelete="RESTRICT"), 
+        db.Integer,
+        db.ForeignKey("countries.id", ondelete="RESTRICT"),
         nullable=False
     )
     achievements = db.relationship(
-        "Achievement", 
-        backref="manager", 
-        lazy="select", 
+        "Achievement",
+        backref="manager",
+        lazy="select",
         cascade="all, delete-orphan"
     )
-    
+
     @property
     def is_tandem(self) -> bool:
         return self.name.startswith("Tandem:") or "," in self.name
-    
+
     @property
     def display_name(self) -> str:
         if self.name.startswith("Tandem:"):
@@ -162,10 +165,17 @@ class Manager(db.Model):
 ```
 
 #### Achievement
+
 ```python
 class Achievement(db.Model):
     __tablename__ = "achievements"
-    
+    __table_args__ = (
+        UniqueConstraint(
+            "manager_id", "league", "season", "achievement_type",
+            name="uq_achievement_manager_league_season_type"
+        ),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     achievement_type = db.Column(db.String(20), nullable=False, index=True)
     league = db.Column(db.String(10), nullable=False, index=True)
@@ -173,25 +183,26 @@ class Achievement(db.Model):
     title = db.Column(db.String(100), nullable=False)
     icon_path = db.Column(db.String(100), nullable=False)
     manager_id = db.Column(
-        db.Integer, 
-        db.ForeignKey("managers.id", ondelete="CASCADE"), 
-        nullable=False, 
+        db.Integer,
+        db.ForeignKey("managers.id", ondelete="CASCADE"),
+        nullable=False,
         index=True
     )
 ```
 
 #### AdminUser
+
 ```python
 class AdminUser(db.Model, UserMixin):
     __tablename__ = "admin_users"
-    
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    
+
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 ```
@@ -202,23 +213,24 @@ class AdminUser(db.Model, UserMixin):
 
 ### 3.1 Базовые очки
 
-| Достижение | Лига 1 | Лига 2 |
-|------------|--------|--------|
-| TOP1 | 800 | 300 |
-| TOP2 | 550 | 200 |
-| TOP3 | 450 | 100 |
-| Best regular | 50 | 40 |
-| Round 3 | 30 | 20 |
-| Round 1 | 10 | 5 |
+| Достижение   | Лига 1 | Лига 2 |
+| ------------ | ------ | ------ |
+| TOP1         | 800    | 300    |
+| TOP2         | 550    | 200    |
+| TOP3         | 450    | 100    |
+| Best regular | 50     | 40     |
+| Round 3      | 30     | 20     |
+| Round 1      | 10     | 5      |
 
 ### 3.2 Множители сезонов
 
-| Сезон | Множитель |
-|-------|-----------|
-| 24/25 | ×1.00 (базовый) |
-| 23/24 | ×0.95 (-5%) |
-| 22/23 | ×0.90 (-10%) |
-| 21/22 | ×0.85 (-15%) |
+| Сезон | Множитель       |
+| ----- | --------------- |
+| 25/26 | ×1.00 (базовый) |
+| 24/25 | ×0.95 (-5%)     |
+| 23/24 | ×0.90 (-10%)    |
+| 22/23 | ×0.85 (-15%)    |
+| 21/22 | ×0.80 (-20%)    |
 
 ### 3.3 Формула
 
@@ -227,6 +239,7 @@ class AdminUser(db.Model, UserMixin):
 ```
 
 **Пример:**
+
 - Менеджер имеет TOP1 в Лиге 1 за сезон 23/24
 - Расчёт: 800 × 0.95 = 760 очков
 
@@ -236,31 +249,35 @@ class AdminUser(db.Model, UserMixin):
 
 ### 4.1 Публичные endpoints
 
-| Endpoint | Method | Описание | Auth |
-|----------|--------|----------|------|
-| `/` | GET | Главная страница (рейтинг) | No |
-| `/health` | GET | Health check | No |
-| `/metrics` | GET | Prometheus метрики | No |
+| Endpoint   | Method | Описание                   | Auth |
+| ---------- | ------ | -------------------------- | ---- |
+| `/`        | GET    | Главная страница (рейтинг) | No   |
+| `/health`  | GET    | Health check               | No   |
+| `/metrics` | GET    | Prometheus метрики         | No   |
 
 ### 4.2 Админ-панель
 
-| Endpoint | Method | Описание | Auth |
-|----------|--------|----------|------|
-| `/admin/` | GET | Главная админки | Yes |
-| `/admin/login` | GET/POST | Вход | No |
-| `/admin/logout` | GET | Выход | Yes |
-| `/admin/country/` | GET/POST/PUT/DELETE | CRUD стран | Yes |
-| `/admin/manager/` | GET/POST/PUT/DELETE | CRUD менеджеров | Yes |
-| `/admin/achievement/` | GET/POST/PUT/DELETE | CRUD достижений | Yes |
-| `/admin/adminuser/` | GET/POST/PUT/DELETE | CRUD админов | Yes |
+| Endpoint              | Method              | Описание        | Auth |
+| --------------------- | ------------------- | --------------- | ---- |
+| `/admin/`             | GET                 | Главная админки | Yes  |
+| `/admin/login`        | GET/POST            | Вход            | No   |
+| `/admin/logout`       | GET                 | Выход           | Yes  |
+| `/admin/country/`     | GET/POST/PUT/DELETE | CRUD стран      | Yes  |
+| `/admin/manager/`     | GET/POST/PUT/DELETE | CRUD менеджеров | Yes  |
+| `/admin/achievement/` | GET/POST/PUT/DELETE | CRUD достижений | Yes  |
+| `/admin/adminuser/`   | GET/POST/PUT/DELETE | CRUD админов    | Yes  |
 
 ### 4.3 REST API (отключено в production)
 
-| Endpoint | Method | Описание | Статус |
-|----------|--------|----------|--------|
-| `/api/countries` | GET/POST | CRUD стран | ❌ Disabled |
-| `/api/managers` | GET/POST/PUT/DELETE | CRUD менеджеров | ❌ Disabled |
+| Endpoint            | Method              | Описание        | Статус      |
+| ------------------- | ------------------- | --------------- | ----------- |
+| `/api/countries`    | GET/POST/PUT/DELETE | CRUD стран      | ❌ Disabled |
+| `/api/managers`     | GET/POST/PUT/DELETE | CRUD менеджеров | ❌ Disabled |
 | `/api/achievements` | GET/POST/PUT/DELETE | CRUD достижений | ❌ Disabled |
+
+**Cache Invalidation:** Все API endpoints (CREATE/UPDATE/DELETE) автоматически инвалидируют кэш leaderboard.
+
+**Unique Constraint:** `POST /api/achievements` возвращает `409 Conflict` при попытке создать дубликат (same manager_id, league, season, achievement_type).
 
 ---
 
@@ -299,7 +316,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
-    
+
     # Caching
     CACHE_TYPE = "RedisCache"  # или "SimpleCache"
     CACHE_REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
@@ -313,12 +330,12 @@ class Config:
 
 ### 6.1 Требования к серверу
 
-| Ресурс | Минимум | Рекомендуется |
-|--------|---------|---------------|
-| CPU | 1 ядро | 2 ядра |
-| RAM | 512 MB | 1 GB |
-| Disk | 5 GB | 10 GB |
-| OS | Ubuntu 20.04 | Ubuntu 22.04 LTS |
+| Ресурс | Минимум      | Рекомендуется    |
+| ------ | ------------ | ---------------- |
+| CPU    | 1 ядро       | 2 ядра           |
+| RAM    | 512 MB       | 1 GB             |
+| Disk   | 5 GB         | 10 GB            |
+| OS     | Ubuntu 20.04 | Ubuntu 22.04 LTS |
 
 ### 6.2 Установка
 
@@ -352,13 +369,13 @@ nano .env  # отредактировать значения
 server {
     listen 80;
     server_name shadow-hockey-league.ru;
-    
+
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
-    
+
     location /static {
         alias /path/to/shadow-hockey-league_v2/static;
     }
@@ -394,6 +411,7 @@ WantedBy=multi-user.target
 **Endpoint:** `GET /health`
 
 **Ответ:**
+
 ```json
 {
   "status": "healthy",
@@ -415,18 +433,19 @@ WantedBy=multi-user.target
 **Endpoint:** `GET /metrics`
 
 **Метрики:**
+
 - `shadow_hockey_league_http_requests_total` — всего запросов
 - `shadow_hockey_league_http_request_duration_seconds` — время ответа
 - `shadow_hockey_league_http_requests_in_progress` — запросов в обработке
 
 ### 7.3 VPS мониторинг
 
-| Метрика | Источник | Нормальное значение |
-|---------|----------|---------------------|
-| CPU | ztv.su панель | < 50% |
-| RAM | ztv.su панель | < 800 MB |
-| Disk | ztv.su панель | < 8 GB |
-| Uptime | /health | > 99% |
+| Метрика | Источник      | Нормальное значение |
+| ------- | ------------- | ------------------- |
+| CPU     | ztv.su панель | < 50%               |
+| RAM     | ztv.su панель | < 800 MB            |
+| Disk    | ztv.su панель | < 8 GB              |
+| Uptime  | /health       | > 99%               |
 
 ---
 
@@ -450,6 +469,7 @@ find $BACKUP_DIR -name "dev.db-*" -mtime +7 -delete
 ```
 
 **Cron:** Ежедневно в 3:00
+
 ```bash
 0 3 * * * /home/shleague/shadow-hockey-league_v2/backup/backup.sh
 ```
@@ -512,23 +532,39 @@ coverage report
 
 ### 10.2 Типы тестов
 
-| Тип | Файл | Покрытие |
-|-----|------|----------|
-| Unit | `tests.py` | Rating service, validation |
-| Integration | `tests_integration.py` | Routes, API, database |
-| Security | `tests.py` | Security headers |
+| Тип                    | Файл                              | Покрытие                              |
+| ---------------------- | --------------------------------- | ------------------------------------- |
+| Unit                   | `tests.py`                        | Rating service, validation            |
+| Integration            | `tests_integration.py`            | Routes, API, database, constraints    |
+| Cache & Admin          | `tests_cache_and_admin.py`        | Cache invalidation, admin auth        |
+| API Cache Invalidation | `tests_api_cache_invalidation.py` | API → cache invalidation, leaderboard |
+
+**Всего тестов:** 72 (все проходят ✅)
 
 ---
 
 ## 11. Известные проблемы
 
-| ID | Проблема | Статус | Workaround |
-|----|----------|--------|------------|
-| BUG-001 | Login/Logout не в меню админки | ⚠️ В работе | Прямой доступ по URL |
-| BUG-002 | Нет заголовков страниц админки |  Запланировано | — |
-| BUG-003 | Выбор флага требует ручного ввода пути | ⚠️ В работе | Выпадающий список в разработке |
+| ID      | Проблема                               | Статус        | Workaround                   |
+| ------- | -------------------------------------- | ------------- | ---------------------------- |
+| BUG-001 | Login/Logout не в меню админки         | ⚠️ В работе   | Прямой доступ по URL         |
+| BUG-002 | Нет заголовков страниц админки         | Запланировано | —                            |
+| BUG-003 | Выбор флага требует ручного ввода пути | ✅ Решено     | Выпадающий список реализован |
+
+## 12. История изменений
+
+### 3 апреля 2026 г.
+
+- ✅ Добавлена инвалидация кэша во все API endpoints (CREATE/UPDATE/DELETE)
+- ✅ Добавлен UniqueConstraint на achievements (manager_id, league, season, achievement_type)
+- ✅ Создана Alembic миграция `a1b2c3d4e5f6`
+- ✅ Добавлены 14 тестов на API cache invalidation
+- ✅ Исправлен баг в API: `data.get("manager_id", type=int)` → `data.get("manager_id")`
+- ✅ Добавлена обработка 409 Conflict для дубликатов achievements
+- ✅ Общее количество тестов: **72** (все проходят)
+- ✅ Создана документация `docs/REDIS.md`
 
 ---
 
-**Документ актуализирован:** 2 апреля 2026 г.  
+**Документ актуализирован:** 3 апреля 2026 г.  
 **Следующий пересмотр:** При изменении архитектуры
