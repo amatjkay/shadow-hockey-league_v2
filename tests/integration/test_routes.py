@@ -361,7 +361,7 @@ class TestAPICRUDOperations(unittest.TestCase):
     def test_api_crud_cycle(self) -> None:
         """Complete CRUD cycle through API."""
         # Create
-        response = self.client.post(
+        response = self._post(
             '/api/managers',
             json={"name": "CRUD Test Manager", "country_id": 1}
         )
@@ -374,7 +374,7 @@ class TestAPICRUDOperations(unittest.TestCase):
         self.assertEqual(response.get_json()['name'], "CRUD Test Manager")
 
         # Update
-        response = self.client.put(
+        response = self._put(
             f'/api/managers/{manager_id}',
             json={"name": "Updated Manager"}
         )
@@ -382,7 +382,7 @@ class TestAPICRUDOperations(unittest.TestCase):
         self.assertEqual(response.get_json()['name'], "Updated Manager")
 
         # Delete
-        response = self.client.delete(f'/api/managers/{manager_id}')
+        response = self._delete(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 200)
 
         # Verify deletion
@@ -392,32 +392,32 @@ class TestAPICRUDOperations(unittest.TestCase):
     def test_api_validation_errors(self) -> None:
         """API rejects invalid data."""
         # Empty name
-        response = self.client.post(
+        response = self._post(
             '/api/managers',
             json={"name": "", "country_id": 1}
         )
         self.assertEqual(response.status_code, 400)
 
         # Missing country_id
-        response = self.client.post(
+        response = self._post(
             '/api/managers',
             json={"name": "Test"}
         )
         self.assertEqual(response.status_code, 400)
 
         # Non-existent country
-        response = self.client.post(
+        response = self._post(
             '/api/managers',
             json={"name": "Test", "country_id": 9999}
         )
         self.assertEqual(response.status_code, 400)
 
         # Duplicate name
-        self.client.post(
+        self._post(
             '/api/managers',
             json={"name": "Duplicate", "country_id": 1}
         )
-        response = self.client.post(
+        response = self._post(
             '/api/managers',
             json={"name": "Duplicate", "country_id": 1}
         )
@@ -553,7 +553,7 @@ class TestCascadeDelete(unittest.TestCase):
             self.assertEqual(before_count, 3)
 
         # Act: Delete manager via API
-        response = self.client.delete(f'/api/managers/{manager_id}')
+        response = self._delete(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 200)
 
         # Assert: Achievements deleted via CASCADE

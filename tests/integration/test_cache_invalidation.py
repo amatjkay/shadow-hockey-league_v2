@@ -104,10 +104,9 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.post(
+        response = self._post(
             "/api/countries",
             json={"code": "USA", "flag_path": "/static/img/flags/usa.png"},
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         self._assert_cache_invalidated()
@@ -117,10 +116,9 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.put(
+        response = self._put(
             f"/api/countries/{self.country_id}",
             json={"flag_path": "/static/img/flags/rus_new.png"},
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
@@ -146,10 +144,9 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.post(
+        response = self._post(
             "/api/managers",
             json={"name": "New Manager", "country_id": self.country_id},
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         self._assert_cache_invalidated()
@@ -159,10 +156,9 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.put(
+        response = self._put(
             f"/api/managers/{self.manager_id}",
             json={"name": "Updated Manager Name"},
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
@@ -183,7 +179,7 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.post(
+        response = self._post(
             "/api/achievements",
             json={
                 "achievement_type": "TOP2",
@@ -193,7 +189,6 @@ class TestAPICacheInvalidation(unittest.TestCase):
                 "icon_path": "/static/img/cups/top2.svg",
                 "manager_id": self.manager_id,
             },
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         self._assert_cache_invalidated()
@@ -203,10 +198,9 @@ class TestAPICacheInvalidation(unittest.TestCase):
         with self.app.app_context():
             self._set_test_cache_value()
 
-        response = self.client.put(
+        response = self._put(
             f"/api/achievements/{self.achievement_id}",
             json={"title": "Updated Title"},
-            content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
@@ -244,12 +238,33 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
             db.session.flush()
             self.manager_id = manager.id
 
+            # Create API key
+            from services.api_auth import generate_api_key, hash_api_key
+            from models import ApiKey
+            self.api_key = generate_api_key()
+            db.session.add(ApiKey(
+                key_hash=hash_api_key(self.api_key),
+                name="Test API Key",
+                scope="admin",
+            ))
             db.session.commit()
 
     def tearDown(self) -> None:
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+
+    def _get(self, url: str):
+        return self.client.get(url, headers={"X-API-Key": self.api_key})
+
+    def _post(self, url: str, json: dict):
+        return self.client.post(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _put(self, url: str, json: dict):
+        return self.client.put(url, json=json, headers={"X-API-Key": self.api_key})
+
+    def _delete(self, url: str):
+        return self.client.delete(url, headers={"X-API-Key": self.api_key})
 
     def test_new_manager_appears_in_leaderboard(self) -> None:
         """Test that a new manager created via API appears in leaderboard."""
@@ -260,10 +275,9 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
         self.assertNotIn("New API Manager", initial_html)
 
         # Create new manager via API
-        response2 = self.client.post(
+        response2 = self._post(
             "/api/managers",
             json={"name": "New API Manager", "country_id": self.country_id},
-            content_type="application/json",
         )
         self.assertEqual(response2.status_code, 201)
 
@@ -378,12 +392,24 @@ class TestAPIAchievementUniquenessConstraint(unittest.TestCase):
             db.session.flush()
             self.manager_id = manager.id
 
+            # Create API key
+            from services.api_auth import generate_api_key, hash_api_key
+            from models import ApiKey
+            self.api_key = generate_api_key()
+            db.session.add(ApiKey(
+                key_hash=hash_api_key(self.api_key),
+                name="Test API Key",
+                scope="admin",
+            ))
             db.session.commit()
 
     def tearDown(self) -> None:
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+
+    def _post(self, url: str, json: dict):
+        return self.client.post(url, json=json, headers={"X-API-Key": self.api_key})
 
     def test_create_duplicate_achievement(self) -> None:
         """Test creating duplicate achievements for same manager/league/season/type.

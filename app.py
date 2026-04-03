@@ -204,6 +204,8 @@ def register_blueprints(app: Flask) -> None:
     if app.config.get("ENABLE_API"):
         from services.api import api
         app.register_blueprint(api)
+        # Exempt API from CSRF (uses API Key auth instead)
+        app.extensions['csrf'].exempt(api)
     else:
         app.logger.info("REST API is disabled in this environment (ENABLE_API=False)")
 
