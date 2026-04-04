@@ -10,9 +10,12 @@ import tempfile
 import pytest
 
 from app import create_app
+# Explicitly import ALL models so SQLAlchemy metadata knows about all tables
+# before db.create_all() is called. Without this, some tables (like
+# achievement_types, audit_logs, leagues, seasons) will be missing in CI.
 from models import (
-    Achievement, AchievementType, Country, League, Season,
-    Manager, AdminUser, AuditLog, db
+    Achievement, AchievementType, AuditLog, Country, League, Season,
+    Manager, AdminUser, db
 )
 
 
