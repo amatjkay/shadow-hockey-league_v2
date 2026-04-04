@@ -47,7 +47,11 @@ def db_session(app, app_context):
     """Create database tables and provide session.
 
     Creates tables before each test and drops them after.
+    Explicitly imports all models to ensure db.create_all sees them.
     """
+    # Explicitly import all models so db.create_all creates their tables
+    from models import Achievement, AchievementType, Country, League, Season, Manager, AdminUser, AuditLog
+
     with app.app_context():
         db.create_all()
         yield db.session
@@ -61,6 +65,9 @@ def seeded_db(app, app_context):
 
     Seeds country, manager, and achievements.
     """
+    # Explicitly import all models so db.create_all creates their tables
+    from models import Achievement, AchievementType, Country, League, Season, Manager, AdminUser, AuditLog
+
     with app.app_context():
         db.create_all()
 
