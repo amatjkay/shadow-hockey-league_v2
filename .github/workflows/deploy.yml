@@ -59,6 +59,25 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+      - name: Prepare deploy script on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            set -e
+            cd /home/shleague/shadow-hockey-league_v2
+            # Если скрипта нет, создаем его из шаблона (попадает в репо при пуше)
+            if [ ! -f ./scripts/deploy.sh ]; then
+              cp ./scripts/deploy.sh.template ./scripts/deploy.sh
+              chmod +x ./scripts/deploy.sh
+              echo "Deploy script created from template."
+            else
+              # Если есть, просто обновляем права (вдруг изменились права доступа после пуша)
+              chmod +x ./scripts/deploy.sh
+            fi
+            EOF
+
       - name: Run deploy script on server
         run: |
           ssh -i ~/.ssh/id_ed25519 \
