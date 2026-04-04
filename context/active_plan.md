@@ -145,7 +145,9 @@
 | 2026-04-04 | **v2.3 протестирована (QA)**     | QA_TESTER |
 | 2026-04-04 | **Ветка fix/deployment-stability создана** | ALL ROLES |
 | 2026-04-04 | **Найдены 3 critical бага в деплое** | QA_TESTER |
+| 2026-04-04 | **BUG-5, 7, 11 исправлены и закрыты** | DEVELOPER |
+| 2026-04-04 | **QA Retest: Ветка готова к merge** | QA_TESTER |
 
 ---
 
-_Последнее обновление: 4 апреля 2026 г. — Ветка `fix/deployment-stability` требует исправления 3 critical багов перед merge._
+_Последнее обновление: 4 апреля 2026 г. — Ветка `fix/deployment-stability` прошла QA и готова к merge._

@@ -1,8 +1,8 @@
 # State Summary — Shadow Hockey League v2
 
 **Дата:** 4 апреля 2026 г.
-**Роль:** QA_TESTER (анализ деплоя)
-**Статус:** 🔴 Ветка `fix/deployment-stability` создана. Найдено 3 критических бага (BUG-5, 7, 11). Merge в main заблокирован до исправления.
+**Роль:** DEVELOPER (подготовка к релизу v2.4)
+**Статус:** 🟡 Ветка `fix/deployment-stability` готова к merge в main. Критические баги исправлены.
 
 ## 🎯 Цель
 
