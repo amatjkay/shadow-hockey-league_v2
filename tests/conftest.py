@@ -140,5 +140,9 @@ def admin_user(app, app_context):
         yield admin
         
         # Cleanup
-        db.session.delete(admin)
-        db.session.commit()
+        try:
+            db.session.delete(admin)
+            db.session.commit()
+        except Exception:
+            # Ignore cleanup errors (table might not exist)
+            pass

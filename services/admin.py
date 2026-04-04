@@ -16,7 +16,7 @@ from wtforms import SelectField
 
 from models import db, AdminUser, Country, Manager, Achievement
 from services.cache_service import invalidate_leaderboard_cache
-from services.audit_service import log_action
+from services.audit_service import log_action, set_current_user_for_audit
 
 # Logger for admin operations
 admin_logger = logging.getLogger('shleague.admin')
@@ -130,8 +130,11 @@ class SecureModelView(ModelView):
     """Base model view with authentication and audit logging."""
 
     def is_accessible(self):
-        """Check if user is authenticated."""
-        return current_user.is_authenticated
+        """Check if user is authenticated and set current user for audit."""
+        if current_user.is_authenticated:
+            set_current_user_for_audit(current_user.id)
+            return True
+        return False
 
     def inaccessible_callback(self, name, **kwargs):
         """Redirect to login if not accessible."""
@@ -432,6 +435,9 @@ class LoginView(BaseView):
             if user and user.check_password(password):
                 login_user(user, remember=remember)
                 flash('Logged in successfully.', 'success')
+                
+                # Set current user for audit logging
+                set_current_user_for_audit(user.id)
                 
                 # Log successful login
                 try:

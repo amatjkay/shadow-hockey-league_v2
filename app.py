@@ -173,6 +173,12 @@ def register_extensions(app: Flask) -> None:
     try:
         init_admin(app)
         app.logger.info("Flask-Admin and Flask-Login initialized")
+        
+        # Initialize audit events after admin is set up
+        from services.audit_service import setup_audit_events
+        setup_audit_events()
+        app.logger.info("Audit event listeners initialized")
+        
     except Exception as e:
         app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
 

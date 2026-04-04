@@ -8,14 +8,20 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from typing import Any, Optional
 
-from flask import current_app
+from flask import current_app, g
+from sqlalchemy import event
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from models import AuditLog, db
 
 logger = logging.getLogger(__name__)
+
+# Thread-safe lock for audit operations
+_audit_lock = threading.Lock()
 
 
 def log_action(
@@ -58,32 +64,34 @@ def log_action(
             logger.warning(f"Failed to serialize changes to JSON: {e}")
             changes_json = json.dumps({"error": "Failed to serialize changes"})
     
-    try:
-        audit_entry = AuditLog(
-            user_id=user_id,
-            action=action,
-            target_model=target_model,
-            target_id=target_id,
-            changes=changes_json
-        )
+    # Thread-safe database operation
+    with _audit_lock:
+        try:
+            audit_entry = AuditLog(
+                user_id=user_id,
+                action=action,
+                target_model=target_model,
+                target_id=target_id,
+                changes=changes_json
+            )
+            
+            db.session.add(audit_entry)
+            db.session.commit()
+            
+            logger.info(f"Audit log entry created: {action} by user {user_id}")
+            return audit_entry
+            
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Failed to create audit log entry: {e}")
+            # Fallback to regular logging
+            logger.info(f"ACTION LOG: {action} by user {user_id} on {target_model}#{target_id}")
+            return None
         
-        db.session.add(audit_entry)
-        db.session.commit()
-        
-        logger.info(f"Audit log entry created: {action} by user {user_id}")
-        return audit_entry
-        
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        logger.error(f"Failed to create audit log entry: {e}")
-        # Fallback to regular logging
-        logger.info(f"ACTION LOG: {action} by user {user_id} on {target_model}#{target_id}")
-        return None
-    
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Unexpected error creating audit log entry: {e}")
-        return None
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Unexpected error creating audit log entry: {e}")
+            return None
 
 
 def get_audit_logs(
@@ -187,3 +195,92 @@ def cleanup_old_audit_logs(days_to_keep: int = 90) -> int:
         db.session.rollback()
         logger.error(f"Failed to cleanup old audit logs: {e}")
         return 0
+
+
+# SQLAlchemy Event Listeners for automatic audit logging
+def setup_audit_events():
+    """Setup SQLAlchemy event listeners for automatic audit logging."""
+    
+    # Enable foreign key constraints for SQLite
+    @event.listens_for(db.engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        if 'sqlite' in str(db.engine.url):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+    
+    @event.listens_for(Session, 'after_flush')
+    def after_flush(session, context):
+        """Log changes after session flush."""
+        try:
+            # Get current user from Flask context
+            current_user_id = getattr(g, 'current_user_id', None)
+            if not current_user_id:
+                return  # Skip if no authenticated user
+            
+            # Process all new, dirty, and deleted objects
+            for obj in session.new:
+                _log_model_change(session, current_user_id, 'CREATE', obj)
+            
+            for obj in session.dirty:
+                _log_model_change(session, current_user_id, 'UPDATE', obj)
+            
+            for obj in session.deleted:
+                _log_model_change(session, current_user_id, 'DELETE', obj)
+                
+        except Exception as e:
+            logger.error(f"Error in audit event listener: {e}")
+
+
+def _log_model_change(session: Session, user_id: int, action: str, obj) -> None:
+    """Log a model change to audit trail."""
+    try:
+        # Skip audit log entries themselves to avoid infinite loops
+        if obj.__class__.__name__ == 'AuditLog':
+            return
+        
+        # Get model name and ID
+        model_name = obj.__class__.__name__
+        model_id = getattr(obj, 'id', None)
+        
+        changes = None
+        if action == 'UPDATE':
+            # Capture changes for UPDATE operations
+            changes = {}
+            state = db.inspect(obj)
+            
+            # Get all attributes that have changed
+            for attr in state.mapper.column_attrs:
+                if attr.key in state.unloaded:
+                    continue
+                
+                history = state.get_history(attr.key, passive=True)
+                if history.has_changes():
+                    old_value = history.deleted[0] if history.deleted else None
+                    new_value = history.added[0] if history.added else None
+                    
+                    if old_value != new_value:
+                        changes[attr.key] = {
+                            'old': old_value,
+                            'new': new_value
+                        }
+        
+        # Create audit log entry
+        audit_entry = AuditLog(
+            user_id=user_id,
+            action=action,
+            target_model=model_name,
+            target_id=model_id,
+            changes=json.dumps(changes) if changes else None
+        )
+        
+        # Add to session (but don't flush to avoid recursion)
+        session.add(audit_entry)
+        
+    except Exception as e:
+        logger.error(f"Error logging model change: {e}")
+
+
+def set_current_user_for_audit(user_id: Optional[int]) -> None:
+    """Set current user ID for audit logging in Flask context."""
+    g.current_user_id = user_id
