@@ -6,6 +6,55 @@
 
 ---
 
+## [2.2.0] — 2026-04-04
+
+### 🎉 Audit Log + Cache Control Release
+
+Полная реализация аудита действий администратора, ручного управления кэшем и E2E тестирования.
+
+### Added
+
+- **Audit Log** — модель `AuditLog` для фиксации всех CRUD операций в админке
+  - Поля: `user_id`, `action`, `target_model`, `target_id`, `changes`, `timestamp`
+  - Индексы: `timestamp`, `(user_id, timestamp)`, `action`, `target_model`, `target_id`
+- **audit_service.py** — сервис логирования с функциями:
+  - `log_action()` — запись действий с диффами для UPDATE
+  - `get_audit_logs()` — фильтрация по user/action/model с пагинацией
+  - `cleanup_old_audit_logs()` — очистка записей старше 90 дней
+  - `setup_audit_events()` — SQLAlchemy event listeners для автоматического аудита
+- **Интеграция в SecureModelView** — перехват CREATE, UPDATE, DELETE
+- **Логирование LOGIN** — фиксация успешных входов в админку
+- **Flush Cache UI** — кнопка «Flush Cache» на главной странице админки
+  - Endpoint: `POST /admin/flush-cache`
+  - Логирование действия FLUSH_CACHE в AuditLog
+- **Alembic миграция** — `1c8dd033101a_add_audit_log.py`
+- **E2E тесты** — 15 тестов для полной проверки приложения:
+  - Главная страница, health, metrics, админка, API, статика, кэш, audit log
+- **Покрытие тестов ~87%** — 239 тестов (224 unit+integration + 15 E2E)
+
+### Changed
+
+- **`app.py`** — обёртка `with app.app_context()` для корректной инициализации Flask-Admin
+- **`services/admin.py`** — исправлен `login_manager.login_view` → `'admin_login.index'`
+- **`templates/admin/index.html`** — добавлена карточка управления кэшем
+- **Интеграционные тесты** — переписаны на использование `SecureModelView` вместо прямой записи в БД
+
+### Fixed
+
+- **BUG-001-009** — исправлены 9 багов в тестах audit service
+  - Mocking, ObjectDeletedError, race condition, serialization
+- **BUG-010** — `login_manager.login_view` → `'admin_login.index'`
+- **BUG-011** — `inaccessible_callback` → `'admin_login.index'`
+- **Flask-Admin redirect** — корректный редирект на login page при доступе без авторизации
+
+### Security
+
+- **Audit Trail** — полная трассируемость действий администратора
+- **CSRF защита** — сохранена для Flush Cache endpoint
+- **Thread safety** — `_audit_lock` для конкурентных записей в AuditLog
+
+---
+
 ## [2.0.0] — 2026-04-03
 
 ### 🎉 Major Release

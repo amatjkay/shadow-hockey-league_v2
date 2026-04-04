@@ -169,18 +169,19 @@ def register_extensions(app: Flask) -> None:
     from services.cache_service import cache
     cache.init_app(app)
 
-    # Initialize Flask-Admin and Flask-Login
-    try:
-        init_admin(app)
-        app.logger.info("Flask-Admin and Flask-Login initialized")
-        
-        # Initialize audit events after admin is set up
-        from services.audit_service import setup_audit_events
-        setup_audit_events()
-        app.logger.info("Audit event listeners initialized")
-        
-    except Exception as e:
-        app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
+    # Initialize Flask-Admin and Flask-Login within application context
+    with app.app_context():
+        try:
+            init_admin(app)
+            app.logger.info("Flask-Admin and Flask-Login initialized")
+
+            # Initialize audit events after admin is set up
+            from services.audit_service import setup_audit_events
+            setup_audit_events()
+            app.logger.info("Audit event listeners initialized")
+
+        except Exception as e:
+            app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
 
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get("TESTING") is not True:

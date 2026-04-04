@@ -147,10 +147,11 @@ class TestAuditService:
         with app.app_context():
             # Create an object that can't be serialized to JSON
             class UnserializableObject:
-                pass
-            
+                def __str__(self):
+                    return "<UnserializableObject>"
+
             changes = {'bad_object': UnserializableObject()}
-            
+
             audit_entry = log_action(
                 user_id=admin_user.id,
                 action='UPDATE',
@@ -158,11 +159,13 @@ class TestAuditService:
                 target_id=123,
                 changes=changes
             )
-            
-            # Should still succeed but with error message in changes
+
+            # Should succeed - json.dumps with default=str converts objects to strings
             assert audit_entry is not None
             changes_data = json.loads(audit_entry.changes)
-            assert 'error' in changes_data
+            # The object is converted to string representation
+            assert 'bad_object' in changes_data
+            assert '<UnserializableObject>' in changes_data['bad_object']
 
     def test_get_audit_logs_all(self, app, admin_user, sample_audit_logs):
         """Test retrieving all audit logs."""
@@ -219,10 +222,11 @@ class TestAuditService:
     def test_get_audit_logs_database_error(self, app):
         """Test get_audit_logs handling of database errors."""
         with app.app_context():
-            with patch('services.audit_service.AuditLog.query') as mock_query:
-                mock_query.side_effect = Exception("DB Error")
+            with patch('services.audit_service.db.session.query') as mock_query:
+                from sqlalchemy.exc import SQLAlchemyError
+                mock_query.side_effect = SQLAlchemyError("DB Error")
                 logs = get_audit_logs()
-                
+
                 # Should return empty list on database error
                 assert logs == []
 
@@ -230,14 +234,14 @@ class TestAuditService:
         """Test counting all audit logs."""
         with app.app_context():
             count = get_audit_log_count()
-            
+
             assert count == len(sample_audit_logs)
 
     def test_get_audit_log_count_filtered(self, app, admin_user, sample_audit_logs):
         """Test counting audit logs with filters."""
         with app.app_context():
             count = get_audit_log_count(action='CREATE')
-            
+
             # Count should match filtered logs
             expected_count = len([log for log in sample_audit_logs if log.action == 'CREATE'])
             assert count == expected_count
@@ -245,10 +249,11 @@ class TestAuditService:
     def test_get_audit_log_count_database_error(self, app):
         """Test get_audit_log_count handling of database errors."""
         with app.app_context():
-            with patch('services.audit_service.AuditLog.query') as mock_query:
-                mock_query.side_effect = Exception("DB Error")
+            with patch('services.audit_service.db.session.query') as mock_query:
+                from sqlalchemy.exc import SQLAlchemyError
+                mock_query.side_effect = SQLAlchemyError("DB Error")
                 count = get_audit_log_count()
-                
+
                 # Should return 0 on database error
                 assert count == 0
 
@@ -266,15 +271,18 @@ class TestAuditService:
             )
             db.session.add(old_log)
             db.session.commit()
-            
+
+            # Save ID before cleanup (object may be deleted)
+            old_log_id = old_log.id
+
             # Run cleanup for 90 days
             deleted_count = cleanup_old_audit_logs(days_to_keep=90)
-            
+
             # Should delete the old log
             assert deleted_count == 1
-            
-            # Verify old log is gone
-            remaining_log = AuditLog.query.filter_by(id=old_log.id).first()
+
+            # Verify old log is gone (use fresh query to avoid expired object)
+            remaining_log = db.session.get(AuditLog, old_log_id)
             assert remaining_log is None
 
     def test_cleanup_old_audit_logs_no_old_entries(self, app, admin_user, sample_audit_logs):
@@ -289,9 +297,10 @@ class TestAuditService:
     def test_cleanup_old_audit_logs_database_error(self, app):
         """Test cleanup handling of database errors."""
         with app.app_context():
-            with patch('services.audit_service.db.session.commit', side_effect=Exception("DB Error")):
+            from sqlalchemy.exc import SQLAlchemyError
+            with patch('services.audit_service.db.session.commit', side_effect=SQLAlchemyError("DB Error")):
                 deleted_count = cleanup_old_audit_logs()
-                
+
                 # Should return 0 on database error
                 assert deleted_count == 0
 

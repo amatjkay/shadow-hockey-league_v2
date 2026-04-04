@@ -66,6 +66,21 @@
         <li><a href="{{ url_for('adminuser.index_view') }}"><strong>Администраторы</strong></a> — управление пользователями админки</li>
       </ul>
 
+      <!-- Cache Control -->
+      <div class="card border-warning">
+        <div class="card-header bg-warning text-dark">
+          <strong>⚙️ Управление кэшем</strong>
+        </div>
+        <div class="card-body">
+          <p class="card-text">Сбросить кэш leaderboard для обновления данных на главной странице.</p>
+          <form method="POST" action="{{ url_for('admin.flush_cache') }}" class="d-inline">
+            <button type="submit" class="btn btn-warning" onclick="return confirm('Вы уверены, что хотите сбросить кэш leaderboard?')">
+              🗑️ Flush Cache
+            </button>
+          </form>
+        </div>
+      </div>
+
       {% else %}
       <div class="alert alert-info">
         Пожалуйста, <a href="{{ url_for('admin_login.index') }}">войдите</a> для доступа к админ-панели.

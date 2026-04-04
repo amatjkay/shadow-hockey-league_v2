@@ -59,7 +59,7 @@ FLAG_CHOICES = [
 
 # Initialize Flask-Login
 login_manager = LoginManager()
-login_manager.login_view = 'admin_login'
+login_manager.login_view = 'admin_login.index'
 login_manager.login_message = 'Please log in to access the admin panel.'
 
 
@@ -78,6 +78,11 @@ def init_admin(app) -> None:
         return db.session.get(AdminUser, int(user_id))
 
     # Create custom admin index with dashboard stats
+    from flask import redirect, url_for, flash, request
+    from services.audit_service import log_action
+    import logging
+    admin_logger = logging.getLogger('shleague.admin')
+
     class StatsAdminIndexView(AdminIndexView):
         """Custom admin index view with dashboard statistics."""
 
@@ -102,6 +107,28 @@ def init_admin(app) -> None:
                 country_count=country_count,
                 admin_count=admin_count,
             )
+
+        @expose('/flush-cache', methods=['POST'])
+        @login_required
+        def flush_cache(self):
+            """Manually invalidate leaderboard cache."""
+            try:
+                # Invalidate cache
+                invalidate_leaderboard_cache()
+
+                # Log the action
+                log_action(
+                    user_id=current_user.id,
+                    action='FLUSH_CACHE'
+                )
+                admin_logger.info(f"FLUSH_CACHE by {current_user.username}")
+
+                flash('Cache flushed successfully', 'success')
+            except Exception as e:
+                admin_logger.error(f"Failed to flush cache: {e}")
+                flash('Failed to flush cache', 'error')
+
+            return redirect(url_for('.index'))
 
     # Create admin interface
     admin = Admin(
@@ -139,7 +166,7 @@ class SecureModelView(ModelView):
     def inaccessible_callback(self, name, **kwargs):
         """Redirect to login if not accessible."""
         flash('Please log in to access this page.', 'warning')
-        return redirect(url_for('admin_login', next=request.url))
+        return redirect(url_for('admin_login.index', next=request.url))
 
     def create_model(self, form):
         """Create model with audit logging."""
