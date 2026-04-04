@@ -6,6 +6,37 @@
 
 ---
 
+## [2.4.0] — 2026-04-04
+
+### 🎉 Reliable Deployment System
+
+Полная переработка процесса деплоя: от ручного `git pull` до автоматизированного конвейера с бэкапами и откатом.
+
+### Added
+
+- **scripts/deploy.sh.template** — полноценный скрипт деплоя для сервера:
+  - **Atomic Update**: `git reset --hard origin/main` вместо `checkout`.
+  - **Auto Backup**: Бэкап БД с суффиксом `.pre-deploy` перед миграциями.
+  - **Safe Migrations**: Явная передача `DATABASE_URL` из `.env` в Alembic.
+  - **Health Check**: Валидация JSON от `/health` с ретраями.
+  - **Auto Rollback**: При любой ошибке скрипт сам возвращает код и БД в предыдущее состояние.
+- **rollback.yml** — ручной откат через GitHub Actions (Workflow Dispatch).
+  - Восстановление кода и БД из последнего бэкапа.
+- **Backup Retention**: Хранение последних 10 бэкапов.
+
+### Fixed
+
+- **BUG-5**: Деплой больше не использует закешированный локальный `main`.
+- **BUG-7**: Деплой падает, если приложение в статусе `degraded` (например, отвалился Redis).
+- **BUG-11**: Rollback теперь корректно восстанавливает схему БД из бэкапа.
+
+### Changed
+
+- **deploy.yml**: Стал "тонким" клиентом, вызывает `scripts/deploy.sh` на сервере.
+- **CI/CD**: Тесты теперь проходят с Redis (Prod-Like) и без Rate Limits (скорость).
+
+---
+
 ## [2.3.0] — 2026-04-04
 
 ### 🎉 Data Synchronization Layer
