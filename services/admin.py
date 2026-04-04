@@ -16,6 +16,7 @@ from wtforms import SelectField
 
 from models import db, AdminUser, Country, Manager, Achievement
 from services.cache_service import invalidate_leaderboard_cache
+from services.audit_service import log_action, set_current_user_for_audit
 
 # Logger for admin operations
 admin_logger = logging.getLogger('shleague.admin')
@@ -58,7 +59,7 @@ FLAG_CHOICES = [
 
 # Initialize Flask-Login
 login_manager = LoginManager()
-login_manager.login_view = 'admin_login'
+login_manager.login_view = 'admin_login.index'
 login_manager.login_message = 'Please log in to access the admin panel.'
 
 
@@ -77,6 +78,11 @@ def init_admin(app) -> None:
         return db.session.get(AdminUser, int(user_id))
 
     # Create custom admin index with dashboard stats
+    from flask import redirect, url_for, flash, request
+    from services.audit_service import log_action
+    import logging
+    admin_logger = logging.getLogger('shleague.admin')
+
     class StatsAdminIndexView(AdminIndexView):
         """Custom admin index view with dashboard statistics."""
 
@@ -102,6 +108,28 @@ def init_admin(app) -> None:
                 admin_count=admin_count,
             )
 
+        @expose('/flush-cache', methods=['POST'])
+        @login_required
+        def flush_cache(self):
+            """Manually invalidate leaderboard cache."""
+            try:
+                # Invalidate cache
+                invalidate_leaderboard_cache()
+
+                # Log the action
+                log_action(
+                    user_id=current_user.id,
+                    action='FLUSH_CACHE'
+                )
+                admin_logger.info(f"FLUSH_CACHE by {current_user.username}")
+
+                flash('Cache flushed successfully', 'success')
+            except Exception as e:
+                admin_logger.error(f"Failed to flush cache: {e}")
+                flash('Failed to flush cache', 'error')
+
+            return redirect(url_for('.index'))
+
     # Create admin interface
     admin = Admin(
         app,
@@ -120,54 +148,106 @@ def init_admin(app) -> None:
     admin.add_view(AchievementModelView(Achievement, db.session, name='Achievements', category='Data', menu_icon_type='fa', menu_icon_value='fa-trophy'))
     admin.add_view(AdminUserModelView(AdminUser, db.session, name='Admin Users', category='Settings', menu_icon_type='fa', menu_icon_value='fa-users'))
     
-    # Add Login/Logout as separate menu items (use menu_class_name to force display)
-    login_view = LoginView(name='Login', endpoint='admin_login', url='/login')
-    logout_view = LogoutView(name='Logout', endpoint='admin_logout', url='/logout')
-    admin.add_view(login_view)
-    admin.add_view(logout_view)
+    # Add Login/Logout as separate menu items
+    admin.add_view(LoginView(name='Login', endpoint='admin_login', url='/admin/login'))
+    admin.add_view(LogoutView(name='Logout', endpoint='admin_logout', url='/admin/logout'))
 
 
 class SecureModelView(ModelView):
     """Base model view with authentication and audit logging."""
 
     def is_accessible(self):
-        """Check if user is authenticated."""
-        return current_user.is_authenticated
+        """Check if user is authenticated and set current user for audit."""
+        if current_user.is_authenticated:
+            set_current_user_for_audit(current_user.id)
+            return True
+        return False
 
     def inaccessible_callback(self, name, **kwargs):
         """Redirect to login if not accessible."""
         flash('Please log in to access this page.', 'warning')
-        return redirect(url_for('admin_login', next=request.url))
+        return redirect(url_for('admin_login.index', next=request.url))
 
     def create_model(self, form):
-        """Log model creation."""
+        """Create model with audit logging."""
         model = super().create_model(form)
-        if model:
-            admin_logger.info(
-                f"CREATE {self.model.__name__} by {current_user.username}: "
-                f"id={getattr(model, 'id', 'N/A')}"
-            )
+        if model and current_user.is_authenticated:
+            try:
+                log_action(
+                    user_id=current_user.id,
+                    action='CREATE',
+                    target_model=self.model.__name__,
+                    target_id=getattr(model, 'id', None)
+                )
+                admin_logger.info(
+                    f"CREATE {self.model.__name__} by {current_user.username}: "
+                    f"id={getattr(model, 'id', 'N/A')}"
+                )
+            except Exception as e:
+                admin_logger.error(f"Failed to log CREATE action: {e}")
         return model
 
     def update_model(self, form, model):
-        """Log model update."""
+        """Update model with audit logging."""
+        # Capture changes before update
+        old_values = {}
+        if hasattr(model, '__table__'):
+            for column in model.__table__.columns:
+                old_values[column.name] = getattr(model, column.name)
+        
         result = super().update_model(form, model)
-        if result:
-            admin_logger.info(
-                f"UPDATE {self.model.__name__} by {current_user.username}: "
-                f"id={getattr(model, 'id', 'N/A')}"
-            )
+        
+        if result and current_user.is_authenticated:
+            try:
+                # Capture new values after update
+                new_values = {}
+                changes = {}
+                if hasattr(model, '__table__'):
+                    for column in model.__table__.columns:
+                        new_value = getattr(model, column.name)
+                        if old_values[column.name] != new_value:
+                            changes[column.name] = {
+                                'old': old_values[column.name],
+                                'new': new_value
+                            }
+                
+                log_action(
+                    user_id=current_user.id,
+                    action='UPDATE',
+                    target_model=self.model.__name__,
+                    target_id=getattr(model, 'id', None),
+                    changes=changes if changes else None
+                )
+                admin_logger.info(
+                    f"UPDATE {self.model.__name__} by {current_user.username}: "
+                    f"id={getattr(model, 'id', 'N/A')}"
+                )
+            except Exception as e:
+                admin_logger.error(f"Failed to log UPDATE action: {e}")
+        
         return result
 
     def delete_model(self, model):
-        """Log model deletion."""
+        """Delete model with audit logging."""
         model_id = getattr(model, 'id', 'N/A')
         model_name = self.model.__name__
+        
         result = super().delete_model(model)
-        if result:
-            admin_logger.info(
-                f"DELETE {model_name} by {current_user.username}: id={model_id}"
-            )
+        
+        if result and current_user.is_authenticated:
+            try:
+                log_action(
+                    user_id=current_user.id,
+                    action='DELETE',
+                    target_model=model_name,
+                    target_id=model_id if model_id != 'N/A' else None
+                )
+                admin_logger.info(
+                    f"DELETE {model_name} by {current_user.username}: id={model_id}"
+                )
+            except Exception as e:
+                admin_logger.error(f"Failed to log DELETE action: {e}")
+        
         return result
 
 
@@ -208,8 +288,14 @@ class CountryModelView(SecureModelView):
         'flag_path': {
             'class': 'form-control select2',
             'data-placeholder': 'Select a flag...',
+            'style': 'width: 100%'
         }
     }
+
+    column_formatters = {
+        'flag_path': lambda v, c, m, p: f'<img src="{m.flag_path}" width="24" height="16" style="border: 1px solid #ddd;">' if m.flag_path else ''
+    }
+    column_formatters_detail = column_formatters
 
     def create_form(self):
         """Create form with flag choices."""
@@ -376,10 +462,25 @@ class LoginView(BaseView):
             if user and user.check_password(password):
                 login_user(user, remember=remember)
                 flash('Logged in successfully.', 'success')
+                
+                # Set current user for audit logging
+                set_current_user_for_audit(user.id)
+                
+                # Log successful login
+                try:
+                    log_action(
+                        user_id=user.id,
+                        action='LOGIN'
+                    )
+                    admin_logger.info(f"LOGIN successful for user {username}")
+                except Exception as e:
+                    admin_logger.error(f"Failed to log LOGIN action: {e}")
+                
                 next_page = request.args.get('next')
                 return redirect(next_page or url_for('admin.index'))
             else:
                 flash('Invalid username or password.', 'error')
+                admin_logger.warning(f"LOGIN failed for user {username}")
         
         return self.render('admin/login.html')
 

@@ -224,3 +224,43 @@ class Achievement(db.Model):
             f'<img src="{self.icon_path}" '
             f'title="Shadow {self.league} league {self.title} s{self.season}">'
         )
+
+
+class AuditLog(db.Model):
+    """Audit log table for tracking admin actions.
+    
+    Records all CRUD operations, logins, and cache flushes performed by admin users.
+    """
+
+    __tablename__ = "audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("admin_users.id", ondelete="CASCADE"), 
+        nullable=False, index=True
+    )
+    action = db.Column(db.String(50), nullable=False, index=True)  # CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
+    target_model = db.Column(db.String(50), nullable=True, index=True)  # Model name (e.g., 'Manager')
+    target_id = db.Column(db.Integer, nullable=True, index=True)  # Primary key of target
+    changes = db.Column(db.Text, nullable=True)  # JSON string of changes (for UPDATE)
+    timestamp = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+
+    # Composite index for user+timestamp queries
+    __table_args__ = (
+        db.Index('idx_audit_user_timestamp', 'user_id', 'timestamp'),
+    )
+
+    def __repr__(self) -> str:
+        return f"<AuditLog {self.action} by {self.user_id} at {self.timestamp}>"
+
+    def to_dict(self) -> dict:
+        """Convert audit log entry to dictionary for API responses."""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'action': self.action,
+            'target_model': self.target_model,
+            'target_id': self.target_id,
+            'changes': self.changes,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }

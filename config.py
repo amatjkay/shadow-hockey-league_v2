@@ -92,3 +92,13 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
     ENABLE_API = True  # Enable API for tests
+    
+    # Enable foreign key constraints in SQLite for testing
+    @classmethod
+    def get_database_url(cls) -> str:
+        """Get database URL with foreign key constraints enabled."""
+        base_url = super().get_database_url()
+        if base_url.startswith("sqlite:///"):
+            # Add foreign key pragma for SQLite
+            return base_url + "?foreign_keys=on"
+        return base_url

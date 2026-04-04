@@ -200,6 +200,10 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
         achievements_data: list[dict[str, Any]] = []
         total_points = 0
 
+        # Safely handle country (BUG FIX: manager.country might be None in some tests)
+        country_flag = manager.country.flag_path if manager.country else ""
+        country_code = manager.country.code if manager.country else "???"
+
         for achievement in manager.achievements:
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)
@@ -211,8 +215,8 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
                 "name": manager.name,
                 "display_name": manager.display_name,
                 "is_tandem": manager.is_tandem,
-                "country": manager.country.flag_path,
-                "country_code": manager.country.code,
+                "country": country_flag,
+                "country_code": country_code,
                 "total": total_points,
                 "achievements": achievements_data,
             }

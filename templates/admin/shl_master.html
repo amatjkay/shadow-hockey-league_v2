@@ -1,5 +1,10 @@
 {% extends 'admin/master.html' %}
 
+{% block head_meta %}
+    {{ super() }}
+    <title>{% block title %}{{ admin_view.name }} - SHL Admin{% endblock %}</title>
+{% endblock %}
+
 {% block access_control %}
 {% if current_user.is_authenticated %}
 <div class="navbar-text">
