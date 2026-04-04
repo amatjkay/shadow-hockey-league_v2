@@ -1,0 +1,42 @@
+[
+  {
+    "code": "BLR",
+    "name": "Belarus",
+    "flag_filename": "BLR.png"
+  },
+  {
+    "code": "RUS",
+    "name": "Russia",
+    "flag_filename": "rus.png"
+  },
+  {
+    "code": "KAZ",
+    "name": "Kazakhstan",
+    "flag_filename": "KAZ.png"
+  },
+  {
+    "code": "CHN",
+    "name": "China",
+    "flag_filename": "CHN.png"
+  },
+  {
+    "code": "VNM",
+    "name": "Vietnam",
+    "flag_filename": "VNM.png"
+  },
+  {
+    "code": "UKR",
+    "name": "Ukraine",
+    "flag_filename": "UKR.png"
+  },
+  {
+    "code": "MEX",
+    "name": "Mexico",
+    "flag_filename": "MEX.png"
+  },
+  {
+    "code": "POL",
+    "name": "Poland",
+    "flag_filename": "POL.png"
+  }
+]

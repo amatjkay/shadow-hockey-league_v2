@@ -1,0 +1,394 @@
+[
+  {
+    "manager_name": "Feel Good",
+    "type": "TOP1",
+    "league": "1",
+    "season": "22/23",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Feel Good",
+    "type": "TOP2",
+    "league": "1",
+    "season": "21/22",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Feel Good",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Sousse Sousse",
+    "type": "TOP1",
+    "league": "1",
+    "season": "23/24",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Cole CaufieldTeamNePobedim",
+    "type": "TOP1",
+    "league": "1",
+    "season": "21/22",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "TOP2",
+    "league": "1",
+    "season": "23/24",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "TOP3",
+    "league": "1",
+    "season": "21/22",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "BEST_REG",
+    "league": "1",
+    "season": "23/24",
+    "title": "Best regular player",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "22/23",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Alex Galuza",
+    "type": "TOP2",
+    "league": "1",
+    "season": "22/23",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Alex Galuza",
+    "type": "BEST_REG",
+    "league": "1",
+    "season": "22/23",
+    "title": "Best regular player",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Alex Galuza",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "21/22",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "El Guerrero",
+    "type": "TOP3",
+    "league": "1",
+    "season": "23/24",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Max Bumble",
+    "type": "TOP1",
+    "league": "2",
+    "season": "23/24",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Sumzair San",
+    "type": "TOP1",
+    "league": "2",
+    "season": "22/23",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "AleX TiiKii",
+    "type": "TOP2",
+    "league": "2",
+    "season": "22/23",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "AleX TiiKii",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "AleX TiiKii",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "21/22",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Сергей Стрельченко",
+    "type": "TOP2",
+    "league": "2",
+    "season": "23/24",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Yoze Marino",
+    "type": "TOP3",
+    "league": "2",
+    "season": "23/24",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Nurzhan Yessengaliev",
+    "type": "TOP3",
+    "league": "1",
+    "season": "22/23",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Nurzhan Yessengaliev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Nurzhan Yessengaliev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "21/22",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Tandem: Vlad, whiplash 92",
+    "type": "TOP3",
+    "league": "2",
+    "season": "22/23",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Евгений Иванов",
+    "type": "BEST_REG",
+    "league": "1",
+    "season": "21/22",
+    "title": "Best regular player",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Евгений Иванов",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "22/23",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Евгений Иванов",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "21/22",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Vladislav Belov",
+    "type": "BEST_REG",
+    "league": "2",
+    "season": "21/22",
+    "title": "Best regular player",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Vladislav Belov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "21/22",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Евгений Медведев",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "23/24",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Aleks Lang",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "23/24",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Vyacheslav Shamanov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Sergey Kharlanov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "22/23",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Denis Sanzharevskyi",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "21/22",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Don Georgio",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Don Georgio",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Юрий Shestakov",
+    "type": "BEST_REG",
+    "league": "2",
+    "season": "24/25",
+    "title": "Best regular",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Юрий Shestakov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Юрий Shestakov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Vlad V",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Tandem: Sergey Dorokhov, Maxim Shvetsov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "23/24",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Dima ATC",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Alex Rybakov",
+    "type": "TOP1",
+    "league": "2",
+    "season": "24/25",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Zhanabil Au",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "24/25",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "xMoneyMaker 1",
+    "type": "TOP2",
+    "league": "2",
+    "season": "24/25",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Aleksejs Lazarenko",
+    "type": "TOP3",
+    "league": "2",
+    "season": "24/25",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Max Trufanov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "22/23",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Max Trufanov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "21/22",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Max Trufanov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  }
+]
