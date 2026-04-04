@@ -1,0 +1,87 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Commit SHA to roll back to (defaults to HEAD~1)"
+        required: false
+        type: string
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Execute rollback on server
+        run: |
+          TARGET="${{ inputs.commit_sha || 'HEAD~1' }}"
+          echo "Rolling back to: $TARGET"
+
+          ssh -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            set -e
+
+            APP_DIR="/home/shleague/shadow-hockey-league_v2"
+            TARGET="${{ inputs.commit_sha || 'HEAD~1' }}"
+
+            cd "$APP_DIR"
+
+            echo "=== 1. Current commit before rollback ==="
+            git log --oneline -1
+
+            echo "=== 2. Checking out target commit: $TARGET ==="
+            git fetch origin
+            git checkout "$TARGET"
+
+            echo "=== 3. Cleaning Python cache ==="
+            find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+            find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+            echo "=== 4. Backing up database ==="
+            BACKUP_DIR="$APP_DIR/backups"
+            mkdir -p "$BACKUP_DIR"
+            DB_FILE="$APP_DIR/instance/dev.db"
+            if [ -f "$DB_FILE" ]; then
+              cp "$DB_FILE" "$BACKUP_DIR/dev.db.pre-rollback.$(date +%Y%m%d%H%M%S)"
+              echo "Database backed up"
+            else
+              echo "No database file found at $DB_FILE, skipping backup"
+            fi
+
+            echo "=== 5. Restarting application ==="
+            systemctl restart shadow-hockey-league
+            sleep 2
+
+            echo "=== 6. Verifying rollback ==="
+            git log --oneline -1
+            systemctl is-active shadow-hockey-league
+
+            echo "=== 7. Health check ==="
+            HEALTH=$(curl -sf http://127.0.0.1:5000/health 2>&1 || echo "FAILED")
+            echo "$HEALTH"
+
+            if echo "$HEALTH" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+              echo "Health check PASSED"
+            else
+              echo "WARNING: Health check FAILED or returned invalid JSON"
+              exit 1
+            fi
+
+            echo "Rollback completed successfully!"
+          ENDSSH
+
+      - name: Rollback result
+        if: always()
+        run: |
+          echo "Rollback step completed at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Target commit: ${{ inputs.commit_sha || 'HEAD~1' }}"
+          echo "Actor: ${{ github.actor }}"

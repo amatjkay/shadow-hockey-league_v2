@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     # Add Redis service for Prod-Like testing
     services:
       redis:
@@ -59,38 +59,18 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to server
+      - name: Run deploy script on server
         run: |
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
-            set -e  # Exit on any error
-            cd /home/shleague/shadow-hockey-league_v2
+          ssh -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} \
+            "cd /home/shleague/shadow-hockey-league_v2 && bash ./scripts/deploy.sh 2>&1"
 
-            echo "=== 1. Fetching latest code ==="
-            git fetch origin main
-            git reset --hard origin/main
-            git clean -fd
-
-            echo "=== 2. Cleaning Python cache ==="
-            find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-            find . -type f -name "*.pyc" -delete 2>/dev/null || true
-
-            echo "=== 3. Updating dependencies ==="
-            source venv/bin/activate
-            pip install -r requirements.txt --quiet --upgrade
-
-            echo "=== 4. Applying database migrations ==="
-            alembic upgrade head || echo "⚠️ Migration failed or already applied"
-
-            echo "=== 5. Restarting application ==="
-            systemctl restart shadow-hockey-league
-            sleep 2
-
-            echo "=== 6. Verifying deployment ==="
-            git log --oneline -1
-            systemctl is-active shadow-hockey-league
-
-            echo "✅ Deployment completed successfully!"
-          ENDSSH
-
-      - name: Notify success
-        run: echo "✅ Деплой успешно завершён!"
+      - name: Deployment result
+        if: always()
+        run: |
+          echo "Deploy step completed at $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Actor: ${{ github.actor }}"
