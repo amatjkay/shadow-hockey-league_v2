@@ -1,8 +1,8 @@
 # State Summary — Shadow Hockey League v2
 
-**Дата:** 3 апреля 2026 г.
-**Роль:** ANALYST (глубокий анализ завершён)
-**Статус:** 🟢 Контекст актуализирован
+**Дата:** 4 апреля 2026 г.
+**Роль:** ANALYST (спецификация v2.2 утверждена)
+**Статус:** 🟢 Требования к аудиту и управлению кэшем зафиксированы
 
 ## 🎯 Цель
 
@@ -24,33 +24,39 @@ Production Flask-приложение для управления фентези
 
 1. **Рейтинг лиги** — расчёт очков: `base_points(league, achievement_type) × season_multiplier`, 6 типов достижений, 2+ лиги, 5 сезонов
 2. **Админ-панель** — CRUD стран/менеджеров/достижений, аудит, Flask-Login auth, авто-инвалидация кэша
-3. **REST API** — Countries, Managers, Achievements (отключено в production, ENABLE_API=False)
+3. **REST API** — Countries, Managers, Achievements (включено в production, ENABLE_API=True)
 4. **Кэширование** — TTL 300с, инвалидация при записи (Admin + API)
 5. **Мониторинг** — `/health` (БД, Redis, кэш, uptime), `/metrics` (Prometheus export), VPS ztv.su
+6. **Audit Log** — Фиксация всех CRUD операций в админке (User, Action, Model, ID, Timestamp).
+7. **Cache Control** — Кнопка в админке для принудительной инвалидации `leaderboard`.
+8. **Rating System** — Оптимизированный расчет с `joinedload` для исключения N+1.
 
 ## 📋 Статус этапов
 
-| Этап | Название             | Статус               |
-| ---- | -------------------- | -------------------- |
-| 0    | Базовая архитектура  | ✅ Готово            |
-| 1    | Кэширование          | ✅ Готово            |
-| 2    | Метрики              | ✅ Готово            |
-| 3    | Админ-панель         | ⚠️ В работе (3 бага) |
-| 4    | Рефакторинг формулы  | ⏳ Не начато         |
-| 5    | Доп. функционал      | ⏳ Не начато         |
-| 6    | Интеграционные тесты | ⏳ Не начато         |
-| 7    | Документация         | ✅ Готово            |
+| Этап | Название                         | Статус             |
+| ---- | -------------------------------- | ------------------ |
+| 0    | Базовая архитектура              | ✅ Готово          |
+| 1    | Кэширование                      | ✅ Готово          |
+| 2    | Метрики                          | ✅ Готово          |
+| 3    | Админ-панель + CSRF              | ✅ Готово          |
+| 4    | Рефакторинг формулы              | ✅ Готово          |
+| 5    | API auth + pagination            | ✅ Готово          |
+| 6    | Интеграц. тесты 100%             | ✅ Готово          |
+| 7    | Документация и деплой            | ✅ **QA ЗАВЕРШЁН** |
+| 8.1  | Логирование действий (Audit Log) | ⏳ Планирование    |
+| 8.2  | Ручное управление кэшем (Admin)  | ⏳ Планирование    |
+| 8.3  | Оптимизация SQL-запросов         | ⏳ Планирование    |
 
 ## ⚠️ Ключевые риски
 
-| Риск                            | Вероятность | Влияние | Митигация                            |
-| ------------------------------- | ----------- | ------- | ------------------------------------ |
-| Нехватка RAM (1GB VPS)          | Средняя     | Высокое | Redis лимит 128MB, мониторинг ztv.su |
-| SQLite не масштабируется        | Средняя     | Среднее | План миграции на PostgreSQL готов    |
-| Расхождение в тестах (72 vs 48) | Высокая     | Низкое  | Требуется аудит тестовой базы        |
-| BUG-001: Login/Logout не в меню | Высокая     | Среднее | В работе (Этап 3)                    |
-| BUG-002: Нет заголовков страниц | Средняя     | Низкое  | Запланировано                        |
-| BUG-003: Выбор флага вручную    | Высокая     | Среднее | В работе (dropdown)                  |
+| Риск                         | Вероятность | Влияние | Митигация                                     |
+| ---------------------------- | ----------- | ------- | --------------------------------------------- |
+| Нехватка RAM (1GB VPS)       | Средняя     | Высокое | Redis лимит 128MB, мониторинг ztv.su          |
+| SQLite не масштабируется     | Средняя     | Среднее | План миграции на PostgreSQL готов             |
+| Документация не актуальна    | Низкая      | Высокое | Этап 7 — завершён                             |
+| .env.example устарел         | Низкая      | Среднее | Обновлён                                      |
+| Нагрузка на диск (Audit Log) | Средняя     | Низкое  | Оптимизированная запись, индексы на timestamp |
+| Ошибки инвалидации           | Низкая      | Среднее | Тестирование механизма Flush Cache            |
 
 ## 📝 Допущения
 
@@ -64,16 +70,16 @@ Production Flask-приложение для управления фентези
 ```
 shadow-hockey-league_v2/
 ├── app.py                      # Application Factory
-├── models.py                   # SQLAlchemy модели (AdminUser, Country, Manager, Achievement, + reference tables)
-├── config.py                   # Config, DevelopmentConfig, ProductionConfig, TestingConfig
+├── models.py                   # SQLAlchemy модели
+├── config.py                   # Config (Dev/Prod/Test)
 ├── blueprints/                 # main.py, health.py
-├── services/                   # rating_service.py, cache_service.py, api.py, admin.py, metrics_service.py, validation_service.py
-├── data/                       # Справочные данные (countries_reference.py, managers_data.py)
+├── services/                   # rating_service, cache_service, api, admin, metrics
+├── data/                       # Справочные данные
 ├── templates/                  # Jinja2 шаблоны
-├── static/                     # CSS, JS, изображения (флаги)
+├── static/                     # CSS, JS, изображения
 ├── migrations/                 # Alembic миграции
-├── docs/                       # BUSINESS_REQUIREMENTS.md, TECHNICAL_SPECIFICATION.md, ADMIN.md, API.md, REDIS.md, MONITORING.md, DEPLOYMENT.md, VPS_DEPLOY.md, TROUBLESHOOTING.md
-└── tests*.py                   # 5 тестовых файлов в корне (tests.py, test_metrics.py, tests_cache_and_admin.py, tests_integration.py, tests_api_cache_invalidation.py)
+├── docs/                       # Документация (API, ADMIN, DEPLOY и т.д.)
+└── tests/                      # Все тесты (unit, integration)
 ```
 
 ## 🔗 Полезные ссылки
@@ -81,9 +87,7 @@ shadow-hockey-league_v2/
 - **Production:** https://shadow-hockey-league.ru/
 - **Health:** https://shadow-hockey-league.ru/health
 - **Metrics:** https://shadow-hockey-league.ru/metrics
-- **VPS мониторинг:** ztv.su
-- **GitHub:** https://github.com/amatjkay/shadow-hockey-league_v2
 
 ---
 
-_Последнее обновление: 3 апреля 2026 г. после глубокого анализа роли ANALYST_
+_Последнее обновление: 4 апреля 2026 г. — Спецификация v2.2 принята. Переход к проектированию ARCHITECT._

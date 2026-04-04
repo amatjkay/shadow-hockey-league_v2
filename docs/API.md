@@ -1,63 +1,220 @@
 # Shadow Hockey League REST API Documentation
 
-**Base URL:** `http://127.0.0.1:5000/api`  
-**Version:** 1.0  
+**Base URL:** `https://shadow-hockey-league.ru/api` (production) | `http://127.0.0.1:5000/api` (dev)
+**Version:** 2.0
 **Format:** JSON
+**Дата:** 3 апреля 2026 г.
 
 ---
 
 ## 📋 Overview
 
-REST API provides CRUD operations for managing countries, managers, and achievements in the Shadow Hockey League system.
+REST API предоставляет CRUD-операции для управления странами, менеджерами и достижениями в системе Shadow Hockey League.
 
-### Authentication
+**Возможности:**
 
-Currently, the API does not require authentication. In production, consider adding:
-
-- API keys
-- JWT tokens
-- OAuth 2.0
-
-### Response Format
-
-All responses are returned in JSON format:
-
-**Success Response:**
-
-```json
-{
-  "id": 1,
-  "name": "Example",
-  "message": "Operation successful"
-}
-```
-
-**Error Response:**
-
-```json
-{
-  "error": "Error description"
-}
-```
-
-### HTTP Status Codes
-
-| Code | Description                             |
-| ---- | --------------------------------------- |
-| 200  | OK - Request successful                 |
-| 201  | Created - Resource created successfully |
-| 400  | Bad Request - Invalid data provided     |
-| 404  | Not Found - Resource not found          |
-| 409  | Conflict - Resource already exists      |
-| 500  | Internal Server Error                   |
+- ✅ Аутентификация через API Keys (3 уровня доступа)
+- ✅ Пагинация для списковых endpoints
+- ✅ Rate limiting (100 req/min на ключ)
+- ✅ Автоматическая инвалидация кэша leaderboard
+- ✅ Валидация данных и уникальные ограничения
 
 ---
 
-## 🌍 Countries API
+## 🔐 Аутентификация
 
-### Get All Countries
+Все API-эндпоинты (кроме `/api/countries` GET) требуют аутентификации через API-ключ.
 
-**Endpoint:** `GET /api/countries`
+### API Keys
+
+Ключ передаётся в заголовке `X-API-Key`:
+
+```bash
+curl -H "X-API-Key: shl_abc123..." https://shadow-hockey-league.ru/api/managers
+```
+
+### Scopes (уровни доступа)
+
+| Scope   | Описание        | Доступные методы               |
+| ------- | --------------- | ------------------------------ |
+| `read`  | Только чтение   | `GET`                          |
+| `write` | Чтение + запись | `GET`, `POST`, `PUT`           |
+| `admin` | Полный доступ   | `GET`, `POST`, `PUT`, `DELETE` |
+
+### Иерархия scopes
+
+```
+admin > write > read
+```
+
+- `admin` ключ может выполнять все операции
+- `write` ключ может читать и создавать/обновлять, но не удалять
+- `read` ключ может только получать данные
+
+### Ошибки аутентификации
+
+| Код | Описание                          | Решение                                 |
+| --- | --------------------------------- | --------------------------------------- |
+| 401 | Отсутствует заголовок `X-API-Key` | Добавить заголовок                      |
+| 401 | Неверный API-ключ                 | Проверить ключ или создать новый        |
+| 401 | Ключ отозван (revoked)            | Создать новый ключ                      |
+| 401 | Ключ истёк (expired)              | Создать новый ключ или увеличить срок   |
+| 403 | Недостаточный scope               | Использовать ключ с более широким scope |
+
+### Примеры ошибок
+
+**401 — Missing API key:**
+
+```json
+{
+  "error": "Missing API key. Provide X-API-Key header."
+}
+```
+
+**401 — Invalid API key:**
+
+```json
+{
+  "error": "Invalid API key."
+}
+```
+
+**401 — Expired API key:**
+
+```json
+{
+  "error": "API key has expired."
+}
+```
+
+**403 — Insufficient scope:**
+
+```json
+{
+  "error": "Insufficient scope. Required: admin, has: read"
+}
+```
+
+---
+
+## 🔑 Управление API-ключами
+
+API-ключи создаются и отзываются через админ-панель (`/admin/`) или программно.
+
+### Создание ключа (программно)
+
+```python
+from services.api_auth import create_api_key
+
+# Создать read-ключ без срока действия
+plain_key, api_key = create_api_key(name="My App", scope="read")
+print(f"API Key: {plain_key}")  # Сохранить — больше не покажется!
+
+# Создать write-ключ на 90 дней
+plain_key, api_key = create_api_key(name="Integration", scope="write", expires_in_days=90)
+
+# Создать admin-ключ на 365 дней
+plain_key, api_key = create_api_key(name="Admin Tool", scope="admin", expires_in_days=365)
+```
+
+### Отзыв ключа (программно)
+
+```python
+from services.api_auth import revoke_api_key
+
+revoke_api_key(key_id=1)  # True если ключ найден и отозван
+```
+
+### Модель ApiKey
+
+| Поле           | Тип              | Описание                   |
+| -------------- | ---------------- | -------------------------- |
+| `id`           | int              | Автоинкремент              |
+| `key_hash`     | str(64)          | SHA-256 хеш ключа          |
+| `name`         | str              | Человекочитаемое имя       |
+| `scope`        | str              | `read` / `write` / `admin` |
+| `created_at`   | datetime         | Дата создания              |
+| `last_used_at` | datetime         | Последнее использование    |
+| `expires_at`   | datetime \| None | Дата истечения             |
+| `revoked`      | bool             | Флаг отзыва                |
+
+---
+
+## 🚦 Rate Limiting
+
+Все эндпоинты ограничены **100 запросов в минуту** на один API-ключ.
+
+- Лимит считается по заголовку `X-API-Key` (или IP, если ключа нет)
+- При превышении возвращается `429 Too Many Requests`
+- Лимит общий для всех эндпоинтов
+
+**Пример ответа при rate limit:**
+
+```json
+{
+  "error": "Too many requests"
+}
+```
+
+---
+
+## 📄 Пагинация
+
+Списковые endpoints (`GET /api/managers`, `GET /api/achievements`) поддерживают пагинацию.
+
+### Параметры
+
+| Параметр   | Тип | По умолчанию | Максимум | Описание            |
+| ---------- | --- | ------------ | -------- | ------------------- |
+| `page`     | int | 1            | —        | Номер страницы      |
+| `per_page` | int | 20           | 100      | Записей на страницу |
+
+### Response wrapper
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 150,
+    "pages": 8,
+    "has_next": true,
+    "has_prev": false
+  }
+}
+```
+
+### Примеры
+
+```bash
+# Первая страница, 20 записей (по умолчанию)
+curl -H "X-API-Key: KEY" https://shadow-hockey-league.ru/api/managers
+
+# Страница 3, по 50 записей
+curl -H "X-API-Key: KEY" "https://shadow-hockey-league.ru/api/managers?page=3&per_page=50"
+
+# Максимальный лимит (100 записей)
+curl -H "X-API-Key: KEY" "https://shadow-hockey-league.ru/api/managers?per_page=100"
+```
+
+> **Примечание:** `GET /api/countries` **не использует пагинацию** (~22 записи, не растёт).
+
+---
+
+## 📡 Endpoints
+
+### 🌍 Countries
+
+| Метод  | Эндпоинт              | Auth | Scope   | Описание                   |
+| ------ | --------------------- | ---- | ------- | -------------------------- |
+| GET    | `/api/countries`      | ❌   | —       | Все страны (без пагинации) |
+| GET    | `/api/countries/<id>` | ❌   | —       | Страна по ID               |
+| POST   | `/api/countries`      | ✅   | `write` | Создать страну             |
+| PUT    | `/api/countries/<id>` | ✅   | `write` | Обновить страну            |
+| DELETE | `/api/countries/<id>` | ✅   | `admin` | Удалить страну             |
+
+#### GET /api/countries
 
 **Response:**
 
@@ -67,50 +224,13 @@ All responses are returned in JSON format:
     "id": 1,
     "code": "RUS",
     "flag_path": "/static/img/flags/rus.png"
-  },
-  {
-    "id": 2,
-    "code": "BEL",
-    "flag_path": "/static/img/flags/bel.png"
   }
 ]
 ```
 
-**Example (curl):**
+#### POST /api/countries
 
-```bash
-curl http://127.0.0.1:5000/api/countries
-```
-
----
-
-### Get Country by ID
-
-**Endpoint:** `GET /api/countries/<id>`
-
-**Response:**
-
-```json
-{
-  "id": 1,
-  "code": "RUS",
-  "flag_path": "/static/img/flags/rus.png"
-}
-```
-
-**Example (curl):**
-
-```bash
-curl http://127.0.0.1:5000/api/countries/1
-```
-
----
-
-### Create Country
-
-**Endpoint:** `POST /api/countries`
-
-**Request Body:**
+**Request:**
 
 ```json
 {
@@ -119,12 +239,7 @@ curl http://127.0.0.1:5000/api/countries/1
 }
 ```
 
-**Requirements:**
-
-- `code`: 3 characters, unique
-- `flag_path`: Valid path to flag image
-
-**Response (201 Created):**
+**Response (201):**
 
 ```json
 {
@@ -135,117 +250,104 @@ curl http://127.0.0.1:5000/api/countries/1
 }
 ```
 
-**Example (curl):**
+**Ошибки:**
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/countries \
-  -H "Content-Type: application/json" \
-  -d '{"code":"USA","flag_path":"/static/img/flags/usa.png"}'
-```
+- `400` — Неверный формат (code должен быть 3 символа)
+- `409` — Страна с таким кодом уже существует
+
+#### DELETE /api/countries/<id>
+
+**Ошибки:**
+
+- `404` — Страна не найдена
+- `409` — Нельзя удалить страну с менеджерами
 
 ---
 
-### Update Country
+### 👤 Managers
 
-**Endpoint:** `PUT /api/countries/<id>`
+| Метод  | Эндпоинт             | Auth | Scope   | Описание                  |
+| ------ | -------------------- | ---- | ------- | ------------------------- |
+| GET    | `/api/managers`      | ✅   | `read`  | Все менеджеры (пагинация) |
+| GET    | `/api/managers/<id>` | ✅   | `read`  | Менеджер по ID            |
+| POST   | `/api/managers`      | ✅   | `write` | Создать менеджера         |
+| PUT    | `/api/managers/<id>` | ✅   | `write` | Обновить менеджера        |
+| DELETE | `/api/managers/<id>` | ✅   | `admin` | Удалить менеджера         |
 
-**Request Body:**
+#### GET /api/managers
 
-```json
-{
-  "code": "USA",
-  "flag_path": "/static/img/flags/usa_new.png"
-}
-```
+**Query параметры:**
+
+- `country_id` (int, optional) — Фильтр по стране
+- `search` (str, optional) — Поиск по имени (case-insensitive)
+- `page` (int, default: 1) — Страница
+- `per_page` (int, default: 20, max: 100) — Записей на страницу
 
 **Response:**
 
 ```json
 {
-  "id": 3,
-  "code": "USA",
-  "flag_path": "/static/img/flags/usa_new.png",
-  "message": "Country updated successfully"
-}
-```
-
-**Example (curl):**
-
-```bash
-curl -X PUT http://127.0.0.1:5000/api/countries/3 \
-  -H "Content-Type: application/json" \
-  -d '{"flag_path":"/static/img/flags/usa_new.png"}'
-```
-
----
-
-### Delete Country
-
-**Endpoint:** `DELETE /api/countries/<id>`
-
-**Response:**
-
-```json
-{
-  "message": "Country deleted successfully"
-}
-```
-
-**Note:** Cannot delete a country with existing managers (returns 409 Conflict).
-
-**Example (curl):**
-
-```bash
-curl -X DELETE http://127.0.0.1:5000/api/countries/3
-```
-
----
-
-## 👤 Managers API
-
-### Get All Managers
-
-**Endpoint:** `GET /api/managers`
-
-**Query Parameters:**
-
-- `country_id` (optional): Filter by country ID
-- `search` (optional): Search by name (case-insensitive)
-
-**Response:**
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Feel Good",
-    "display_name": "Feel Good",
-    "is_tandem": false,
-    "country_id": 2,
-    "country_code": "BEL",
-    "achievements_count": 3
+  "data": [
+    {
+      "id": 1,
+      "name": "Feel Good",
+      "display_name": "Feel Good",
+      "is_tandem": false,
+      "country_id": 2,
+      "country_code": "BEL",
+      "achievements_count": 3
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 50,
+    "pages": 3,
+    "has_next": true,
+    "has_prev": false
   }
-]
+}
 ```
 
-**Examples (curl):**
+#### POST /api/managers
 
-```bash
-# Get all managers
-curl http://127.0.0.1:5000/api/managers
+**Request:**
 
-# Filter by country
-curl "http://127.0.0.1:5000/api/managers?country_id=1"
-
-# Search by name
-curl "http://127.0.0.1:5000/api/managers?search=feel"
+```json
+{
+  "name": "John Doe",
+  "country_id": 1
+}
 ```
 
----
+**Для тандемов:**
 
-### Get Manager by ID
+```json
+{
+  "name": "Tandem: Player One, Player Two",
+  "country_id": 1
+}
+```
 
-**Endpoint:** `GET /api/managers/<id>`
+**Response (201):**
+
+```json
+{
+  "id": 5,
+  "name": "John Doe",
+  "display_name": "John Doe",
+  "is_tandem": false,
+  "country_id": 1,
+  "message": "Manager created successfully"
+}
+```
+
+**Ошибки:**
+
+- `400` — Отсутствует имя или неверный country_id
+- `409` — Менеджер с таким именем уже существует
+
+#### GET /api/managers/<id>
 
 **Response:**
 
@@ -270,199 +372,63 @@ curl "http://127.0.0.1:5000/api/managers?search=feel"
 }
 ```
 
-**Example (curl):**
+#### DELETE /api/managers/<id>
 
-```bash
-curl http://127.0.0.1:5000/api/managers/1
-```
+> **Внимание:** Удаление менеджера каскадно удаляет все его достижения.
 
 ---
 
-### Create Manager
+### 🏆 Achievements
 
-**Endpoint:** `POST /api/managers`
+| Метод  | Эндпоинт                 | Auth | Scope   | Описание                   |
+| ------ | ------------------------ | ---- | ------- | -------------------------- |
+| GET    | `/api/achievements`      | ✅   | `read`  | Все достижения (пагинация) |
+| GET    | `/api/achievements/<id>` | ✅   | `read`  | Достижение по ID           |
+| POST   | `/api/achievements`      | ✅   | `write` | Создать достижение         |
+| PUT    | `/api/achievements/<id>` | ✅   | `write` | Обновить достижение        |
+| DELETE | `/api/achievements/<id>` | ✅   | `admin` | Удалить достижение         |
 
-**Request Body:**
+#### GET /api/achievements
 
-```json
-{
-  "name": "John Doe",
-  "country_id": 1
-}
-```
+**Query параметры:**
 
-**Requirements:**
-
-- `name`: Unique manager name
-- `country_id`: Must reference existing country
-
-**For Tandems:**
-
-```json
-{
-  "name": "Tandem: Player One, Player Two",
-  "country_id": 1
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-  "id": 5,
-  "name": "John Doe",
-  "display_name": "John Doe",
-  "is_tandem": false,
-  "country_id": 1,
-  "message": "Manager created successfully"
-}
-```
-
-**Example (curl):**
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/managers \
-  -H "Content-Type: application/json" \
-  -d '{"name":"John Doe","country_id":1}'
-```
-
----
-
-### Update Manager
-
-**Endpoint:** `PUT /api/managers/<id>`
-
-**Request Body:**
-
-```json
-{
-  "name": "Jane Doe",
-  "country_id": 2
-}
-```
+- `manager_id` (int, optional) — Фильтр по менеджеру
+- `league` (str, optional) — Фильтр по лиге ("1" или "2")
+- `season` (str, optional) — Фильтр по сезону (e.g., "24/25")
+- `achievement_type` (str, optional) — Фильтр по типу (e.g., "TOP1")
+- `page` (int, default: 1) — Страница
+- `per_page` (int, default: 20, max: 100) — Записей на страницу
 
 **Response:**
 
 ```json
 {
-  "id": 5,
-  "name": "Jane Doe",
-  "display_name": "Jane Doe",
-  "is_tandem": false,
-  "country_id": 2,
-  "message": "Manager updated successfully"
-}
-```
-
-**Example (curl):**
-
-```bash
-curl -X PUT http://127.0.0.1:5000/api/managers/5 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Jane Doe"}'
-```
-
----
-
-### Delete Manager
-
-**Endpoint:** `DELETE /api/managers/<id>`
-
-**Response:**
-
-```json
-{
-  "message": "Manager deleted successfully"
-}
-```
-
-**Note:** Deleting a manager also deletes all their achievements (CASCADE).
-
-**Example (curl):**
-
-```bash
-curl -X DELETE http://127.0.0.1:5000/api/managers/5
-```
-
----
-
-## 🏆 Achievements API
-
-### Get All Achievements
-
-**Endpoint:** `GET /api/achievements`
-
-**Query Parameters:**
-
-- `manager_id` (optional): Filter by manager ID
-- `league` (optional): Filter by league ("1" or "2")
-- `season` (optional): Filter by season (e.g., "24/25")
-- `achievement_type` (optional): Filter by type (e.g., "TOP1")
-
-**Response:**
-
-```json
-[
-  {
-    "id": 1,
-    "achievement_type": "TOP1",
-    "league": "1",
-    "season": "23/24",
-    "title": "TOP1",
-    "icon_path": "/static/img/cups/top1.svg",
-    "manager_id": 1,
-    "manager_name": "Feel Good"
+  "data": [
+    {
+      "id": 1,
+      "achievement_type": "TOP1",
+      "league": "1",
+      "season": "23/24",
+      "title": "TOP1",
+      "icon_path": "/static/img/cups/top1.svg",
+      "manager_id": 1,
+      "manager_name": "Feel Good"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 200,
+    "pages": 10,
+    "has_next": true,
+    "has_prev": false
   }
-]
-```
-
-**Examples (curl):**
-
-```bash
-# Get all achievements
-curl http://127.0.0.1:5000/api/achievements
-
-# Filter by manager
-curl "http://127.0.0.1:5000/api/achievements?manager_id=1"
-
-# Filter by league and season
-curl "http://127.0.0.1:5000/api/achievements?league=1&season=23/24"
-```
-
----
-
-### Get Achievement by ID
-
-**Endpoint:** `GET /api/achievements/<id>`
-
-**Response:**
-
-```json
-{
-  "id": 1,
-  "achievement_type": "TOP1",
-  "league": "1",
-  "season": "23/24",
-  "title": "TOP1",
-  "icon_path": "/static/img/cups/top1.svg",
-  "manager_id": 1,
-  "manager_name": "Feel Good"
 }
 ```
 
-**Example (curl):**
+#### POST /api/achievements
 
-```bash
-curl http://127.0.0.1:5000/api/achievements/1
-```
-
----
-
-### Create Achievement
-
-**Endpoint:** `POST /api/achievements`
-
-**Request Body:**
+**Request:**
 
 ```json
 {
@@ -475,16 +441,17 @@ curl http://127.0.0.1:5000/api/achievements/1
 }
 ```
 
-**Requirements:**
+**Допустимые типы достижений:**
+| Тип | Описание |
+|-----|----------|
+| `TOP1` | 1 место |
+| `TOP2` | 2 место |
+| `TOP3` | 3 место |
+| `BEST` | Лучший регулярный сезон |
+| `R3` | Раунд 3 |
+| `R1` | Раунд 1 |
 
-- `achievement_type`: TOP1, TOP2, TOP3, BEST, R3, R1
-- `league`: "1" or "2"
-- `season`: Format "YY/YY" (e.g., "24/25")
-- `title`: Human-readable title
-- `icon_path`: Path to achievement icon
-- `manager_id`: Must reference existing manager
-
-**Response (201 Created):**
+**Response (201):**
 
 ```json
 {
@@ -499,188 +466,69 @@ curl http://127.0.0.1:5000/api/achievements/1
 }
 ```
 
-**Example (curl):**
+**Ошибки:**
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/achievements \
-  -H "Content-Type: application/json" \
-  -d '{
-    "achievement_type":"TOP1",
-    "league":"1",
-    "season":"24/25",
-    "title":"Shadow 1 league TOP1",
-    "icon_path":"/static/img/cups/top1.svg",
-    "manager_id":1
-  }'
-```
+- `400` — Неверный формат данных
+- `404` — Менеджер не найден
+- `409` — Достижение уже существует (unique: manager_id + league + season + type)
 
 ---
 
-### Update Achievement
+## 📊 Расчёт очков
 
-**Endpoint:** `PUT /api/achievements/<id>`
-
-**Request Body:**
-
-```json
-{
-  "achievement_type": "TOP2",
-  "league": "1",
-  "season": "24/25",
-  "title": "Shadow 1 league TOP2",
-  "icon_path": "/static/img/cups/top2.svg",
-  "manager_id": 2
-}
-```
-
-**Response:**
-
-```json
-{
-  "id": 10,
-  "achievement_type": "TOP2",
-  "league": "1",
-  "season": "24/25",
-  "title": "Shadow 1 league TOP2",
-  "icon_path": "/static/img/cups/top2.svg",
-  "manager_id": 2,
-  "message": "Achievement updated successfully"
-}
-```
-
-**Example (curl):**
-
-```bash
-curl -X PUT http://127.0.0.1:5000/api/achievements/10 \
-  -H "Content-Type: application/json" \
-  -d '{"achievement_type":"TOP2"}'
-```
-
----
-
-### Delete Achievement
-
-**Endpoint:** `DELETE /api/achievements/<id>`
-
-**Response:**
-
-```json
-{
-  "message": "Achievement deleted successfully"
-}
-```
-
-**Example (curl):**
-
-```bash
-curl -X DELETE http://127.0.0.1:5000/api/achievements/10
-```
-
----
-
-## 📊 Rating Calculation
-
-Points are calculated using the formula:
+Очки рассчитываются по формуле:
 
 ```
 points = base_points(league, achievement_type) × season_multiplier
 ```
 
-### Base Points
+### Базовые очки
 
-| Achievement  | League 1 | League 2 |
-| ------------ | -------- | -------- |
-| TOP1         | 800      | 300      |
-| TOP2         | 550      | 200      |
-| TOP3         | 450      | 100      |
-| Best regular | 50       | 40       |
-| Round 3      | 30       | 20       |
-| Round 1      | 10       | 5        |
+| Достижение   | Лига 1 | Лига 2 |
+| ------------ | ------ | ------ |
+| TOP1         | 800    | 300    |
+| TOP2         | 550    | 200    |
+| TOP3         | 450    | 100    |
+| Best regular | 50     | 40     |
+| Round 3      | 30     | 20     |
+| Round 1      | 10     | 5      |
 
-### Season Multipliers
+### Множители сезонов
 
-| Season | Multiplier |
-| ------ | ---------- |
-| 24/25  | ×1.00      |
-| 23/24  | ×0.95      |
-| 22/23  | ×0.90      |
-| 21/22  | ×0.85      |
-
-**Logic:** Recent achievements are more valuable than old ones.
-
----
-
-## 🔍 Error Handling
-
-All errors return a JSON response with an `error` field:
-
-**404 Not Found:**
-
-```json
-{
-  "error": "Manager with ID 999 not found"
-}
-```
-
-**409 Conflict:**
-
-```json
-{
-  "error": "Manager with name 'John Doe' already exists"
-}
-```
-
-**400 Bad Request:**
-
-```json
-{
-  "error": "Manager name is required; Valid country ID is required"
-}
-```
-
----
-
-## 🧪 Testing
-
-Run API tests using:
-
-```bash
-# Using Makefile
-make test
-
-# Or directly
-python -m unittest discover -v
-```
-
-API tests are located in `tests.py` under `TestAPIEndpoints`.
+| Сезон | Множитель       |
+| ----- | --------------- |
+| 24/25 | ×1.00 (базовый) |
+| 23/24 | ×0.95 (−5%)     |
+| 22/23 | ×0.90 (−10%)    |
+| 21/22 | ×0.85 (−15%)    |
 
 ---
 
 ## 🔄 Cache Invalidation
 
-All API endpoints that modify data (CREATE/UPDATE/DELETE) automatically invalidate the leaderboard cache. This ensures the main page displays up-to-date ratings.
+Все эндпоинты, изменяющие данные (CREATE/UPDATE/DELETE), автоматически инвалидируют кэш leaderboard.
 
-| Operation                    | Cache Invalidation |
-| ---------------------------- | ------------------ |
-| POST /api/countries          | ✅                 |
-| PUT /api/countries/:id       | ✅                 |
-| DELETE /api/countries/:id    | ✅                 |
-| POST /api/managers           | ✅                 |
-| PUT /api/managers/:id        | ✅                 |
-| DELETE /api/managers/:id     | ✅                 |
-| POST /api/achievements       | ✅                 |
-| PUT /api/achievements/:id    | ✅                 |
-| DELETE /api/achievements/:id | ✅                 |
+| Операция                     | Инвалидация кэша |
+| ---------------------------- | ---------------- |
+| POST /api/countries          | ✅               |
+| PUT /api/countries/:id       | ✅               |
+| DELETE /api/countries/:id    | ✅               |
+| POST /api/managers           | ✅               |
+| PUT /api/managers/:id        | ✅               |
+| DELETE /api/managers/:id     | ✅               |
+| POST /api/achievements       | ✅               |
+| PUT /api/achievements/:id    | ✅               |
+| DELETE /api/achievements/:id | ✅               |
 
 ---
 
-## 🔒 Unique Constraints
+## 🔒 Уникальные ограничения
 
 ### Achievements
 
-Achievements have a composite unique constraint: `(manager_id, league, season, achievement_type)`.
+Composite unique constraint: `(manager_id, league, season, achievement_type)`.
 
-Attempting to create a duplicate returns `409 Conflict`:
+Попытка создать дубликат вернёт `409 Conflict`:
 
 ```json
 {
@@ -690,7 +538,53 @@ Attempting to create a duplicate returns `409 Conflict`:
 
 ---
 
-**Версия:** 1.1
-**Дата:** 3 апреля 2026 г.
+## 🧪 Тестирование
 
-**Last Updated:** 29 марта 2026 г.
+```bash
+# Все тесты
+make test
+
+# Только API тесты
+pytest tests/test_api.py tests/test_api_auth.py -v
+
+# С покрытием
+pytest --cov=services/api --cov=services/api_auth -v
+```
+
+---
+
+## 📝 Примеры использования
+
+### Полный CRUD цикл
+
+```bash
+# 1. Создать API-ключ (через Python)
+python -c "from services.api_auth import create_api_key; print(create_api_key('My Key', 'admin')[0])"
+
+# 2. Получить все страны (без auth)
+curl https://shadow-hockey-league.ru/api/countries
+
+# 3. Создать менеджера (write scope)
+curl -X POST https://shadow-hockey-league.ru/api/managers \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_KEY" \
+  -d '{"name":"New Manager","country_id":1}'
+
+# 4. Добавить достижение (write scope)
+curl -X POST https://shadow-hockey-league.ru/api/achievements \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_KEY" \
+  -d '{"achievement_type":"TOP1","league":"1","season":"24/25","title":"TOP1","icon_path":"/static/img/cups/top1.svg","manager_id":1}'
+
+# 5. Получить менеджера с достижениями (read scope)
+curl -H "X-API-Key: YOUR_KEY" https://shadow-hockey-league.ru/api/managers/1
+
+# 6. Удалить менеджера (admin scope)
+curl -X DELETE -H "X-API-Key: YOUR_KEY" https://shadow-hockey-league.ru/api/managers/1
+```
+
+---
+
+**Версия:** 2.0
+**Дата:** 3 апреля 2026 г.
+**Изменения:** Добавлена аутентификация API Keys, пагинация, rate limiting, scopes

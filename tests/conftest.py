@@ -10,7 +10,7 @@ import tempfile
 import pytest
 
 from app import create_app
-from models import Achievement, Country, Manager, db
+from models import Achievement, Country, Manager, AdminUser, db
 
 
 @pytest.fixture(scope="session")
@@ -124,3 +124,21 @@ def temp_db_app(app):
         os.unlink(db_path)
     except OSError:
         pass
+
+
+@pytest.fixture
+def admin_user(app, app_context):
+    """Create admin user for testing."""
+    with app.app_context():
+        db.create_all()  # Ensure tables exist
+        
+        admin = AdminUser(username="testadmin")
+        admin.set_password("testpass123")
+        db.session.add(admin)
+        db.session.commit()
+        
+        yield admin
+        
+        # Cleanup
+        db.session.delete(admin)
+        db.session.commit()

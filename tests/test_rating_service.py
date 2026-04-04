@@ -4,6 +4,7 @@ Migrated from tests.py
 """
 
 import unittest
+from typing import Any
 
 from app import create_app
 from models import Achievement, Country, Manager, db

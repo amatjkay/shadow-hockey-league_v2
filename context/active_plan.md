@@ -1,142 +1,128 @@
 # Active Plan — Shadow Hockey League v2
 
-**Дата:** 3 апреля 2026 г.
-**Роль:** PLANNER (план сформирован, требования уточнены)
-**Статус:** 🟢 Готов к реализации
-**Общий объём:** 44 Story Points (уточнено)
+**Дата:** 4 апреля 2026 г.
+**Роль:** PLANNER (план v2.2 утверждён)
+**Статус:** 🟢 План реализации аудита и управления кэшем готов
+**Общий объём:** 12 Story Points
 
 ---
 
 ## 📋 Сводная таблица этапов
 
-| Этап | Название                              | SP  | Приоритет | Зависимости | Статус |
-| ---- | ------------------------------------- | --- | --------- | ----------- | ------ |
-| 3.1  | Исправление багов админ-панели + CSRF | 5   | 🔴        | —           | ✅     |
-| 3.2  | Перенос тестов в `tests/`             | 5   | 🔴        | —           | ✅     |
-| 4    | Рефакторинг формулы расчёта           | 8   | 🔴        | 3.2         | ✅     |
-| 5    | Аутентификация и пагинация API        | 13  | 🟡        | 3.2         | ✅     |
-| 6    | Интеграционные тесты + покрытие 80%   | 8   | 🟡        | 4, 5        | ✅ 81% |
-| 7    | Документация и деплой                 | 5   | 🟢        | 6           | ⏳     |
-
----
-
-## 🔍 Уточнённые требования (ANALYST, 3 апреля 2026)
-
-### Этап 5: Аутентификация и пагинация API — уточнения
-
-| Вопрос               | Решение                             | Обоснование                            |
-| -------------------- | ----------------------------------- | -------------------------------------- |
-| API в production?    | ✅ **Включить** (`ENABLE_API=True`) | API нужно для интеграций               |
-| Scope API-ключей?    | **Read/Write/Admin** (3 уровня)     | Гибкость, безопасность                 |
-| Пагинация endpoints? | **Уточнить у ARCHITECT**            | Зависит от объёма данных               |
-| Rate limiting?       | **100 req/min** на ключ             | Баланс безопасность/производительность |
-
-### Этап 6: Интеграционные тесты — уточнения
-
-| Вопрос                 | Решение                                                          |
-| ---------------------- | ---------------------------------------------------------------- |
-| Покрытие тестов > 80%? | ✅ **Да** — установить pytest-cov, найти пробелы, дописать тесты |
-
-### Этап 7: Документация — уточнения
-
-| Переменная            | Описание                         |
-| --------------------- | -------------------------------- |
-| `ENABLE_API`          | `True` в production (с API Keys) |
-| `API_KEY_SECRET`      | Секрет для генерации API ключей  |
-| `WTF_CSRF_SECRET_KEY` | CSRF защита админки              |
+| Этап | Название                 | Приоритет | Подзадачи                                                                 | SP    | Зависимости |
+| ---- | ------------------------ | --------- | ------------------------------------------------------------------------- | ----- | ----------- |
+| 8.1  | Audit Log Infrastructure | 🔴        | Модель AuditLog, миграция, audit_service.py, интеграция в SecureModelView | **5** | —           |
+| 8.2  | Cache Control UI         | �         | Метод flush_cache, кнопка в admin/index.html, CSRF, тестирование          | **3** | 8.1         |
+| 8.3  | N+1 Optimization & QA    | 🟡        | Аудит rating_service.py, оптимизация, тесты аудита, интеграционные тесты  | **4** | 8.1         |
 
 ---
 
 ## 🗂️ Детализация этапов
 
-### Этап 5: Аутентификация и пагинация API (13 SP) — ОБНОВЛЕНО (ARCHITECT)
+### Этап 8.1: Audit Log Infrastructure (5 SP)
 
-**Аутентификация API:**
+**Модель AuditLog:**
 
-- [ ] Добавить `Flask-Limiter` в `requirements.txt`
-- [ ] Создать модель `ApiKey` в `models.py` (key_hash, user_id, created_at, expires_at, revoked, scope: read/write/admin)
-- [ ] Alembic миграция для `api_keys`
-- [ ] Middleware аутентификации API (`X-API-Key` header, проверка scope)
-- [ ] CRUD для API-ключей в админ-панели (создание, отзыв, просмотр)
-- [ ] Flask-Limiter с rate limiting (100 req/min на ключ)
+- Поля: `id` (PK), `user_id` (FK AdminUser), `action` (String), `target_model` (String, nullable), `target_id` (Integer, nullable), `changes` (JSON/Text, nullable), `timestamp` (DateTime)
+- Индексы: `timestamp`, `(user_id, timestamp)`
 
-**Пагинация (ARCHITECT: Offset/Limit схема):**
+**Миграция Alembic:**
 
-- [ ] `GET /api/managers` — добавить пагинацию (`page`, `per_page`, max 100)
-- [ ] `GET /api/achievements` — добавить пагинацию (`page`, `per_page`, max 100)
-- [ ] `GET /api/countries` — **без пагинации** (~22 записи, не растёт)
-- [ ] Response wrapper: `{data: [...], pagination: {page, per_page, total, pages, has_next, has_prev}}`
-- [ ] Обратная совместимость: без параметров → все записи (legacy behaviour)
+- Файл: `migrations/versions/add_audit_log.py`
+- Использовать `op.create_table()` с `sa.Column()` и `op.create_index()`
 
-**Тесты:**
+**Сервис логирования:**
 
-- [ ] Unit-тесты на аутентификацию API (валидный, просроченный, отозванный, отсутствует, неверный scope)
-- [ ] Unit-тесты на пагинацию (page 1, page N,超出范围, per_page limits, max cap)
-- [ ] Обновить `docs/API.md` с документацией auth + pagination + scopes
+- Файл: `services/audit_service.py`
+- Функция: `log_action(user_id, action, target_model=None, target_id=None, changes=None)`
+- Обработка ошибок с fallback в logger
 
-**Конфигурация:**
+**Интеграция в админку:**
 
-- [ ] Включить API в production (`ENABLE_API=True` в ProductionConfig)
-- [ ] Добавить `API_KEY_SECRET` в config
+- Расширить `SecureModelView` в `services/admin.py`
+- Переопределить `after_model_change()` и `after_model_delete()`
+- Логировать CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
 
-**Файлы:** `models.py`, `services/api.py`, `services/admin.py`, `config.py`, `requirements.txt`, `tests/test_api.py`, `docs/API.md`
-**Критерий приёмки:** API требует ключ с scopes, rate limiting 100 req/min работает, пагинация возвращает корректный wrapper, API включено в production
+**Файлы:** `models.py`, `migrations/versions/add_audit_log.py`, `services/audit_service.py`, `services/admin.py`
+**Критерий приёмки:** Таблица создана, миграция работает, все CRUD операции в админке логируются
 
 ---
 
-### Этап 6: Интеграционные тесты + покрытие 80% (8 SP) — ОБНОВЛЕНО
+### Этап 8.2: Cache Control UI (3 SP)
 
-- [ ] Интеграционные тесты: полный CRUD цикл API с auth
-- [ ] Интеграционные тесты: инвалидация кэша при CRUD через API
-- [ ] Интеграционные тесты: leaderboard корректно считает очки после изменений через API
-- [ ] Интеграционные тесты: CSRF защита в админке (POST без token → 400)
-- [ ] Установить `pytest-cov`, измерить покрытие
-- [ ] Дописать тесты до покрытия > 80%
-- [ ] Запустить `make lint && make format` — без ошибок
-- [ ] Запустить `make test` — все тесты проходят
+**Эндпоинт сброса кэша:**
 
-**Файлы:** `tests/integration/`, `tests/test_api.py`, `tests/test_admin.py`, `requirements.txt`
-**Критерий приёмки:** Покрытие > 80%, все интеграционные тесты проходят, lint/format чистый
+- Метод: `@expose('/flush-cache', methods=['POST'])` в `StatsAdminIndexView`
+- CSRF-токен через `@csrf.exempt` + ручная проверка или встроенный механизм
+- Действие: `cache.delete('leaderboard')`
+
+**UI интеграция:**
+
+- Шаблон: `templates/admin/index.html`
+- Кнопка: `<form method="POST" action="/admin/flush-cache">` с CSRF токеном
+- Flash-сообщение: `flash('Cache flushed successfully', 'success')`
+
+**Логирование:**
+
+- Вызов `audit_service.log_action('FLUSH_CACHE', user_id=current_user.id)`
+
+**Файлы:** `services/admin.py`, `templates/admin/index.html`
+**Критерий приёмки:** Кнопка работает, кэш сбрасывается, действие логируется
 
 ---
 
-### Этап 7: Документация и деплой (5 SP) — ОБНОВЛЕНО
+### Этап 8.3: N+1 Optimization & QA (4 SP)
 
-- [ ] Обновить `README.md` с новой структурой, командами, статусом
-- [ ] Обновить `docs/API.md` с auth + pagination + scopes
-- [ ] Обновить `docs/ADMIN.md` с CSRF + API Keys management
-- [ ] Создать `docs/MIGRATION_GUIDE.md` для миграции на VPS
-- [ ] Обновить `.env.example` с новыми переменными (`WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `ENABLE_API=True`)
-- [ ] Подготовить changelog для релиза
+**Аудит rating_service.py:**
 
-**Файлы:** `README.md`, `docs/API.md`, `docs/ADMIN.md`, `docs/MIGRATION_GUIDE.md`, `.env.example`
-**Критерий приёмки:** Вся документация актуальна, миграция описана, `.env.example` полный
+- Проверить `build_leaderboard()` на использование `joinedload`
+- Вывести SQL-запросы через `db.session.query(Manager).options(joinedload(...))`
+- Если достижений > 20 на менеджера — рассмотреть `selectinload`
+
+**Тесты аудита:**
+
+- Файл: `tests/test_audit_service.py`
+- Тесты: CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
+- Проверка записи в AuditLog и корректности полей
+
+**Интеграционные тесты:**
+
+- Файл: `tests/integration/test_audit_and_cache.py`
+- Тест: Полный цикл CRUD → проверка лога → сброс кэша → проверка инвалидации
+
+**Файлы:** `services/rating_service.py`, `tests/test_audit_service.py`, `tests/integration/test_audit_and_cache.py`
+**Критерий приёмки:** N+1 запросы отсутствуют, все тесты проходят, покрытие > 90%
 
 ---
 
 ## 🛑 Блокеры и риски
 
-| Риск                                              | Влияние          | Мера смягчения                                               |
-| ------------------------------------------------- | ---------------- | ------------------------------------------------------------ |
-| Flask-Limiter может потреблять дополнительную RAM | 1GB VPS лимит    | Протестировать локально, настроить rate limits консервативно |
-| Alembic миграции могут конфликтовать              | Блокирует деплой | Проверить текущие миграции, создать миграции последовательно |
-| API включено в production                         | Безопасность     | API Keys с scopes, rate limiting, мониторинг                 |
-| Покрытие тестов < 80%                             | Качество кода    | Выделить время на дописание тестов (Этап 6)                  |
+| Риск                             | Вероятность | Влияние | Митигация                                                            |
+| -------------------------------- | ----------- | ------- | -------------------------------------------------------------------- |
+| Конфликт миграций Alembic        | Средняя     | Высокое | Проверить текущую последнюю миграцию, использовать `down_revision`   |
+| Нагрузка на диск при логировании | Низкая      | Среднее | Логировать только диффы при UPDATE, настроить очистку старых записей |
+| Race condition при сбросе кэша   | Низкая      | Низкое  | Атомарная операция `cache.delete()`                                  |
 
 ---
 
 ## 🔄 Рекомендуемый порядок выполнения
 
 ```
-Этап 5 (API auth) ──► Этап 6 (интеграция + покрытие) ──► Этап 7 (документация)
+Этап 8.1 (Audit Infrastructure) ──► Этап 8.2 (Cache UI) ──► Этап 8.3 (Optimization & QA)
 ```
 
 ---
 
 ## 🔄 История изменений
 
-| Дата       | Изменение                          | Автор   |
-| ---------- | ---------------------------------- | ------- |
-| 2026-04-03 | Инициализация модульной системы    | AI      |
-| 2026-04-03 | План сформирован (6 этапов, 44 SP) | PLANNER |
-| 2026-04-03 | Требования уточнены (ANALYST)      | ANALYST |
+| Дата       | Изменение                        | Автор     |
+| ---------- | -------------------------------- | --------- |
+| 2026-04-04 | Инициализация модульной системы  | AI        |
+| 2026-04-04 | План v2.2 сформирован (12 SP)    | PLANNER   |
+| 2026-04-04 | Архитектура v2.2 утверждена      | ARCHITECT |
+| 2026-04-04 | Требования v2.2 от ANALYST       | ANALYST   |
+| 2026-04-04 | **План v2.2 готов к реализации** | PLANNER   |
+
+---
+
+_Последнее обновление: 4 апреля 2026 г. — План v2.2 утвержден. Ожидание @delegate DEVELOPER._

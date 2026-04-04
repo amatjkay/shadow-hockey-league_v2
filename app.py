@@ -169,13 +169,12 @@ def register_extensions(app: Flask) -> None:
     from services.cache_service import cache
     cache.init_app(app)
 
-    # Initialize Flask-Admin and Flask-Login (only in non-testing environments)
-    if app.config.get("TESTING") is not True:
-        try:
-            init_admin(app)
-            app.logger.info("Flask-Admin initialized at /admin/")
-        except Exception as e:
-            app.logger.warning(f"Could not initialize Flask-Admin: {e}")
+    # Initialize Flask-Admin and Flask-Login
+    try:
+        init_admin(app)
+        app.logger.info("Flask-Admin and Flask-Login initialized")
+    except Exception as e:
+        app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
 
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get("TESTING") is not True:
@@ -205,17 +204,23 @@ def register_blueprints(app: Flask) -> None:
         from services.api import api
         app.register_blueprint(api)
         # Exempt API from CSRF (uses API Key auth instead)
-        app.extensions['csrf'].exempt(api)
+        if 'csrf' in app.extensions:
+            app.extensions['csrf'].exempt(api)
     else:
         app.logger.info("REST API is disabled in this environment (ENABLE_API=False)")
 
     # Exempt Flask-Admin from CSRF (has its own auth)
     try:
-        from services.admin import login_manager
-        # Exempt all admin views from CSRF
+        # The admin blueprint is usually named 'admin'
         admin_bp = app.blueprints.get('admin')
-        if admin_bp:
+        if admin_bp and 'csrf' in app.extensions:
             app.extensions['csrf'].exempt(admin_bp)
+        
+        # Also exempt login/logout endpoints if they are separate
+        for bp_name in ['admin_login', 'admin_logout']:
+            bp = app.blueprints.get(bp_name)
+            if bp and 'csrf' in app.extensions:
+                app.extensions['csrf'].exempt(bp)
     except Exception as e:
         app.logger.warning(f"Could not exempt admin from CSRF: {e}")
 
@@ -248,3 +253,14 @@ def register_error_handlers(app: Flask) -> None:
             ),
             500,
         )
+
+
+# ==================== Entry point ====================
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
+        port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
+        debug=app.config.get("DEBUG", False),
+    )

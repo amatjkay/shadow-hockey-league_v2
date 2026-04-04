@@ -1,6 +1,15 @@
-# Shadow Hockey League
+# Shadow Hockey League v2
 
 Веб-приложение на **Flask** с базой данных **SQLite**: таблица менеджеров (соло и тандемы) с кубками и **рейтинг по очкам** на одной странице.
+
+**Production:** https://shadow-hockey-league.ru/ | **Health:** `/health` | **Metrics:** `/metrics`
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
+[![Coverage](https://img.shields.io/badge/Coverage-81%25-yellowgreen.svg)](#)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
+
+---
 
 ## 🚀 Быстрый старт
 
@@ -89,20 +98,39 @@ make run
 
 ## Структура проекта
 
-| Путь                         | Назначение                                          |
-| ---------------------------- | --------------------------------------------------- |
-| `app.py`                     | Приложение Flask, маршруты `/` и редирект `/rating` |
-| `models.py`                  | SQLAlchemy модели (Country, Manager, Achievement)   |
-| `wsgi.py`                    | Конфигурация WSGI для деплоя (PythonAnywhere)       |
-| `services/rating_service.py` | Сервис расчёта рейтинга из БД                       |
-| `seed_db.py`                 | Скрипт наполнения БД начальными данными             |
-| `scripts/validate_db.py`     | Скрипт валидации и инициализации БД                 |
-| `migrations/`                | Alembic миграции БД                                 |
-| `data/managers_data.py`      | Исходные данные для импорта в БД                    |
-| `templates/index.html`       | Главная страница                                    |
-| `static/`                    | Статические файлы (CSS, JS, изображения)            |
-| `.env`                       | Переменные окружения (не коммитить в git)           |
-| `.env.example`               | Пример переменных окружения                         |
+```
+shadow-hockey-league_v2/
+├── app.py                      # Application Factory (инициализация приложения)
+├── models.py                   # SQLAlchemy модели (AdminUser, Country, Manager, Achievement, ApiKey)
+├── config.py                   # Конфигурация (Development/Production/Testing)
+├── wsgi.py                     # WSGI entry point для деплоя
+├── blueprints/                 # Flask blueprints
+│   ├── main.py                 #   Главная страница, leaderboard
+│   └── health.py               #   Health check endpoint
+├── services/                   # Бизнес-логика
+│   ├── rating_service.py       #   Расчёт рейтинга (формула из БД)
+│   ├── cache_service.py        #   Кэширование и инвалидация
+│   ├── api.py                  #   REST API (auth + pagination)
+│   ├── admin.py                #   Flask-Admin (CRUD + CSRF)
+│   ├── metrics_service.py      #   Prometheus метрики
+│   └── validation_service.py   #   Валидация данных
+├── data/                       # Справочные данные (countries, managers)
+├── templates/                  # Jinja2 шаблоны
+├── static/                     # CSS, JS, изображения (флаги)
+├── migrations/                 # Alembic миграции
+├── tests/                      # Pytest тесты
+│   ├── conftest.py             #   Fixtures
+│   ├── test_*.py               #   Unit тесты
+│   └── integration/            #   Интеграционные тесты
+├── docs/                       # Документация
+├── context/                    # Контекст модульной системы
+├── prompts/                    # Промпты ролей AI
+├── scripts/                    # Утилиты (create_admin, validate_db)
+├── .env.example                # Пример переменных окружения
+├── requirements.txt            # Python зависимости
+├── Makefile                    # Команды для разработки
+└── alembic.ini                 # Alembic конфигурация
+```
 
 ## 🔧 Команды Makefile
 
@@ -122,11 +150,14 @@ make run
 
 ## 🧪 Тесты
 
-Проект содержит **72 теста**, покрывающих логику рейтинга, API, маршруты, инвалидацию кэша и уникальные ограничения.
+Проект содержит **тесты с покрытием 81%**, покрывающих логику рейтинга, API, маршруты, инвалидацию кэша, CSRF и аутентификацию API.
 
 ```bash
 # Используя Makefile
 make test
+
+# С покрытием
+pytest --cov=. --cov-report=term-missing
 
 # Или вручную
 python -m unittest discover -v
@@ -134,10 +165,12 @@ python -m unittest discover -v
 
 **Покрытие:**
 
-- Unit тесты: rating service, validation, security headers
-- Integration тесты: routes, API, database, constraints
-- Cache & Admin тесты: cache invalidation, admin auth
-- API Cache Invalidation тесты: API → cache invalidation, leaderboard refresh
+- **Unit тесты:** rating service, validation, cache service, API auth, pagination
+- **Integration тесты:** routes, API CRUD, database constraints, cache invalidation
+- **Admin тесты:** CSRF защита, admin auth, CRUD операции
+- **API тесты:** API Keys auth, rate limiting, scopes, pagination
+
+> **Примечание:** Ранее указывалось 72 теста — актуальное количество может отличаться из-за рефакторинга. Используйте `pytest --cov` для актуальной метрики.
 
 ## 🛠 Админ-панель
 
@@ -199,15 +232,18 @@ curl https://shadow-hockey-league.ru/health
 
 Проект использует файл `.env` для конфигурации:
 
-| Переменная     | Описание                              | По умолчанию        |
-| -------------- | ------------------------------------- | ------------------- |
-| `FLASK_ENV`    | Режим работы (development/production) | `development`       |
-| `DATABASE_URL` | URL базы данных                       | `sqlite:///dev.db`  |
-| `SECRET_KEY`   | Ключ сессий                           | Автогенерация (dev) |
-| `LOG_LEVEL`    | Уровень логирования                   | `INFO`              |
-| `ENABLE_API`   | Включение REST API                    | `True` (dev)        |
+| Переменная            | Описание                              | По умолчанию        |
+| --------------------- | ------------------------------------- | ------------------- |
+| `FLASK_ENV`           | Режим работы (development/production) | `development`       |
+| `DATABASE_URL`        | URL базы данных                       | `sqlite:///dev.db`  |
+| `SECRET_KEY`          | Ключ сессий                           | Автогенерация (dev) |
+| `LOG_LEVEL`           | Уровень логирования                   | `INFO`              |
+| `ENABLE_API`          | Включение REST API                    | `True`              |
+| `API_KEY_SECRET`      | Секрет для генерации API ключей       | —                   |
+| `WTF_CSRF_SECRET_KEY` | CSRF защита админ-панели              | —                   |
+| `REDIS_URL`           | Redis URL для кэширования             | `redis://localhost` |
 
-**Важно:** В режиме `production` API (`/api/*`) автоматически отключается для безопасности.
+**Важно:** В production режиме `ENABLE_API=True` требует аутентификации через API Keys.
 
 ## 🛠 Устранение неполадок
 
@@ -232,26 +268,43 @@ python seed_db.py
 
 ## 📚 Документация
 
-| Файл                      | Описание                                   |
-| ------------------------- | ------------------------------------------ |
-| `README.md`               | Этот файл — быстрый старт                  |
-| `docs/API.md`             | REST API документация                      |
-| `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем |
-| `docs/DEPLOY.md`          | Инструкция по деплою на PythonAnywhere     |
-| `docs/VPS_DEPLOY.md`      | Инструкция по деплою на VPS (Ubuntu)       |
-| `docs/MANUAL_UPDATE.md`   | Руководство по ручному обновлению проекта  |
-| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок        |
+| Файл                      | Описание                                            |
+| ------------------------- | --------------------------------------------------- |
+| `README.md`               | Этот файл — быстрый старт                           |
+| `docs/API.md`             | REST API: auth, pagination, scopes, rate limiting   |
+| `docs/ADMIN.md`           | Админ-панель: CSRF, API Keys management             |
+| `docs/MIGRATION_GUIDE.md` | Пошаговый деплой на VPS (Ubuntu + Nginx + Gunicorn) |
+| `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем          |
+| `docs/MONITORING.md`      | Health check, Prometheus метрики                    |
+| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок                 |
+| `CHANGELOG.md`            | История изменений версий                            |
 
-## 📊 Статус
+## 📊 Статус проекта
 
-- ✅ Все **72 теста** проходят (unit + integration + cache invalidation)
-- ✅ Код отформатирован (black, isort, flake8)
-- ✅ REST API документирован (`docs/API.md`)
-- ✅ Поддержка Windows (кодировка, пути)
+| Этап | Название                              | Статус      |
+| ---- | ------------------------------------- | ----------- |
+| 0    | Базовая архитектура                   | ✅          |
+| 1    | Кэширование (Redis + SimpleCache)     | ✅          |
+| 2    | Метрики (Prometheus)                  | ✅          |
+| 3    | Админ-панель + CSRF защита            | ✅          |
+| 4    | Рефакторинг формулы (из БД)           | ✅          |
+| 5    | API auth + pagination + rate limiting | ✅          |
+| 6    | Интеграционные тесты (81% покрытие)   | ✅          |
+| 7    | Документация и деплой                 | 🔴 В работе |
+
+### Что реализовано
+
+- ✅ Покрытие тестами **81%** (`pytest --cov`)
+- ✅ Код отформатирован (`black`, `isort`, `flake8`)
+- ✅ REST API с аутентификацией (API Keys, 3 scope)
+- ✅ Пагинация API (`page`/`per_page`, max 100)
+- ✅ Rate limiting (100 req/min на ключ)
+- ✅ CSRF защита админ-панели
 - ✅ Кэширование Redis с fallback на SimpleCache
 - ✅ Автоматическая инвалидация кэша (Admin + API)
 - ✅ UniqueConstraint на достижениях (нет дубликатов)
 - ✅ Alembic миграции
+- ✅ Формула расчёта очков из БД (AchievementType + Season)
 
 ---
 
