@@ -127,15 +127,19 @@ def register_extensions(app: Flask) -> None:
     app.logger.info("CSRF protection initialized")
 
     # Initialize Rate Limiting (Этап 5)
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
-    limiter = Limiter(
-        key_func=get_remote_address,
-        app=app,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://",
-    )
-    app.logger.info("Rate limiting initialized")
+    # Disable rate limiting in testing mode to speed up CI/CD and tests
+    if not app.config.get("TESTING"):
+        from flask_limiter import Limiter
+        from flask_limiter.util import get_remote_address
+        limiter = Limiter(
+            key_func=get_remote_address,
+            app=app,
+            default_limits=["200 per day", "50 per hour"],
+            storage_uri="memory://",
+        )
+        app.logger.info("Rate limiting initialized")
+    else:
+        app.logger.info("Rate limiting disabled (TESTING mode)")
 
     # Initialize caching with Redis (or fallback to simple cache)
     cache_config = {
