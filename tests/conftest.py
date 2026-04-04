@@ -10,7 +10,10 @@ import tempfile
 import pytest
 
 from app import create_app
-from models import Achievement, Country, Manager, AdminUser, db
+from models import (
+    Achievement, AchievementType, Country, League, Season,
+    Manager, AdminUser, AuditLog, db
+)
 
 
 @pytest.fixture(scope="session")
