@@ -4,11 +4,19 @@ This script parses the hardcoded manager data and populates the database
 with countries, managers, and achievements. Includes validation to prevent
 duplicates and ensure data integrity.
 
+IMPORTANT: This script is IDEMPOTENT by default.
+- It will NOT delete existing data.
+- It will SKIP countries/managers/achievements that already exist.
+- Use --force flag to clear all data and reseed from scratch.
+
 Usage:
-    python seed_db.py
+    python seed_db.py           # Safe mode (skip existing)
+    python seed_db.py --force   # Force mode (clear and reseed)
 """
 
+import argparse
 import re
+import sys
 from typing import List, Optional, TypedDict
 
 from app import create_app
@@ -69,22 +77,78 @@ def parse_achievement_html(achievement_html: str) -> Optional[ParsedAchievement]
     )
 
 
-def seed_database() -> None:
-    """Seed the database with initial manager data."""
+def check_existing_data() -> dict[str, int]:
+    """Check if database already has data.
+
+    Returns:
+        Dictionary with counts of existing records.
+    """
+    country_count = db.session.query(Country).count()
+    manager_count = db.session.query(Manager).count()
+    achievement_count = db.session.query(Achievement).count()
+
+    return {
+        "countries": country_count,
+        "managers": manager_count,
+        "achievements": achievement_count,
+    }
+
+
+def clear_database() -> None:
+    """Clear all data from the database.
+
+    WARNING: This is destructive and should only be used with --force flag.
+    """
+    print("[WARN] Clearing all existing data...")
+    try:
+        db.session.query(Achievement).delete()
+        db.session.query(Manager).delete()
+        db.session.query(Country).delete()
+        db.session.commit()
+        print("[OK] All data cleared successfully.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Failed to clear data: {e}")
+        raise
+
+
+def seed_database(force: bool = False) -> bool:
+    """Seed the database with initial manager data.
+
+    This function is IDEMPOTENT by default:
+    - Countries: skipped if code already exists
+    - Managers: skipped if name already exists
+    - Achievements: skipped if (manager, league, season, type) already exists
+
+    Args:
+        force: If True, clear all data before seeding.
+
+    Returns:
+        True if seeding was successful, False otherwise.
+    """
     app = create_app()
     with app.app_context():
-        # Clear existing data (order matters due to FK constraints)
-        # Use delete() with error handling for empty/new database
-        try:
-            db.session.query(Achievement).delete()
-            db.session.query(Manager).delete()
-            db.session.query(Country).delete()
-            db.session.commit()
-        except Exception:
-            # If tables don't exist yet, just continue (fresh database)
-            db.session.rollback()
+        # Check existing data
+        existing = check_existing_data()
+        print(f"\n[INFO] Current database state:")
+        print(f"  Countries: {existing['countries']}")
+        print(f"  Managers: {existing['managers']}")
+        print(f"  Achievements: {existing['achievements']}")
 
-        # First pass: collect and validate all data
+        # Handle force mode
+        if force:
+            if existing['countries'] == 0 and existing['managers'] == 0:
+                print("[INFO] Database is empty, no need to clear.")
+            else:
+                clear_database()
+        else:
+            # Safe mode: check if data already exists
+            if existing['managers'] > 0:
+                print("\n[INFO] Database already has manager data.")
+                print("[INFO] Skipping seed (use --force to reseed from scratch).")
+                return True
+
+        # Parse and validate all data
         countries_to_create: dict[str, Country] = {}
         managers_to_create: list[dict] = []
         achievements_to_create: list[dict] = []
@@ -148,17 +212,30 @@ def seed_database() -> None:
                     continue
                 achievements_to_create.append({"manager_name": manager_data.name, **parsed})
 
-        # Create countries
-        print("\n[INFO] Creating countries...")
+        # Create countries (skip existing)
+        print("\n[INFO] Processing countries...")
+        countries_created = 0
+        countries_skipped = 0
+
         for country_code, country in countries_to_create.items():
+            # Check if country already exists
+            existing_country = db.session.query(Country).filter_by(code=country_code).first()
+            if existing_country:
+                print(f"  [SKIP] Country already exists: {country_code}")
+                countries_skipped += 1
+                continue
+
             db.session.add(country)
+            countries_created += 1
             print(f"  [OK] Created country: {country_code}")
+
         db.session.flush()
 
-        # Create managers
-        print("\n[INFO] Creating managers...")
+        # Create managers (skip existing)
+        print("\n[INFO] Processing managers...")
         manager_id_map: dict[str, int] = {}  # name -> id
         managers_created = 0
+        managers_skipped = 0
 
         for manager_entry in managers_to_create:
             name = manager_entry["name"]
@@ -167,8 +244,9 @@ def seed_database() -> None:
             # Check for existing in DB
             existing = db.session.query(Manager).filter_by(name=name).first()
             if existing:
-                print(f"  [SKIP] Skipping existing manager: {name}")
+                print(f"  [SKIP] Manager already exists: {name}")
                 manager_id_map[name] = existing.id
+                managers_skipped += 1
                 continue
 
             manager = Manager(name=name, country_id=country.id)
@@ -178,9 +256,10 @@ def seed_database() -> None:
             managers_created += 1
             print(f"  [OK] Created manager: {name}")
 
-        # Create achievements
-        print("\n[INFO] Creating achievements...")
+        # Create achievements (skip existing)
+        print("\n[INFO] Processing achievements...")
         achievements_created = 0
+        achievements_skipped = 0
 
         for achievement_data in achievements_to_create:
             manager_name = achievement_data["manager_name"]
@@ -188,6 +267,18 @@ def seed_database() -> None:
 
             if not manager_id:
                 print(f"  [SKIP] Skipping achievement for unknown manager: {manager_name}")
+                continue
+
+            # Check if achievement already exists (unique constraint)
+            existing_achievement = db.session.query(Achievement).filter_by(
+                manager_id=manager_id,
+                league=achievement_data["league"],
+                season=achievement_data["season"],
+                achievement_type=achievement_data["achievement_type"],
+            ).first()
+
+            if existing_achievement:
+                achievements_skipped += 1
                 continue
 
             achievement = Achievement(
@@ -203,11 +294,59 @@ def seed_database() -> None:
 
         db.session.commit()
 
-        print("\n[SUCCESS] Database seeded successfully!")
-        print(f"  Countries: {len(countries_to_create)}")
-        print(f"  Managers created: {managers_created}")
-        print(f"  Achievements created: {achievements_created}")
+        print("\n" + "=" * 50)
+        print("[SUCCESS] Database seeding completed!")
+        print(f"  Countries: {countries_created} created, {countries_skipped} skipped")
+        print(f"  Managers: {managers_created} created, {managers_skipped} skipped")
+        print(f"  Achievements: {achievements_created} created, {achievements_skipped} skipped")
+        print("=" * 50)
+
+        return True
+
+
+def main():
+    """Main entry point with argument parsing."""
+    parser = argparse.ArgumentParser(
+        description="Seed the database with initial manager data."
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Clear all existing data before seeding (DESTRUCTIVE)"
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Only check database state, do not seed"
+    )
+
+    args = parser.parse_args()
+
+    # Check mode only
+    if args.check:
+        app = create_app()
+        with app.app_context():
+            existing = check_existing_data()
+            print(f"\n[INFO] Database state:")
+            print(f"  Countries: {existing['countries']}")
+            print(f"  Managers: {existing['managers']}")
+            print(f"  Achievements: {existing['achievements']}")
+
+            if existing['managers'] > 0:
+                print("[INFO] Database has data. Skip seeding (use --force to reseed).")
+            else:
+                print("[INFO] Database is empty. Run without --check to seed.")
+        return
+
+    # Seed with optional force
+    try:
+        success = seed_database(force=args.force)
+        if not success:
+            sys.exit(1)
+    except Exception as e:
+        print(f"\n[ERROR] Seeding failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    seed_database()
+    main()
