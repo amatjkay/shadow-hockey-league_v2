@@ -21,38 +21,34 @@ import time
 class TestE2E_MainPage:
     """E2E тесты главной страницы."""
 
-    def test_main_page_loads(self):
+    def test_main_page_loads(self, app, db_session):
         """E2E-001: Главная страница загружается."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/')
             assert response.status_code == 200
 
-    def test_main_page_has_content(self):
+    def test_main_page_has_content(self, app, db_session):
         """E2E-002: Главная страница содержит контент."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/')
             html = response.data.decode('utf-8')
             assert 'Shadow Hockey League' in html
             assert 'leaderboard' in html.lower() or 'manager' in html.lower()
 
-    def test_main_page_shows_managers(self):
+    def test_main_page_shows_managers(self, app, seeded_db):
         """E2E-003: Данные менеджером отображаются."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/')
             html = response.data.decode('utf-8')
             # Проверяем, что есть имена менеджеров
-            assert 'Feel Good' in html or 'whiplash' in html
+            assert 'Test Manager' in html
 
 
 class TestE2E_Health:
     """E2E тесты health endpoint."""
 
-    def test_health_endpoint(self):
+    def test_health_endpoint(self, app, db_session):
         """E2E-004: Health endpoint возвращает статус."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/health')
             assert response.status_code == 200
@@ -64,9 +60,8 @@ class TestE2E_Health:
 class TestE2E_Metrics:
     """E2E тесты metrics endpoint."""
 
-    def test_metrics_endpoint(self):
+    def test_metrics_endpoint(self, app, db_session):
         """E2E-005: Metrics endpoint возвращает Prometheus метрики."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/metrics')
             # В тестовом режиме метрики могут быть отключены (404)
@@ -77,23 +72,20 @@ class TestE2E_Metrics:
 class TestE2E_Admin:
     """E2E тесты админки."""
 
-    def test_admin_page_loads(self):
+    def test_admin_page_loads(self, app, db_session):
         """E2E-006: Админка загружается."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/admin/')
             assert response.status_code == 200
 
-    def test_admin_login_page(self):
+    def test_admin_login_page(self, app, db_session):
         """E2E-006: Страница входа в админку."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/admin/login/')
             assert response.status_code == 200
 
-    def test_admin_requires_login_for_crud(self):
+    def test_admin_requires_login_for_crud(self, app, db_session):
         """E2E-007: Админка требует логин для CRUD."""
-        app = create_app()
         with app.test_client() as client:
             # Попытка доступа к CRUD без логина должна редиректить
             response = client.get('/admin/country/', follow_redirects=False)
@@ -103,9 +95,8 @@ class TestE2E_Admin:
 class TestE2E_API:
     """E2E тесты API."""
 
-    def test_api_managers(self):
+    def test_api_managers(self, app, db_session):
         """E2E-010: API менеджеров."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/api/managers')
             # Может быть 401 без API ключа или 200 если auth отключен
@@ -115,23 +106,20 @@ class TestE2E_API:
 class TestE2E_StaticFiles:
     """E2E тесты статических файлов."""
 
-    def test_css_loads(self):
+    def test_css_loads(self, app, db_session):
         """E2E-011: CSS файлы загружаются."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/static/css/style.css')
             assert response.status_code in [200, 404]  # 404 если файл не найден
 
-    def test_js_loads(self):
+    def test_js_loads(self, app, db_session):
         """E2E-011: JS файлы загружаются."""
-        app = create_app()
         with app.test_client() as client:
             response = client.get('/static/js/main.js')
             assert response.status_code in [200, 404]
 
-    def test_flag_images_exist(self):
+    def test_flag_images_exist(self, app, db_session):
         """E2E-011: Флаги существуют."""
-        app = create_app()
         with app.test_client() as client:
             flags = ['RUS.png', 'BLR.png', 'KAZ.png']
             for flag in flags:
@@ -142,9 +130,8 @@ class TestE2E_StaticFiles:
 class TestE2E_Caching:
     """E2E тесты кэширования."""
 
-    def test_leaderboard_cached(self):
+    def test_leaderboard_cached(self, app, db_session):
         """E2E-012: Leaderboard кэшируется."""
-        app = create_app()
         with app.test_client() as client:
             # Первый запрос
             start1 = time.time()
@@ -166,9 +153,8 @@ class TestE2E_Caching:
 class TestE2E_AuditLog:
     """E2E тесты Audit Log."""
 
-    def test_audit_log_entries_exist(self):
+    def test_audit_log_entries_exist(self, app, db_session):
         """E2E-008: Audit Log записи существуют после CRUD."""
-        app = create_app()
         with app.app_context():
             # Проверяем, что таблица audit_logs существует
             count = AuditLog.query.count()
@@ -178,9 +164,8 @@ class TestE2E_AuditLog:
 class TestE2E_FlushCache:
     """E2E тесты Flush Cache."""
 
-    def test_flush_cache_endpoint_exists(self):
+    def test_flush_cache_endpoint_exists(self, app, db_session):
         """E2E-009: Flush Cache endpoint существует."""
-        app = create_app()
         with app.test_client() as client:
             # POST запрос должен существовать
             response = client.post('/admin/flush-cache', follow_redirects=False)
