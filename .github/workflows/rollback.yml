@@ -46,15 +46,17 @@ jobs:
             find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
             find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
-            echo "=== 4. Backing up database ==="
+            echo "=== 4. Restoring database from pre-deploy backup ==="
             BACKUP_DIR="$APP_DIR/backups"
-            mkdir -p "$BACKUP_DIR"
             DB_FILE="$APP_DIR/instance/dev.db"
-            if [ -f "$DB_FILE" ]; then
-              cp "$DB_FILE" "$BACKUP_DIR/dev.db.pre-rollback.$(date +%Y%m%d%H%M%S)"
-              echo "Database backed up"
+            LATEST_PREDEPLOY_BACKUP=$(ls -t "$BACKUP_DIR"/dev.db.*.pre-deploy* 2>/dev/null | head -1)
+            if [ -n "$LATEST_PREDEPLOY_BACKUP" ]; then
+                echo "Restoring database from: $LATEST_PREDEPLOY_BACKUP"
+                cp "$LATEST_PREDEPLOY_BACKUP" "$DB_FILE"
+                echo "Database restored from pre-deploy backup"
             else
-              echo "No database file found at $DB_FILE, skipping backup"
+                echo "WARNING: No pre-deploy backup found. Skipping DB restore."
+                echo "The old code may be incompatible with the current database schema."
             fi
 
             echo "=== 5. Restarting application ==="

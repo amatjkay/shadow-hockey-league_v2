@@ -96,7 +96,7 @@ log_info "Current commit (for rollback): $ROLLBACK_COMMIT"
 # --- Step 3: Fetch and checkout latest code ---
 log_info "=== Fetching latest code ==="
 git fetch origin main 2>&1
-git checkout main 2>&1
+git reset --hard origin/main 2>&1
 log_info "Deployed commit: $(git log --oneline -1)"
 
 # --- Step 4: Clean Python bytecode cache ---
@@ -110,7 +110,7 @@ mkdir -p "$BACKUP_DIR"
 # --- Step 6: Backup database ---
 DB_FILE="$APP_DIR/instance/dev.db"
 if [ -f "$DB_FILE" ]; then
-    BACKUP_FILE="$BACKUP_DIR/dev.db.$(date +%Y%m%d%H%M%S)"
+    BACKUP_FILE="$BACKUP_DIR/dev.db.$(date +%Y%m%d%H%M%S).pre-deploy"
     cp "$DB_FILE" "$BACKUP_FILE"
     log_info "Database backed up to: $BACKUP_FILE"
 else
@@ -178,12 +178,12 @@ except Exception:
     print('invalid_json')
 " 2>/dev/null) || STATUS="parse_error"
 
-        if [ "$STATUS" = "healthy" ] || [ "$STATUS" = "degraded" ]; then
+        if [ "$STATUS" = "healthy" ]; then
             log_info "Health check PASSED (status: $STATUS)"
             HEALTH_OK=true
             break
         else
-            log_warn "Health check returned status: $STATUS"
+            log_warn "Health check returned status: $STATUS (expected: healthy)"
         fi
     else
         log_warn "Health check: no response from $HEALTH_URL"
