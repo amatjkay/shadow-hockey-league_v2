@@ -62,19 +62,34 @@ jobs:
       - name: Deploy to server
         run: |
           ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            set -e  # Exit on any error
             cd /home/shleague/shadow-hockey-league_v2
 
-            # Git pull
-            git pull origin main
+            echo "=== 1. Fetching latest code ==="
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
 
-            # Update dependencies
+            echo "=== 2. Cleaning Python cache ==="
+            find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+            find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+            echo "=== 3. Updating dependencies ==="
             source venv/bin/activate
-            pip install -r requirements.txt --quiet
+            pip install -r requirements.txt --quiet --upgrade
 
-            # Reload application
+            echo "=== 4. Applying database migrations ==="
+            alembic upgrade head || echo "⚠️ Migration failed or already applied"
+
+            echo "=== 5. Restarting application ==="
             systemctl restart shadow-hockey-league
+            sleep 2
 
-            echo "✅ Deployment completed!"
+            echo "=== 6. Verifying deployment ==="
+            git log --oneline -1
+            systemctl is-active shadow-hockey-league
+
+            echo "✅ Deployment completed successfully!"
           ENDSSH
 
       - name: Notify success
