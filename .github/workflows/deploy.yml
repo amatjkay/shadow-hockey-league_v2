@@ -80,6 +80,23 @@ jobs:
 
       - name: Run deploy script on server
         run: |
+          # Сначала подготовим окружение: создадим deploy.sh из шаблона, если его нет
+          ssh -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDSSH'
+            set -e
+            cd /home/shleague/shadow-hockey-league_v2
+
+            # Если скрипта нет (первый запуск), копируем из шаблона
+            if [ ! -f scripts/deploy.sh ]; then
+              echo "Creating deploy.sh from template..."
+              cp scripts/deploy.sh.template scripts/deploy.sh
+              chmod +x scripts/deploy.sh
+            fi
+          ENDSSH
+
+          # Запускаем сам деплой
           ssh -i ~/.ssh/id_ed25519 \
             -o ConnectTimeout=10 \
             -o StrictHostKeyChecking=no \
