@@ -68,22 +68,29 @@ jobs:
             set -e
             cd /home/shleague/shadow-hockey-league_v2
 
-            # 1. Обновляем код, чтобы гарантированно иметь deploy.sh.template
-            git fetch origin main
-            git checkout main
-            
-            # 2. Если скрипта деплоя нет, создаем его из шаблона
+            # Если скрипта деплоя нет, создаем его.
             if [ ! -f scripts/deploy.sh ]; then
-              echo "Creating deploy.sh from template..."
-              # Скачиваем шаблон из последней версии репозитория, не перезаписывая остальные файлы
-              git checkout origin/main -- scripts/deploy.sh.template 2>/dev/null || true
+              mkdir -p scripts
               
-              if [ -f scripts/deploy.sh.template ]; then
-                cp scripts/deploy.sh.template scripts/deploy.sh
-                chmod +x scripts/deploy.sh
-                echo "deploy.sh created."
+              # Пытаемся скачать шаблон напрямую с GitHub (API), чтобы не ломать git статус локальных файлов
+              # Замените amatjkay/shadow-hockey-league_v2 на свой репозиторий, если нужно
+              curl -sfL "https://raw.githubusercontent.com/amatjkay/shadow-hockey-league_v2/main/scripts/deploy.sh.template" -o scripts/deploy.sh || true
+              
+              # Если скачивание не вышло (например, приватный репо), пробуем через git
+              if [ ! -s scripts/deploy.sh ]; then
+                git fetch origin main
+                git checkout origin/main -- scripts/deploy.sh.template 2>/dev/null || true
+                if [ -f scripts/deploy.sh.template ]; then
+                  cp scripts/deploy.sh.template scripts/deploy.sh
+                fi
+              fi
+              
+              chmod +x scripts/deploy.sh
+              
+              if [ -f scripts/deploy.sh ]; then
+                echo "Deploy script created."
               else
-                echo "ERROR: deploy.sh.template not found in repo!"
+                echo "ERROR: Could not create deploy script!"
                 exit 1
               fi
             else
