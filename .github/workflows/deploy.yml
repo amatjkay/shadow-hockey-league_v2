@@ -72,12 +72,20 @@ jobs:
             git fetch origin main
             git checkout main
             
-            # 2. Если скрипта деплоя нет, создаем из шаблона
+            # 2. Если скрипта деплоя нет, создаем его из шаблона
             if [ ! -f scripts/deploy.sh ]; then
               echo "Creating deploy.sh from template..."
-              cp scripts/deploy.sh.template scripts/deploy.sh
-              chmod +x scripts/deploy.sh
-              echo "deploy.sh created."
+              # Скачиваем шаблон из последней версии репозитория, не перезаписывая остальные файлы
+              git checkout origin/main -- scripts/deploy.sh.template 2>/dev/null || true
+              
+              if [ -f scripts/deploy.sh.template ]; then
+                cp scripts/deploy.sh.template scripts/deploy.sh
+                chmod +x scripts/deploy.sh
+                echo "deploy.sh created."
+              else
+                echo "ERROR: deploy.sh.template not found in repo!"
+                exit 1
+              fi
             else
               chmod +x scripts/deploy.sh
             fi
