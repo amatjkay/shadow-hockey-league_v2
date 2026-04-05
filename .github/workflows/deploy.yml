@@ -67,14 +67,19 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             cd /home/shleague/shadow-hockey-league_v2
-            # Если скрипта нет, создаем его из шаблона (попадает в репо при пуше)
-            if [ ! -f ./scripts/deploy.sh ]; then
-              cp ./scripts/deploy.sh.template ./scripts/deploy.sh
-              chmod +x ./scripts/deploy.sh
-              echo "Deploy script created from template."
+
+            # 1. Обновляем код, чтобы гарантированно иметь deploy.sh.template
+            git fetch origin main
+            git checkout main
+            
+            # 2. Если скрипта деплоя нет, создаем из шаблона
+            if [ ! -f scripts/deploy.sh ]; then
+              echo "Creating deploy.sh from template..."
+              cp scripts/deploy.sh.template scripts/deploy.sh
+              chmod +x scripts/deploy.sh
+              echo "deploy.sh created."
             else
-              # Если есть, просто обновляем права (вдруг изменились права доступа после пуша)
-              chmod +x ./scripts/deploy.sh
+              chmod +x scripts/deploy.sh
             fi
             EOF
 
