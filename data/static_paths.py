@@ -50,7 +50,7 @@ class StaticPaths:
     FLAG_TO_CODE: dict[str, str] = {
         "RUS": "RUS",
         "BLR": "BLR",
-        "BEL": "BEL",  # Legacy: some old data may still use BEL
+        "BEL": "BLR",  # Legacy: old Belgium flag is actually Belarus
         "KAZ": "KAZ",
         "KZ": "KAZ",  # Legacy: old filename
         "VNM": "VNM",
@@ -78,6 +78,26 @@ class StaticPaths:
         "USA": "USA",
     }
 
+    # Legacy flag filename to canonical filename mapping.
+    # Handles the migration from old lowercase names to ISO codes.
+    LEGACY_FLAG_MAP: dict[str, str] = {
+        "bel.png": "BLR.png",
+        "rus.png": "RUS.png",
+        "kz.png": "KAZ.png",
+        "china.png": "CHN.png",
+        "mexico.png": "MEX.png",
+        "ua.png": "UKR.png",
+        "vietnam.png": "VNM.png",
+        "pol.png": "POL.png",
+        # Lowercase to uppercase normalization
+        "blr.png": "BLR.png",
+        "kaz.png": "KAZ.png",
+        "ukr.png": "UKR.png",
+        "chn.png": "CHN.png",
+        "mex.png": "MEX.png",
+        "vnm.png": "VNM.png",
+    }
+
     # Reverse mapping: country code → canonical flag filename
     CODE_TO_FLAG: dict[str, str] = {}
 
@@ -100,13 +120,19 @@ class StaticPaths:
     def resolve_flag(self, filename: str) -> str:
         """Resolve a flag filename to its full URL path.
 
+        Handles legacy filenames (e.g. bel.png → BLR.png) automatically.
+
         Args:
-            filename: Flag filename (e.g. "RUS.png" or just "RUS").
+            filename: Flag filename (e.g. "RUS.png", "BLR", or legacy "bel.png").
 
         Returns:
-            Full URL path (e.g. "/static/img/flags/RUS.png").
+            Full URL path (e.g. "/static/img/flags/BLR.png").
         """
-        if not filename.endswith(".png"):
+        # Normalize to canonical filename
+        base = filename.lower()
+        if base in self.LEGACY_FLAG_MAP:
+            filename = self.LEGACY_FLAG_MAP[base]
+        elif not filename.endswith(".png"):
             filename = f"{filename}.png"
         return f"{self.FLAGS_URL}/{filename}"
 
@@ -187,7 +213,10 @@ CUPS_PATH = StaticPaths.CUPS_URL + "/"
 
 
 def resolve_flag(filename: str) -> str:
-    """Convenience function to resolve a flag filename."""
+    """Convenience function to resolve a flag filename.
+
+    Handles legacy filenames (bel.png, rus.png, etc.) automatically.
+    """
     return _paths.resolve_flag(filename)
 
 
