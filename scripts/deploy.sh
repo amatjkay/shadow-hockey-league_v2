@@ -32,7 +32,12 @@ rollback() {
         log_info "Restoring database from: $LATEST_BACKUP"
         cp "$LATEST_BACKUP" "$DB_FILE" 2>&1 || true
     fi
-    systemctl restart "$SERVICE_NAME" 2>&1 || true
+    # Restart service (with sudo if available)
+    if command -v sudo &> /dev/null; then
+        sudo systemctl restart "$SERVICE_NAME" 2>&1 || systemctl restart "$SERVICE_NAME" 2>&1 || true
+    else
+        systemctl restart "$SERVICE_NAME" 2>&1 || true
+    fi
     log_warn "Rollback completed."
     return 1
 }
@@ -87,22 +92,40 @@ if [ -f "$ENV_FILE" ]; then
     log_info "Loaded .env"
 fi
 
+# Validate DATABASE_URL - fix Windows paths if they somehow got into .env
 if [ -n "${DATABASE_URL:-}" ]; then
+    # Check for Windows-style paths (c:/, d:/, etc.) and replace with correct Linux path
+    if echo "$DATABASE_URL" | grep -qiE 'sqlite:///[a-z]:'; then
+        log_warn "Detected Windows path in DATABASE_URL, fixing..."
+        DATABASE_URL="sqlite:///${APP_DIR}/instance/dev.db"
+        log_info "Fixed DATABASE_URL: $DATABASE_URL"
+    fi
+    
+    log_info "Using DATABASE_URL: $DATABASE_URL"
     DATABASE_URL="$DATABASE_URL" alembic upgrade head 2>&1
 else
+    log_warn "DATABASE_URL not set, using alembic default"
     alembic upgrade head 2>&1
 fi
 log_info "Migrations complete"
 
 # Restart service
 log_info "=== Restarting $SERVICE_NAME ==="
-systemctl restart "$SERVICE_NAME" 2>&1
+
+# Try systemctl with sudo first, fallback to regular systemctl
+if command -v sudo &> /dev/null; then
+    sudo systemctl restart "$SERVICE_NAME" 2>&1 || systemctl restart "$SERVICE_NAME" 2>&1
+else
+    systemctl restart "$SERVICE_NAME" 2>&1
+fi
 sleep 2
 
-if [ "$(systemctl is-active "$SERVICE_NAME" 2>&1)" = "active" ]; then
+# Verify service is active
+SERVICE_STATUS=$(systemctl is-active "$SERVICE_NAME" 2>&1)
+if [ "$SERVICE_STATUS" = "active" ]; then
     log_info "Service is active"
 else
-    log_error "Service is not active"
+    log_error "Service status: $SERVICE_STATUS"
     exit 1
 fi
 
