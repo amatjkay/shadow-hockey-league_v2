@@ -132,7 +132,34 @@ alembic current
 
 ---
 
-## 5. Ручной запуск деплоя
+## 5. Применить Alembic миграции (если `stamp head` не сработал)
+
+### Проблема
+После `alembic stamp head` миграции отмечены как применённые, но **фактически не выполнены**. Это вызывает ошибки схемы (например, `no such column: countries.name`).
+
+### Решение
+
+**Вариант A: Применить миграции**
+```bash
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+export DATABASE_URL="sqlite:////home/shleague/shadow-hockey-league_v2/instance/dev.db"
+alembic upgrade head
+```
+
+**Вариант B: Добавить колонку вручную** (если миграции уже применены)
+```bash
+python3 -c "import sqlite3; conn=sqlite3.connect('instance/dev.db'); conn.execute('ALTER TABLE countries ADD COLUMN name VARCHAR(100) DEFAULT Unknown'); conn.commit(); print('done')"
+```
+
+После этого перезапусти сервис:
+```bash
+sudo systemctl restart shadow-hockey-league
+```
+
+---
+
+## 6. Ручной запуск деплоя
 
 После всех исправлений:
 
@@ -168,6 +195,7 @@ curl http://127.0.0.1:5000/health
 - [ ] `sudo systemctl restart shadow-hockey-league` работает без пароля
 - [ ] БД существует по пути из `.env`
 - [ ] `alembic current` возвращает `1c8dd033101a (head)`
+- [ ] Колонка `countries.name` существует (проверить: `PRAGMA table_info(countries)`)
 - [ ] Health endpoint возвращает `{"status":"healthy"}`
 
 ---
@@ -205,6 +233,18 @@ rm /etc/sudoers.d/shleague-systemctl
 Проверь что директория существует:
 ```bash
 mkdir -p /home/shleague/shadow-hockey-league_v2/instance
+```
+
+### `no such column` после `stamp head`
+
+`alembic stamp head` отмечает миграции как применённые, но **не выполняет их**. Если есть ошибки схемы:
+
+```bash
+# Добавь колонку вручную
+python3 -c "import sqlite3; conn=sqlite3.connect('instance/dev.db'); conn.execute('ALTER TABLE countries ADD COLUMN name VARCHAR(100) DEFAULT Unknown'); conn.commit(); print('done')"
+
+# Или примени миграции (если они реально не применены)
+alembic upgrade head
 ```
 
 ---
