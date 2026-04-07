@@ -64,7 +64,7 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 \
             -o ConnectTimeout=10 \
             -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'ENDOFSCRIPT'
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'bash -s' << 'ENDOFSCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
 
