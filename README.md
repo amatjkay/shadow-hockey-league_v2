@@ -6,7 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
-[![Coverage](https://img.shields.io/badge/Coverage-81%25-yellowgreen.svg)](#)
+[![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
@@ -113,18 +113,24 @@ shadow-hockey-league_v2/
 │   ├── api.py                  #   REST API (auth + pagination)
 │   ├── admin.py                #   Flask-Admin (CRUD + CSRF)
 │   ├── metrics_service.py      #   Prometheus метрики
-│   └── validation_service.py   #   Валидация данных
-├── data/                       # Справочные данные (countries, managers)
-├── templates/                  # Jinja2 шаблоны
-├── static/                     # CSS, JS, изображения (флаги)
-├── migrations/                 # Alembic миграции
-├── tests/                      # Pytest тесты
+│   ├── validation_service.py   #   Валидация данных
+│   ├── audit_service.py        #   Audit Log действий администраторов
+│   ├── seed_service.py         #   JSON Seed импорт/экспорт
+│   └── export_service.py       #   Экспорт данных из БД
+├── data/                       # Справочные данные
+│   ├── seed/                   #   Исходные данные (JSON)
+│   ├── export/                 #   Экспорт из БД (JSON)
+│   └── schemas.py              #   Валидация JSON схем
+├── tests/                      # Pytest тесты (239 тестов, ~87% покрытие)
 │   ├── conftest.py             #   Fixtures
 │   ├── test_*.py               #   Unit тесты
-│   └── integration/            #   Интеграционные тесты
+│   ├── integration/            #   Интеграционные тесты
+│   └── e2e/                    #   E2E тесты (15 тестов)
 ├── docs/                       # Документация
+├── .qwen/                      # Система субагентов (config, context, agents)
+├── agents/                     # Python модуль мульти-агентной системы
 ├── context/                    # Контекст модульной системы
-├── prompts/                    # Промпты ролей AI
+├── prompts/                    # Промпты ролей AI (6 ролей)
 ├── scripts/                    # Утилиты (create_admin, validate_db)
 ├── .env.example                # Пример переменных окружения
 ├── requirements.txt            # Python зависимости
@@ -150,7 +156,7 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-Проект содержит **тесты с покрытием 81%**, покрывающих логику рейтинга, API, маршруты, инвалидацию кэша, CSRF и аутентификацию API.
+Проект содержит **239 тестов с покрытием ~87%**, покрывающих логику рейтинга, API, маршруты, инвалидацию кэша, CSRF, аутентификацию, Audit Log и E2E сценарии.
 
 ```bash
 # Используя Makefile
@@ -273,38 +279,50 @@ python seed_db.py
 | `README.md`               | Этот файл — быстрый старт                           |
 | `docs/API.md`             | REST API: auth, pagination, scopes, rate limiting   |
 | `docs/ADMIN.md`           | Админ-панель: CSRF, API Keys management             |
+| `docs/ARCHITECTURE.md`    | Архитектура системы: компоненты, стек, модель данных|
+| `docs/TESTING.md`         | Тестирование: запуск, покрытие, best practices      |
+| `docs/SECURITY.md`        | Безопасность: auth, secrets, SSL, audit             |
+| `docs/CONTRIBUTING.md`    | Руководство контрибьютора: как внести вклад         |
 | `docs/MIGRATION_GUIDE.md` | Пошаговый деплой на VPS (Ubuntu + Nginx + Gunicorn) |
 | `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем          |
 | `docs/MONITORING.md`      | Health check, Prometheus метрики                    |
 | `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок                 |
+| `docs/ROLLBACK.md`        | Откат деплоя: GitHub Actions, бэкапы                |
 | `CHANGELOG.md`            | История изменений версий                            |
 
 ## 📊 Статус проекта
 
-| Этап | Название                              | Статус      |
-| ---- | ------------------------------------- | ----------- |
-| 0    | Базовая архитектура                   | ✅          |
-| 1    | Кэширование (Redis + SimpleCache)     | ✅          |
-| 2    | Метрики (Prometheus)                  | ✅          |
-| 3    | Админ-панель + CSRF защита            | ✅          |
-| 4    | Рефакторинг формулы (из БД)           | ✅          |
-| 5    | API auth + pagination + rate limiting | ✅          |
-| 6    | Интеграционные тесты (81% покрытие)   | ✅          |
-| 7    | Документация и деплой                 | 🔴 В работе |
+| Этап | Название                              | Статус     | Версия  |
+| ---- | ------------------------------------- | ---------- | ------- |
+| 0    | Базовая архитектура                   | ✅ Завершён | v2.0.0  |
+| 1    | Кэширование (Redis + SimpleCache)     | ✅ Завершён | v2.1.0  |
+| 2    | Метрики (Prometheus)                  | ✅ Завершён | v2.1.0  |
+| 3    | Админ-панель + CSRF защита            | ✅ Завершён | v2.2.0  |
+| 4    | Рефакторинг формулы (из БД)           | ✅ Завершён | v2.3.0  |
+| 5    | API auth + pagination + rate limiting | ✅ Завершён | v2.1.0  |
+| 6    | Интеграционные тесты (87% покрытие)   | ✅ Завершён | v2.2.0  |
+| 7    | Документация и деплой                 | ✅ Завершён | v2.4.0  |
+| 8    | Data Synchronization Layer            | ✅ Завершён | v2.3.0  |
+| 9    | Reliable Deployment System            | ✅ Завершён | v2.4.0  |
 
 ### Что реализовано
 
-- ✅ Покрытие тестами **81%** (`pytest --cov`)
+- ✅ Покрытие тестами **87%** (239 тестов: 224 unit+integration + 15 E2E)
 - ✅ Код отформатирован (`black`, `isort`, `flake8`)
 - ✅ REST API с аутентификацией (API Keys, 3 scope)
 - ✅ Пагинация API (`page`/`per_page`, max 100)
 - ✅ Rate limiting (100 req/min на ключ)
 - ✅ CSRF защита админ-панели
+- ✅ Audit Log всех действий администраторов
 - ✅ Кэширование Redis с fallback на SimpleCache
 - ✅ Автоматическая инвалидация кэша (Admin + API)
 - ✅ UniqueConstraint на достижениях (нет дубликатов)
 - ✅ Alembic миграции
 - ✅ Формула расчёта очков из БД (AchievementType + Season)
+- ✅ JSON Seed/Export для синхронизации данных
+- ✅ Reliable Deployment с atomic updates, auto backup, health check, auto rollback
+- ✅ CI/CD через GitHub Actions с SSH деплоем
+- ✅ E2E тесты (15 тестов)
 
 ---
 
@@ -312,7 +330,7 @@ python seed_db.py
 
 ### Production сервер
 
-Проект развёрнут на **VPS (Ubuntu 22.04)**:  
+Проект развёрнут на **VPS (Ubuntu 22.04)**:
 **https://shadow-hockey-league.ru/**
 
 | Компонент  | Версия/Значение                |
@@ -325,48 +343,19 @@ python seed_db.py
 | SSL        | Let's Encrypt (автообновление) |
 | Домен      | shadow-hockey-league.ru        |
 
-### 📦 Автоматические бэкапы
-
-- **Периодичность:** Ежедневно в 3:00 UTC
-- **Хранение:** 7 дней
-- **Очистка:** Автоматическая (старше 7 дней)
-- **Формат:** `dev.db-YYYYMMDD-HHMMSS.gz`
-- **Расположение:** `/backup/`
-
 ### 🔄 CI/CD (GitHub Actions)
 
 Настроен автоматический деплой при пуше в ветку `main`:
+- Atomic updates (`git reset --hard origin/main`)
+- Auto backup БД перед миграциями
+- Health check после деплоя
+- Auto rollback при ошибках
 
-```bash
-git push origin main
-```
-
-**Workflow:** `.github/workflows/deploy.yml`
-
-**Что делает:**
-
-1. Подключается по SSH к серверу
-2. Выполняет `git pull`
-3. Обновляет зависимости
-4. Перезапускает приложение
-
-### 📝 Ручное обновление на сервере
-
-```bash
-cd /home/shleague/shadow-hockey-league_v2
-source venv/bin/activate
-git pull origin main
-pip install -r requirements.txt --quiet
-systemctl restart shadow-hockey-league
-```
-
-📖 **Подробная инструкция:** [`docs/VPS_DEPLOY.md`](docs/VPS_DEPLOY.md)
+📖 **Полная инструкция деплоя:** [`docs/MIGRATION_GUIDE.md`](docs/MIGRATION_GUIDE.md)
 
 ---
 
 ### PythonAnywhere (архив)
 
-Старая версия на PythonAnywhere доступна по адресу:  
+Старая версия на PythonAnywhere доступна по адресу:
 **https://amatjkay.pythonanywhere.com/**
-
-📖 **Инструкция по деплою на PythonAnywhere:** [`docs/DEPLOY.md`](docs/DEPLOY.md)

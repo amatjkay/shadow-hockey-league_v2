@@ -1,153 +1,115 @@
-# Active Plan — Shadow Hockey League v2
+# 📋 АКТИВНЫЙ ПЛАН РАЗВИТИЯ - Shadow Hockey League v2
 
-**Дата:** 4 апреля 2026 г.
-**Роль:** PLANNER (план v2.2 утверждён)
-**Статус:** 🟢 План реализации аудита и управления кэшем готов
-**Общий объём:** 12 Story Points
-
----
-
-## 📋 Сводная таблица этапов
-
-| Этап | Название                 | Приоритет | Подзадачи                                                                 | SP    | Зависимости |
-| ---- | ------------------------ | --------- | ------------------------------------------------------------------------- | ----- | ----------- |
-| 8.1  | Audit Log Infrastructure | 🔴        | Модель AuditLog, миграция, audit_service.py, интеграция в SecureModelView | **5** | —           |
-| 8.2  | Cache Control UI         | �         | Метод flush_cache, кнопка в admin/index.html, CSRF, тестирование          | **3** | 8.1         |
-| 8.3  | N+1 Optimization & QA    | 🟡        | Аудит rating_service.py, оптимизация, тесты аудита, интеграционные тесты  | **4** | 8.1         |
+**Версия:** 2.4.0
+**Дата обновления:** 7 апреля 2026 г.
+**Статус:** ✅ Все этапы v2.0-v2.4 завершены
 
 ---
 
-## 🗂️ Детализация этапов
+## ✅ ЗАВЕРШЁННЫЕ ЭТАПЫ
 
-### Этап 8.1: Audit Log Infrastructure (5 SP)
+### Этап 0: Базовая архитектура (v2.0.0) ✅
+- [x] Flask Application Factory
+- [x] SQLAlchemy модели (AdminUser, Country, Manager, Achievement)
+- [x] Alembic миграции
+- [x] Базовая структура проекта
 
-**Модель AuditLog:**
+### Этап 1: Кэширование (v2.1.0) ✅
+- [x] Redis integration
+- [x] SimpleCache fallback
+- [x] Автоматическая инвалидация кэша
+- [x] Cache service
 
-- Поля: `id` (PK), `user_id` (FK AdminUser), `action` (String), `target_model` (String, nullable), `target_id` (Integer, nullable), `changes` (JSON/Text, nullable), `timestamp` (DateTime)
-- Индексы: `timestamp`, `(user_id, timestamp)`
+### Этап 2: Метрики (v2.1.0) ✅
+- [x] Prometheus exporter
+- [x] Health check endpoint
+- [x] Metrics service
 
-**Миграция Alembic:**
+### Этап 3: Админ-панель (v2.2.0) ✅
+- [x] Flask-Admin с CSRF защитой
+- [x] Audit Log всех действий
+- [x] Flush Cache UI
+- [x] Admin auth и авторизация
 
-- Файл: `migrations/versions/add_audit_log.py`
-- Использовать `op.create_table()` с `sa.Column()` и `op.create_index()`
+### Этап 4: Рефакторинг формулы (v2.3.0) ✅
+- [x] Формула расчёта из БД (AchievementType + Season)
+- [x] JSON Seed/Export
+- [x] Data synchronization layer
+- [x] Schemas validation
 
-**Сервис логирования:**
+### Этап 5: API (v2.1.0) ✅
+- [x] REST API с API Key auth
+- [x] Pagination
+- [x] Rate limiting (100 req/min)
+- [x] 3 scope (read, write, admin)
 
-- Файл: `services/audit_service.py`
-- Функция: `log_action(user_id, action, target_model=None, target_id=None, changes=None)`
-- Обработка ошибок с fallback в logger
+### Этап 6: Тесты (v2.2.0) ✅
+- [x] 224 unit + integration тестов
+- [x] 15 E2E тестов
+- [x] Покрытие ~87%
+- [x] CI/CD тесты в GitHub Actions
 
-**Интеграция в админку:**
+### Этап 7: Деплой (v2.4.0) ✅
+- [x] VPS (Ubuntu 22.04)
+- [x] Nginx + Gunicorn
+- [x] Let's Encrypt SSL
+- [x] CI/CD через GitHub Actions
+- [x] Atomic updates
+- [x] Auto backup БД
+- [x] Health check после деплоя
+- [x] Auto rollback при ошибках
 
-- Расширить `SecureModelView` в `services/admin.py`
-- Переопределить `after_model_change()` и `after_model_delete()`
-- Логировать CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
+### Этап 8: Data Sync (v2.3.0) ✅
+- [x] JSON Seed/Export сервисы
+- [x] Centralized static paths
+- [x] Schemas validation
+- [x] Удаление managers_data.py
 
-**Файлы:** `models.py`, `migrations/versions/add_audit_log.py`, `services/audit_service.py`, `services/admin.py`
-**Критерий приёмки:** Таблица создана, миграция работает, все CRUD операции в админке логируются
-
----
-
-### Этап 8.2: Cache Control UI (3 SP)
-
-**Эндпоинт сброса кэша:**
-
-- Метод: `@expose('/flush-cache', methods=['POST'])` в `StatsAdminIndexView`
-- CSRF-токен через `@csrf.exempt` + ручная проверка или встроенный механизм
-- Действие: `cache.delete('leaderboard')`
-
-**UI интеграция:**
-
-- Шаблон: `templates/admin/index.html`
-- Кнопка: `<form method="POST" action="/admin/flush-cache">` с CSRF токеном
-- Flash-сообщение: `flash('Cache flushed successfully', 'success')`
-
-**Логирование:**
-
-- Вызов `audit_service.log_action('FLUSH_CACHE', user_id=current_user.id)`
-
-**Файлы:** `services/admin.py`, `templates/admin/index.html`
-**Критерий приёмки:** Кнопка работает, кэш сбрасывается, действие логируется
-
----
-
-### Этап 8.3: N+1 Optimization & QA (4 SP)
-
-**Аудит rating_service.py:**
-
-- Проверить `build_leaderboard()` на использование `joinedload`
-- Вывести SQL-запросы через `db.session.query(Manager).options(joinedload(...))`
-- Если достижений > 20 на менеджера — рассмотреть `selectinload`
-
-**Тесты аудита:**
-
-- Файл: `tests/test_audit_service.py`
-- Тесты: CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
-- Проверка записи в AuditLog и корректности полей
-
-**Интеграционные тесты:**
-
-- Файл: `tests/integration/test_audit_and_cache.py`
-- Тест: Полный цикл CRUD → проверка лога → сброс кэша → проверка инвалидации
-
-**Файлы:** `services/rating_service.py`, `tests/test_audit_service.py`, `tests/integration/test_audit_and_cache.py`
-**Критерий приёмки:** N+1 запросы отсутствуют, все тесты проходят, покрытие > 90%
+### Этап 9: Reliable Deployment (v2.4.0) ✅
+- [x] scripts/deploy.sh с atomic updates
+- [x] Auto backup перед миграциями
+- [x] Safe migrations с DATABASE_URL из .env
+- [x] Health check с ретраями
+- [x] Auto rollback при ошибках
+- [x] rollback.yml через GitHub Actions
+- [x] Backup retention (10 бэкапов)
 
 ---
 
-## 🛑 Блокеры и риски
+## 📋 ПЛАНИРУЕМЫЕ ЭТАПЫ (TBD)
 
-| Риск                             | Вероятность | Влияние | Митигация                                                            |
-| -------------------------------- | ----------- | ------- | -------------------------------------------------------------------- |
-| Конфликт миграций Alembic        | Средняя     | Высокое | Проверить текущую последнюю миграцию, использовать `down_revision`   |
-| Нагрузка на диск при логировании | Низкая      | Среднее | Логировать только диффы при UPDATE, настроить очистку старых записей |
-| Race condition при сбросе кэша   | Низкая      | Низкое  | Атомарная операция `cache.delete()`                                  |
+### Этап 10: Система уведомлений (не начат)
+- [ ] Модели БД (Notification, Preference, Log)
+- [ ] Email уведомления (Flask-Mail)
+- [ ] In-app уведомления
+- [ ] REST API endpoints
+- [ ] UI компонент (колокольчик с badge)
+- [ ] Тесты
 
----
+### Этап 11: PostgreSQL migration (не начат)
+- [ ] Миграция с SQLite на PostgreSQL
+- [ ] Настройка connection pooling
+- [ ] Тестирование на PostgreSQL
+- [ ] Обновление документации
 
-## 🔄 Рекомендуемый порядок выполнения
-
-```
-Этап 8.1 (Audit Infrastructure) ──► Этап 8.2 (Cache UI) ──► Этап 8.3 (Optimization & QA)
-```
-
----
-
-## 🎯 Потенциальные этапы v2.3
-
-| Этап | Название | Приоритет | SP | Описание |
-| ---- | -------- | --------- | -- | -------- |
-| 9.1 | Миграция на `datetime.now(datetime.UTC)` | 🟢 | 2 | Убрать 63 deprecation warnings (Python 3.14) |
-| 9.2 | Очистка старых audit_logs | 🟡 | 1 | Настроить периодическую очистку > 90 дней |
-| 9.3 | E2E тестирование production | 🟡 | 3 | Проверка на реальном сервере |
-| 9.4 | Мониторинг RAM (1GB VPS) | 🟡 | 2 | Redis 128MB limit alerts |
-| 9.5 | План миграции на PostgreSQL | 🟢 | 4 | Подготовка к росту > 1000 менеджеров |
+### Этап 12: WebSocket real-time (не начат)
+- [ ] Flask-SocketIO integration
+- [ ] Real-time обновления уведомлений
+- [ ] Замена polling на WebSocket
 
 ---
 
-## 🔄 История изменений
+## 📊 СТАТИСТИКА
 
-| Дата       | Изменение                        | Автор     |
-| ---------- | -------------------------------- | --------- |
-| 2026-04-04 | Инициализация модульной системы  | AI        |
-| 2026-04-04 | План v2.2 сформирован (12 SP)    | PLANNER   |
-| 2026-04-04 | Архитектура v2.2 утверждена      | ARCHITECT |
-| 2026-04-04 | Требования v2.2 от ANALYST       | ANALYST   |
-| 2026-04-04 | **План v2.2 готов к реализации** | PLANNER   |
-| 2026-04-04 | **Этапы 8.1-8.2 реализованы**    | DEVELOPER |
-| 2026-04-04 | **Баги BUG-001-009 исправлены**  | DEVELOPER |
-| 2026-04-04 | **План v2.2 ЗАВЕРШЁН**           | PLANNER   |
-| 2026-04-04 | **E2E тестирование завершено**   | QA_TESTER |
-| 2026-04-04 | **BUG-010, BUG-011 исправлены**  | QA_TESTER |
-| 2026-04-04 | **Релиз v2.2 слит в develop**    | DEVELOPER |
-| 2026-04-04 | **Ветка feature/audit-log-v2.2 удалена** | DEVELOPER |
-| 2026-04-04 | **Фаза 9.1 (Data Sync) реализована** | DEVELOPER |
-| 2026-04-04 | **v2.3 протестирована (QA)**     | QA_TESTER |
-| 2026-04-04 | **Ветка fix/deployment-stability создана** | ALL ROLES |
-| 2026-04-04 | **Найдены 3 critical бага в деплое** | QA_TESTER |
-| 2026-04-04 | **BUG-5, 7, 11 исправлены и закрыты** | DEVELOPER |
-| 2026-04-04 | **QA Retest: Ветка готова к merge** | QA_TESTER |
+| Метрика | Значение |
+|---------|----------|
+| Завершено этапов | 9/12 |
+| Тестов | 239 |
+| Покрытие | ~87% |
+| Версия | 2.4.0 |
+| Production | https://shadow-hockey-league.ru/ |
 
 ---
 
-_Последнее обновление: 4 апреля 2026 г. — Ветка `fix/deployment-stability` прошла QA и готова к merge._
+**Последнее обновление:** 7 апреля 2026 г.
+**Следующий пересмотр:** После начала Этапа 10

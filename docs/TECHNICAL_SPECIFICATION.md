@@ -267,17 +267,23 @@ class AdminUser(db.Model, UserMixin):
 | `/admin/achievement/` | GET/POST/PUT/DELETE | CRUD достижений | Yes  |
 | `/admin/adminuser/`   | GET/POST/PUT/DELETE | CRUD админов    | Yes  |
 
-### 4.3 REST API (отключено в production)
+### 4.3 REST API (включено в production с auth)
 
-| Endpoint            | Method              | Описание        | Статус      |
-| ------------------- | ------------------- | --------------- | ----------- |
-| `/api/countries`    | GET/POST/PUT/DELETE | CRUD стран      | ❌ Disabled |
-| `/api/managers`     | GET/POST/PUT/DELETE | CRUD менеджеров | ❌ Disabled |
-| `/api/achievements` | GET/POST/PUT/DELETE | CRUD достижений | ❌ Disabled |
+| Endpoint            | Method              | Описание        | Статус     |
+| ------------------- | ------------------- | --------------- | ---------- |
+| `/api/countries`    | GET                 | Список стран    | ✅ Enabled |
+| `/api/managers`     | GET                 | Список менеджеров | ✅ Enabled |
+| `/api/achievements` | GET                 | Список достижений | ✅ Enabled |
+
+**Authentication:** API Key с scopes (`read`, `write`, `admin`)
+**Rate Limiting:** 100 запросов/мин на ключ
+**Pagination:** `page`/`per_page` (max 100)
 
 **Cache Invalidation:** Все API endpoints (CREATE/UPDATE/DELETE) автоматически инвалидируют кэш leaderboard.
 
 **Unique Constraint:** `POST /api/achievements` возвращает `409 Conflict` при попытке создать дубликат (same manager_id, league, season, achievement_type).
+
+**Audit Log:** Все мутации логируются в AuditLog.
 
 ---
 
@@ -539,7 +545,7 @@ coverage report
 | Cache & Admin          | `tests_cache_and_admin.py`        | Cache invalidation, admin auth        |
 | API Cache Invalidation | `tests_api_cache_invalidation.py` | API → cache invalidation, leaderboard |
 
-**Всего тестов:** 72 (все проходят ✅)
+**Всего тестов:** 239 (224 unit+integration + 15 E2E, покрытие ~87%)
 
 ---
 
@@ -547,24 +553,11 @@ coverage report
 
 | ID      | Проблема                               | Статус        | Workaround                   |
 | ------- | -------------------------------------- | ------------- | ---------------------------- |
-| BUG-001 | Login/Logout не в меню админки         | ⚠️ В работе   | Прямой доступ по URL         |
-| BUG-002 | Нет заголовков страниц админки         | Запланировано | —                            |
+| BUG-001 | Login/Logout не в меню админки         | ✅ Решено     | Реализовано в v2.2.0         |
+| BUG-002 | Нет заголовков страниц админки         | ✅ Решено     | Реализовано в v2.2.0         |
 | BUG-003 | Выбор флага требует ручного ввода пути | ✅ Решено     | Выпадающий список реализован |
-
-## 12. История изменений
-
-### 3 апреля 2026 г.
-
-- ✅ Добавлена инвалидация кэша во все API endpoints (CREATE/UPDATE/DELETE)
-- ✅ Добавлен UniqueConstraint на achievements (manager_id, league, season, achievement_type)
-- ✅ Создана Alembic миграция `a1b2c3d4e5f6`
-- ✅ Добавлены 14 тестов на API cache invalidation
-- ✅ Исправлен баг в API: `data.get("manager_id", type=int)` → `data.get("manager_id")`
-- ✅ Добавлена обработка 409 Conflict для дубликатов achievements
-- ✅ Общее количество тестов: **72** (все проходят)
-- ✅ Создана документация `docs/REDIS.md`
 
 ---
 
-**Документ актуализирован:** 3 апреля 2026 г.  
+**Документ актуализирован:** 7 апреля 2026 г.
 **Следующий пересмотр:** При изменении архитектуры

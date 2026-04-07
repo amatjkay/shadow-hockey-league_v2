@@ -2,7 +2,9 @@
 
 **Цель:** Быстрое решение распространённых проблем в Shadow Hockey League.
 
-**Последнее обновление:** 30 марта 2026 г.
+**Последнее обновление:** 7 апреля 2026 г.
+
+**Production:** https://shadow-hockey-league.ru/
 
 ---
 
@@ -12,7 +14,9 @@
 2. [Ошибки приложения](#ошибки-приложения)
 3. [Проблемы со статикой](#проблемы-со-статикой)
 4. [Проблемы с тестами](#проблемы-с-тестами)
-5. [Проблемы деплоя](#проблемы-деплоя)
+5. [Проблемы деплоя (VPS)](#проблемы-деплоя-vps)
+6. [Проблемы с Redis](#проблемы-с-redis)
+7. [Проблемы с CI/CD](#проблемы-с-cicd)
 
 ---
 
@@ -33,22 +37,25 @@
 
 ```bash
 # 1. Проверить наличие файла БД
-ls -la dev.db
+ls -la /home/shleague/shadow-hockey-league_v2/instance/dev.db
 
-# 2. Переинициализировать БД (данные будут удалены!)
-rm dev.db
-python seed_db.py
+# 2. Применить миграции
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+alembic upgrade head
 
 # 3. Проверить путь в .env
 cat .env | grep DATABASE_URL
 
-# 4. Проверить путь в alembic.ini
-cat alembic.ini | grep sqlalchemy.url
+# 4. Если нужно - переинициализировать (данные будут удалены!)
+rm instance/dev.db
+alembic upgrade head
+python seed_db.py
 ```
 
 **Профилактика:**
-- Убедитесь, что `DATABASE_URL` в `.env` и `sqlalchemy.url` в `alembic.ini` совпадают
-- Всегда запускайте `python seed_db.py` после создания новой БД
+- Убедитесь, что `DATABASE_URL` в `.env` совпадает с реальным путём
+- Всегда запускайте `alembic upgrade head` после обновления кода
 
 ---
 
@@ -66,389 +73,256 @@ cat alembic.ini | grep sqlalchemy.url
 **Решение:**
 
 ```bash
-# 1. Завершить зависшие процессы
-ps aux | grep python
-kill <PID>
+# 1. Проверить WAL режим
+sqlite3 /home/shleague/shadow-hockey-league_v2/instance/dev.db "PRAGMA journal_mode;"
+# Должно вернуть: wal
 
-# 2. Включить WAL режим для SQLite
-sqlite3 dev.db "PRAGMA journal_mode=WAL;"
+# 2. Включить WAL если выключен
+sqlite3 /home/shleague/shadow-hockey-league_v2/instance/dev.db "PRAGMA journal_mode=WAL;"
 
-# 3. Проверить активные транзакции
-sqlite3 dev.db "SELECT * FROM sqlite_master WHERE type='table';"
+# 3. Перезапустить приложение
+systemctl restart shadow-hockey-league
 ```
 
 **Профилактика:**
-- Используйте `with db.session.begin()` для всех транзакций
 - В production рассмотрите переход на PostgreSQL
-
----
-
-### ❌ Ошибка: "FOREIGN KEY constraint failed"
-
-**Симптомы:**
-- Ошибка при создании/удалении менеджера или достижения
-- В логах: `sqlalchemy.exc.IntegrityError: FOREIGN KEY constraint failed`
-
-**Причины:**
-1. Попытка создать достижение для несуществующего менеджера
-2. Попытка удалить страну, у которой есть менеджеры
-3. FK ограничения включены, но данные некорректны
-
-**Решение:**
-
-```bash
-# 1. Проверить целостность БД
-sqlite3 dev.db "PRAGMA integrity_check;"
-
-# 2. Проверить orphaned записи
-sqlite3 dev.db "SELECT * FROM achievements WHERE manager_id NOT IN (SELECT id FROM managers);"
-
-# 3. Исправить или удалить проблемные записи
-sqlite3 dev.db "DELETE FROM achievements WHERE manager_id NOT IN (SELECT id FROM managers);"
-```
-
-**Профилактика:**
-- Всегда создавайте страну перед менеджером
-- Используйте каскадное удаление (`cascade="all, delete-orphan"`)
+- Используйте connection pooling
 
 ---
 
 ## Ошибки приложения
 
-### ❌ Ошибка 500: "Error building leaderboard"
+### ❌ Ошибка 500 Internal Server Error
 
 **Симптомы:**
-- Страница 500 с сообщением об ошибке
-- В логах: `Error building leaderboard: ...`
-
-**Причины:**
-1. Ошибка в `rating_service.py`
-2. Некорректные данные в БД
-3. Ошибка шаблона Jinja2
+- Приложение возвращает 500
+- В логах Gunicorn traceback
 
 **Решение:**
 
 ```bash
-# 1. Проверить логи с полным traceback
-tail -100 /var/log/YOUR_USERNAME.pythonanywhere.com/error.log
+# 1. Проверить логи Gunicorn
+journalctl -u shadow-hockey-league -n 50 --no-pager
 
-# 2. Запустить тесты
-python -m unittest tests.py -v
+# 2. Проверить статус сервиса
+systemctl status shadow-hockey-league
 
-# 3. Проверить данные в БД
-python -c "
-from app import create_app
-from models import db, Manager
-app = create_app()
-with app.app_context():
-    print('Managers:', db.session.query(Manager).count())
-"
+# 3. Перезапустить
+systemctl restart shadow-hockey-league
+
+# 4. Проверить health
+curl http://127.0.0.1:8000/health
 ```
 
 ---
 
-### ❌ Ошибка 404: "Страница не найдена"
+### ❌ Ошибка 502 Bad Gateway
 
 **Симптомы:**
-- Страница 404 при доступе к `/` или `/rating`
-
-**Причины:**
-1. Маршруты не зарегистрированы
-2. WSGI настроен неправильно
-3. Приложение не перезапущено
+- Nginx возвращает 502
+- Gunicorn не запущен
 
 **Решение:**
 
 ```bash
-# 1. Проверить регистрацию маршрутов
-python -c "
-from app import create_app
-app = create_app()
-print('Routes:', [rule.rule for rule in app.url_map.iter_rules()])
-"
+# 1. Проверить Gunicorn
+systemctl status shadow-hockey-league
 
-# 2. Проверить WSGI файл
-cat /var/www/YOUR_USERNAME_pythonanywhere_com_wsgi.py
+# 2. Проверить порт
+ss -tlnp | grep 8000
 
-# 3. Перезапустить приложение (кнопка Reload в веб-интерфейсе)
-```
+# 3. Если Gunicorn не запущен - запустить
+systemctl start shadow-hockey-league
 
----
+# 4. Проверить логи
+journalctl -u shadow-hockey-league -n 100
 
-### ❌ Ошибка: "Working outside of application context"
-
-**Симптомы:**
-- Ошибка при запуске скриптов
-- `RuntimeError: Working outside of application context`
-
-**Причины:**
-1. Прямой вызов `db.session` без контекста приложения
-2. Скрипт не создаёт приложение правильно
-
-**Решение:**
-
-```python
-# Неправильно:
-from models import db
-db.session.query(...)
-
-# Правильно:
-from app import create_app
-from models import db
-
-app = create_app()
-with app.app_context():
-    db.session.query(...)
+# 5. Перезапустить Nginx
+systemctl restart nginx
 ```
 
 ---
 
 ## Проблемы со статикой
 
-### ❌ Статика не загружается (404)
+### ❌ CSS/JS не загружаются
 
 **Симптомы:**
-- CSS/JS/изображения не загружаются
-- В консоли браузера: `404 Not Found` для `/static/...`
-
-**Причины:**
-1. Неправильный путь в настройках PythonAnywhere
-2. Файлы отсутствуют на сервере
-3. Проблемы с правами доступа
+- Страница без стилей
+- 404 ошибки в консоли браузера
 
 **Решение:**
 
 ```bash
-# 1. Проверить наличие файлов
-ls -la /home/YOUR_USERNAME/shadow-hockey-league/static/
+# 1. Проверить права
+ls -la /home/shleague/shadow-hockey-league_v2/static/
+chmod -R 755 /home/shleague/shadow-hockey-league_v2/static
+chmod 755 /home/shleague
 
-# 2. Проверить настройки в PythonAnywhere:
-#    Web → Static files
-#    URL: /static/
-#    Directory: /home/YOUR_USERNAME/shadow-hockey-league/static/
+# 2. Проверить Nginx конфиг
+nginx -t
+cat /etc/nginx/sites-available/shadow-hockey-league | grep static
 
-# 3. Проверить права доступа
-chmod -R 755 /home/YOUR_USERNAME/shadow-hockey-league/static/
-```
-
----
-
-### ❌ CSS не применяется
-
-**Симптомы:**
-- Страница загружается, но без стилей
-- CSS файл загружается (статус 200)
-
-**Причины:**
-1. Неправильный MIME тип
-2. Кэш браузера
-3. Ошибка в CSS файле
-
-**Решение:**
-
-```bash
-# 1. Проверить MIME тип в логах
-grep "static/css" /var/log/YOUR_USERNAME.pythonanywhere.com/server.log
-
-# 2. Очистить кэш браузера (Ctrl+Shift+R)
-
-# 3. Проверить CSS на синтаксические ошибки
-#    https://jigsaw.w3.org/css-validator/
+# 3. Перезапустить Nginx
+systemctl restart nginx
 ```
 
 ---
 
 ## Проблемы с тестами
 
-### ❌ Тесты не проходят: "no such table"
-
-**Симптомы:**
-- Тесты падают с `OperationalError: no such table`
-- Unit тесты работают, интеграционные нет
-
-**Причины:**
-1. Тесты используют in-memory БД, но ожидается файл
-2. `db.create_all()` не вызывается в `setUp`
-
-**Решение:**
-
-```python
-# Проверить setUp метод:
-def setUp(self) -> None:
-    self.app = create_app("config.TestingConfig")
-    self.client = self.app.test_client()
-    
-    with self.app.app_context():
-        db.create_all()  # Должно быть!
-```
-
----
-
-### ❌ Тесты не проходят: "AssertionError"
-
-**Симптомы:**
-- Тесты падают с несоответствием ожидаемых значений
-- Например: `AssertionError: 1322 != 1323`
-
-**Причины:**
-1. Округление в Python (banker's rounding)
-2. Изменения в бизнес-логике
-3. Устаревшие тесты
-
-**Решение:**
-
-```python
-# Проверить расчёты вручную:
-# 550 × 0.95 = 522.5 → 522 (banker's rounding: round to even)
-
-# Обновить тест с правильным значением:
-self.assertEqual(result['total'], 522)  # Было 523
-```
-
----
-
-## Проблемы деплоя
-
-### ❌ Приложение не загружается после деплоя
-
-**Симптомы:**
-- Страница 500 или 404 после деплоя
-- Логи пустые или с ошибками
-
-**Причины:**
-1. Зависимости не установлены
-2. Переменные окружения не заданы
-3. WSGI настроен неправильно
+### ❌ Тесты не проходят
 
 **Решение:**
 
 ```bash
-# 1. Проверить зависимости
-source /home/YOUR_USERNAME/.venvs/shadow-hockey-league/bin/activate
-pip list | grep Flask
+# 1. Запустить тесты локально
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+pytest -v
 
-# 2. Проверить переменные окружения
-#    PythonAnywhere → Web → Environment variables
-#    Должны быть: FLASK_ENV, SECRET_KEY, DATABASE_URL
+# 2. С покрытием
+pytest --cov=. --cov-report=term-missing
 
-# 3. Проверить WSGI
-cat /var/www/YOUR_USERNAME_pythonanywhere_com_wsgi.py
+# 3. E2E тесты
+pytest tests/e2e/ -v
 
-# 4. Перезапустить приложение
-#    PythonAnywhere → Web → Reload
+# 4. Проверить зависимости
+pip install -r requirements.txt --quiet
 ```
 
 ---
 
-### ❌ API возвращает 404
+## Проблемы деплоя (VPS)
+
+### ❌ Деплой не работает
 
 **Симптомы:**
-- `/api/managers` и другие endpoints возвращают 404
-
-**Причины:**
-1. API отключено в production (`ENABLE_API=False`)
-2. Blueprint не зарегистрирован
+- GitHub Actions завершается с ошибкой
+- Сайт не обновляется после push
 
 **Решение:**
 
 ```bash
-# 1. Проверить ENABLE_API
-echo $ENABLE_API
+# 1. Проверить SSH ключ
+cat /home/shleague/.ssh/authorized_keys
 
-# 2. Если нужно включить (не рекомендуется):
-#    PythonAnywhere → Web → Environment variables
-#    Добавить: ENABLE_API=True
-#    Reload приложение
+# 2. Проверить логи SSH
+tail -20 /var/log/auth.log | grep ssh
 
-# 3. Проверить регистрацию blueprint
-python -c "
-from app import create_app
-app = create_app()
-print('Blueprints:', list(app.blueprints.keys()))
-"
+# 3. Проверить GitHub Actions
+# Откройте: https://github.com/amatjkay/shadow-hockey-league_v2/actions
+
+# 4. Ручной деплой
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+git reset --hard origin/main
+pip install -r requirements.txt --quiet
+alembic upgrade head
+systemctl restart shadow-hockey-league
+
+# 5. Проверить health
+curl http://127.0.0.1:8000/health
 ```
-
-**Важно:** В production API должно быть отключено или защищено аутентификацией!
 
 ---
 
-### ❌ Ошибка: "ImportError: No module named 'app'"
-
-**Симптомы:**
-- Ошибка в логах WSGI
-- Приложение не запускается
-
-**Причины:**
-1. Неправильный путь в WSGI
-2. Виртуальное окружение не активировано
-3. Файлы не загружены на сервер
+### ❌ Rollback не работает
 
 **Решение:**
 
 ```bash
-# 1. Проверить путь в WSGI
-cat /var/www/YOUR_USERNAME_pythonanywhere_com_wsgi.py
-# Должно быть:
-# project_home = '/home/YOUR_USERNAME/shadow-hockey-league'
+# 1. Проверить бэкапы
+ls -lh /backup/
 
-# 2. Проверить наличие файлов
-ls -la /home/YOUR_USERNAME/shadow-hockey-league/app.py
+# 2. Восстановить БД вручную
+cp /backup/dev.db-YYYYMMDD-HHMMSS.gz /tmp/
+cd /tmp
+gunzip dev.db-YYYYMMDD-HHMMSS.gz
+cp dev.db-YYYYMMDD-HHMMSS /home/shleague/shadow-hockey-league_v2/instance/dev.db
+systemctl restart shadow-hockey-league
 
-# 3. Проверить виртуальное окружение
-source /home/YOUR_USERNAME/.venvs/shadow-hockey-league/bin/activate
-python -c "import app; print('OK')"
+# 3. Или через GitHub Actions
+# Откройте: https://github.com/amatjkay/shadow-hockey-league_v2/actions/workflows/rollback.yml
+# Нажмите "Run workflow"
 ```
 
 ---
 
-## 📊 Диагностика
+## Проблемы с Redis
 
-### Команды для быстрой диагностики:
+### ❌ Redis не подключён
+
+**Симптомы:**
+- Health check показывает `redis_status: disconnected`
+- Кэш не работает
+
+**Решение:**
 
 ```bash
-# Проверка состояния приложения
-curl -I https://YOUR_USERNAME.pythonanywhere.com/
+# 1. Проверить статус Redis
+systemctl status redis-server
+redis-cli ping
+# Должно вернуть: PONG
 
-# Проверка health endpoint
-curl https://YOUR_USERNAME.pythonanywhere.com/health
+# 2. Если не запущен
+systemctl start redis-server
+systemctl enable redis-server
 
-# Проверка логов в реальном времени
-tail -f /var/log/YOUR_USERNAME.pythonanywhere.com/error.log
+# 3. Проверить память
+redis-cli info memory | grep used_memory_human
 
-# Проверка размера БД
-du -h /home/YOUR_USERNAME/shadow-hockey-league/dev.db
+# 4. Проверить конфиг
+redis-cli CONFIG GET maxmemory
+# Должно быть: 128mb
 
-# Проверка количества записей
-sqlite3 dev.db "SELECT 'Managers:', COUNT(*) FROM managers UNION ALL SELECT 'Countries:', COUNT(*) FROM countries UNION ALL SELECT 'Achievements:', COUNT(*) FROM achievements;"
+# 5. Перезапустить
+systemctl restart redis-server
 ```
 
 ---
 
-## 📞 Поддержка
+## Проблемы с CI/CD
 
-Если проблема не решена:
+### ❌ GitHub Actions не деплоит
 
-1. **Проверьте логи** — 90% проблем видны в error.log
-2. **Поищите в документации** — README.md, docs/*.md
-3. **Запустите тесты** — `python -m unittest discover -v`
-4. **Проверьте статус PythonAnywhere** — https://status.pythonanywhere.com/
-5. **Обратитесь в поддержку PythonAnywhere** — для проблем с хостингом
+**Причины:**
+1. SSH ключ истёк
+2. Секреты не настроены
+3. Сервер недоступен
+
+**Решение:**
+
+```bash
+# 1. Проверить секреты в GitHub
+# Settings → Secrets and variables → Actions
+# Должны быть: SERVER_IP, SSH_USER, SSH_PRIVATE_KEY
+
+# 2. Проверить доступность сервера
+ping shadow-hockey-league.ru
+
+# 3. Проверить SSH
+ssh -i ~/.ssh/id_ed25519 shleague@shadow-hockey-league.ru "echo success"
+
+# 4. Перегенерировать ключ если нужно
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f github_actions_key
+# Скопировать публичный ключ на сервер
+```
 
 ---
 
-## 📝 Чеклист быстрой диагностики
+## 📞 Дополнительные ресурсы
 
-При возникновении проблемы:
-
-- [ ] Проверить логи ошибок
-- [ ] Проверить логи сервера
-- [ ] Запустить тесты
-- [ ] Проверить переменные окружения
-- [ ] Проверить наличие файлов БД
-- [ ] Проверить права доступа
-- [ ] Перезапустить приложение
+| Ресурс | URL |
+|--------|-----|
+| Production | https://shadow-hockey-league.ru/ |
+| Health check | `/health` |
+| Метрики | `/metrics` |
+| GitHub Actions | https://github.com/amatjkay/shadow-hockey-league_v2/actions |
+| Деплой инструкция | `docs/MIGRATION_GUIDE.md` |
+| Rollback инструкция | `docs/ROLLBACK.md` |
 
 ---
 
-**Последнее обновление:** 30 марта 2026 г.
-**Версия документа:** 1.0
+**Последнее обновление:** 7 апреля 2026 г.
+**Версия:** 2.0 (VPS)
