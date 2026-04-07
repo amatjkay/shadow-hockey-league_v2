@@ -97,6 +97,15 @@ if [ -n "${DATABASE_URL:-}" ]; then
     # Check for Windows-style paths (c:/, d:/, etc.) and replace with correct Linux path
     if echo "$DATABASE_URL" | grep -qiE 'sqlite:///[a-z]:'; then
         log_warn "Detected Windows path in DATABASE_URL, fixing..."
+        
+        # Fix the .env file permanently
+        sed -i "s|DATABASE_URL=sqlite:///.*|DATABASE_URL=sqlite:///${APP_DIR}/instance/dev.db|" "$ENV_FILE"
+        log_info "Fixed .env file permanently"
+        
+        # Reload .env with the fixed path
+        set -a
+        source "$ENV_FILE"
+        set +a
         DATABASE_URL="sqlite:///${APP_DIR}/instance/dev.db"
         log_info "Fixed DATABASE_URL: $DATABASE_URL"
     fi
