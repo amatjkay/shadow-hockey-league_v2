@@ -59,148 +59,21 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+      - name: Upload deploy script
+        run: |
+          scp -i ~/.ssh/id_ed25519 \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=no \
+            scripts/deploy.sh \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/tmp/deploy.sh
+
       - name: Deploy to server
         run: |
           ssh -i ~/.ssh/id_ed25519 \
             -o ConnectTimeout=10 \
             -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} 'bash -s' << 'ENDOFSCRIPT'
-#!/usr/bin/env bash
-set -euo pipefail
-
-APP_DIR="/home/shleague/shadow-hockey-league_v2"
-SERVICE_NAME="shadow-hockey-league"
-VENV_DIR="$APP_DIR/venv"
-BACKUP_DIR="$APP_DIR/backups"
-ENV_FILE="$APP_DIR/.env"
-HEALTH_URL="http://127.0.0.1:5000/health"
-
-log_info()  { echo "[INFO]  $1"; }
-log_warn()  { echo "[WARN]  $1"; }
-log_error() { echo "[ERROR] $1"; }
-
-ROLLBACK_COMMIT=""
-
-rollback() {
-    log_warn "=== ROLLING BACK to: $ROLLBACK_COMMIT ==="
-    cd "$APP_DIR" || exit 1
-    if [ -n "$ROLLBACK_COMMIT" ]; then
-        git checkout "$ROLLBACK_COMMIT" 2>&1 || true
-    fi
-    LATEST_BACKUP=$(ls -t "$BACKUP_DIR"/dev.db.*.pre-deploy* 2>/dev/null | head -1)
-    if [ -n "$LATEST_BACKUP" ]; then
-        DB_FILE="$APP_DIR/instance/dev.db"
-        log_info "Restoring database from: $LATEST_BACKUP"
-        cp "$LATEST_BACKUP" "$DB_FILE" 2>&1 || true
-    fi
-    systemctl restart "$SERVICE_NAME" 2>&1 || true
-    log_warn "Rollback completed."
-    return 1
-}
-
-trap 'rollback' ERR
-
-cd "$APP_DIR" || exit 1
-log_info "=========================================="
-log_info "Starting deployment"
-log_info "=========================================="
-
-# Record current commit
-ROLLBACK_COMMIT=$(git rev-parse HEAD)
-log_info "Current commit (for rollback): $ROLLBACK_COMMIT"
-
-# Fetch latest code
-log_info "=== Fetching latest code ==="
-git fetch origin main 2>&1
-git reset --hard origin/main 2>&1
-log_info "Deployed commit: $(git log --oneline -1)"
-
-# Clean Python cache
-log_info "=== Cleaning Python cache ==="
-find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-find . -type f -name "*.pyc" -delete 2>/dev/null || true
-
-# Create backup dir
-mkdir -p "$BACKUP_DIR"
-
-# Backup database
-DB_FILE="$APP_DIR/instance/dev.db"
-if [ -f "$DB_FILE" ]; then
-    BACKUP_FILE="$BACKUP_DIR/dev.db.$(date +%Y%m%d%H%M%S).pre-deploy"
-    cp "$DB_FILE" "$BACKUP_FILE"
-    log_info "Database backed up to: $BACKUP_FILE"
-else
-    log_warn "No database file found, skipping backup"
-fi
-
-# Install dependencies
-log_info "=== Installing dependencies ==="
-source "$VENV_DIR/bin/activate"
-pip install -r requirements.txt --quiet --upgrade 2>&1
-log_info "Dependencies installed"
-
-# Run migrations
-log_info "=== Running database migrations ==="
-if [ -f "$ENV_FILE" ]; then
-    set -a
-    source "$ENV_FILE"
-    set +a
-    log_info "Loaded .env"
-fi
-
-if [ -n "${DATABASE_URL:-}" ]; then
-    DATABASE_URL="$DATABASE_URL" alembic upgrade head 2>&1
-else
-    alembic upgrade head 2>&1
-fi
-log_info "Migrations complete"
-
-# Restart service
-log_info "=== Restarting $SERVICE_NAME ==="
-systemctl restart "$SERVICE_NAME" 2>&1
-sleep 2
-
-if [ "$(systemctl is-active "$SERVICE_NAME" 2>&1)" = "active" ]; then
-    log_info "Service is active"
-else
-    log_error "Service is not active"
-    exit 1
-fi
-
-# Health check
-log_info "=== Running health check ==="
-for i in 1 2 3 4 5; do
-    HEALTH_RESPONSE=$(curl -sf --max-time 10 "$HEALTH_URL" 2>&1) || true
-    if [ -n "$HEALTH_RESPONSE" ]; then
-        STATUS=$(echo "$HEALTH_RESPONSE" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print(data.get('status', 'unknown'))
-except Exception:
-    print('invalid_json')
-" 2>/dev/null) || STATUS="parse_error"
-
-        if [ "$STATUS" = "healthy" ]; then
-            log_info "Health check PASSED (status: $STATUS)"
-            log_info "=========================================="
-            log_info "Deployment completed successfully!"
-            log_info "Commit: $(git log --oneline -1)"
-            log_info "=========================================="
-            trap - ERR
-            exit 0
-        else
-            log_warn "Health check attempt $i: status=$STATUS"
-        fi
-    else
-        log_warn "Health check attempt $i: no response"
-    fi
-    sleep 3
-done
-
-log_error "Health check failed after 5 attempts"
-exit 1
-ENDOFSCRIPT
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} \
+            'chmod +x /tmp/deploy.sh && bash /tmp/deploy.sh'
 
       - name: Deployment result
         if: always()
