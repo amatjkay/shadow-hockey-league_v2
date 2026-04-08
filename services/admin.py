@@ -527,18 +527,24 @@ class AchievementModelView(SecureModelView):
     form_columns = ('manager', 'type', 'league', 'season', 'title', 'icon_path', 'base_points', 'multiplier', 'final_points')
     column_default_sort = ('manager.name', False)
 
-    # 1. Select2 для Менеджера, Типа, Лиги, Сезона (используем имена отношений)
+    # 1. Select2 для Менеджера (Ajax), для остальных - QuerySelectField (стабильнее)
     form_ajax_refs = {
         'manager': {'fields': ['name'], 'page_size': 10},
-        'type': {'fields': ['name', 'code'], 'page_size': 10},
-        'league': {'fields': ['name', 'code'], 'page_size': 10},
-        'season': {'fields': ['name', 'code'], 'page_size': 10},
     }
 
     form_args = {
-        'type': {'get_label': 'name'},
-        'league': {'get_label': 'name'},
-        'season': {'get_label': 'name'},
+        'type': {
+            'query_factory': lambda: db.session.query(AchievementType).order_by(AchievementType.name),
+            'get_label': 'name'
+        },
+        'league': {
+            'query_factory': lambda: db.session.query(League).order_by(League.name),
+            'get_label': 'name'
+        },
+        'season': {
+            'query_factory': lambda: db.session.query(Season).order_by(Season.name),
+            'get_label': 'name'
+        }
     }
 
     # 2. Скрываем авто-поля (readonly)
