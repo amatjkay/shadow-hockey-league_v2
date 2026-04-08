@@ -5,14 +5,18 @@ for managing countries, managers, and achievements.
 """
 
 import logging
-from flask import redirect, url_for, request, flash
+import os
+import subprocess
+import json
+from flask import redirect, url_for, request, flash, current_app
+from markupsafe import Markup
 from flask_admin import Admin, AdminIndexView, expose, BaseView
+from flask_admin.actions import action
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.form import Select2Widget
-from wtforms import Form, StringField
+from wtforms import SelectField, Form, StringField, validators
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from wtforms import SelectField
 
 from models import (
     db, AdminUser, Country, Manager, Achievement, AuditLog,
@@ -45,11 +49,6 @@ def get_flag_choices():
                 path = f'/static/img/flags/{f}'
                 choices.append((path, f))
     return choices
-
-# List of available flag images (updated to match actual file names)
-# Оставляем как фоллбэк, но приоритет у динамической функции
-FLAG_CHOICES = get_flag_choices()
-
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -163,13 +162,124 @@ def init_admin(app) -> None:
     # System
     admin.add_view(ApiKeyModelView(ApiKey, db.session, name='API Keys', category='System', menu_icon_type='fa', menu_icon_value='fa-key'))
     admin.add_view(AuditLogModelView(AuditLog, db.session, name='Audit Log', category='System', menu_icon_type='fa', menu_icon_value='fa-history'))
+    admin.add_view(ServerControlView(name='Server Control', category='System', menu_icon_type='fa', menu_icon_value='fa-power-off'))
 
     # Add Login/Logout as separate menu items
     admin.add_view(LoginView(name='Login', endpoint='admin_login', url='/admin/login'))
     admin.add_view(LogoutView(name='Logout', endpoint='admin_logout', url='/admin/logout'))
 
 
-# Helper function to get choices from reference tables
+# Helper data for Countries (sorted alphabetically by name for better UX)
+_raw_choices = [
+    ('RUS', 'Russia'), ('CAN', 'Canada'), ('USA', 'United States'),
+    ('SWE', 'Sweden'), ('FIN', 'Finland'), ('CZE', 'Czech Republic'),
+    ('SUI', 'Switzerland'), ('GER', 'Germany'), ('SVK', 'Slovakia'),
+    ('DEN', 'Denmark'), ('NOR', 'Norway'), ('FRA', 'France'),
+    ('AUT', 'Austria'), ('BLR', 'Belarus'), ('KAZ', 'Kazakhstan'),
+    ('LAT', 'Latvia'), ('GBR', 'Great Britain'), ('ITA', 'Italy'),
+    ('UKR', 'Ukraine'), ('POL', 'Poland'), ('SLO', 'Slovenia'),
+    ('HUN', 'Hungary'), ('JPN', 'Japan'), ('KOR', 'South Korea'),
+    ('CHN', 'China'), ('AUS', 'Australia'), ('MEX', 'Mexico'),
+    ('VNM', 'Vietnam')
+]
+COUNTRY_CHOICES = [('', '')] + sorted(_raw_choices, key=lambda x: x[1])
+
+# Map codes to actual flag filenames (handling legacy names or differences)
+# Assuming standard 3-letter codes match filenames in most cases
+COUNTRY_FLAG_MAP = {code: f'/static/img/flags/{code}.png' for code, _ in _raw_choices}
+# Add specific overrides if filenames differ from ISO codes
+COUNTRY_FLAG_MAP['GBR'] = '/static/img/flags/GBR.png' # Or UK.png if exists
+
+# JavaScript to auto-fill Name, Flag Path, and show preview
+COUNTRY_AUTOFILL_JS = """
+<script>
+$(document).ready(function() {
+    var $code = $('#code');
+    var $name = $('#name');
+    var $flag = $('#flag_path');
+    var $preview = $('#flag-preview-img');
+    var flagMap = """ + json.dumps({k: v for k, v in COUNTRY_FLAG_MAP.items()}) + """;
+
+    function updateCountryDetails() {
+        // Wait a tick for Select2 to update data
+        setTimeout(function() {
+            var data = $code.select2('data');
+            if (data && data.length > 0) {
+                var val = data[0];
+                // Update Name
+                if ($name.val() === '' || $name.val() === 'Unknown') {
+                    $name.val(val.text);
+                }
+                // Update Flag if mapping exists
+                var flagUrl = flagMap[val.id];
+                if (flagUrl) {
+                    $flag.val(flagUrl).trigger('change');
+                    $preview.attr('src', flagUrl).show();
+                }
+            }
+        }, 50);
+    }
+
+    $code.on('select2:select', updateCountryDetails);
+    
+    // Initial check on load
+    setTimeout(function() {
+        var currentVal = $code.val();
+        if (currentVal) {
+             // Trigger update manually if value exists
+             updateCountryDetails();
+        }
+    }, 1000);
+});
+</script>
+"""
+
+# JavaScript for Achievement Auto-fill
+ACHIEVEMENT_AUTOFILL_JS = """
+<script>
+$(document).ready(function() {
+    var $type = $('#type_id');
+    var $league = $('#league_id');
+    var $season = $('#season_id');
+    var $title = $('#title');
+    var $icon = $('#icon_path');
+    var $base = $('#base_points');
+    var $mult = $('#multiplier');
+    var $final = $('#final_points');
+
+    function calculate() {
+        setTimeout(function() {
+            var typeData = $type.select2('data');
+            var leagueData = $league.select2('data');
+            var seasonData = $season.select2('data');
+
+            if (typeData.length > 0 && leagueData.length > 0 && seasonData.length > 0) {
+                // Variant A Logic: Title
+                $title.val(typeData[0].text + ' ' + leagueData[0].text + ' ' + seasonData[0].text);
+                // Variant A Logic: Icon
+                $icon.val('/static/img/achievements/' + typeData[0].id + '.png');
+                // Note: Points logic happens on Server
+            }
+        }, 50);
+    }
+
+    $type.on('select2:select', calculate);
+    $league.on('select2:select', calculate);
+    $season.on('select2:select', calculate);
+});
+</script>
+"""
+
+# Helper function to get (code, name) tuples for reference tables
+def _get_ref_data_choices(model):
+    """Returns list of tuples (code, name) for reference tables."""
+    try:
+        items = db.session.query(model.code, model.name).order_by(model.code).all()
+        return [('', '-- Select --')] + [(code, name) for code, name in items]
+    except Exception:
+        return [('', '-- Error loading --')]
+
+# Helper function to get (id, name) tuples for FK relationships
 def _get_choice_tuples(model):
     """Returns list of tuples (id, name) for reference tables."""
     try:
@@ -280,192 +390,213 @@ class SecureModelView(ModelView):
 class CountryModelView(SecureModelView):
     """Admin view for Country CRUD operations."""
 
-    # Page title (BUG-002)
     name = 'Countries'
-
-    # Display settings
     column_list = ('id', 'code', 'name', 'flag_path')
     column_searchable_list = ('code', 'name')
     column_filters = ('code', 'name')
     form_columns = ('code', 'name', 'flag_path')
-    column_default_sort = ('id', False)
-
-    # Page titles
-    list_template = 'admin/model/list.html'
-    edit_template = 'admin/model/edit.html'
-    create_template = 'admin/model/create.html'
-
-    # Labels for columns
+    column_default_sort = ('name', False)
+    
     column_labels = {
-        'code': 'Code',
-        'name': 'Country Name',
-        'flag_path': 'Flag Image',
+        'code': 'Country',
+        'name': 'Name (Auto)',
+        'flag_path': 'Flag Img'
     }
 
-    # Labels for form fields
-    form_labels = {
-        'code': 'Country Code (e.g., RUS)',
-        'name': 'Country Name (e.g., Russia)',
-        'flag_path': 'Flag Image',
+    # Переопределяем поля на SelectField с виджетом Select2
+    form_overrides = {
+        'code': SelectField,
+        'flag_path': SelectField
     }
-
-    # Widget configuration for flag_path (dropdown)
+    
+    # Убираем DataRequired чтобы не было красной рамки и можно было сохранить без флага
+    form_args = {
+        'code': {'validators': []},
+        'flag_path': {'validators': []},
+    }
+    
     form_widget_args = {
-        'flag_path': {
-            'class': 'form-control select2',
-            'data-placeholder': 'Select a flag...',
-            'style': 'width: 100%'
-        }
+        'code': {},  # Будет установлен в create_form/edit_form
+        'flag_path': {}, # Будет установлен в create_form/edit_form
+        'name': {'readonly': True, 'style': 'background-color: #f0f0f0;'}
     }
 
+    # Размер картинки (соответствует стилю главной страницы)
     column_formatters = {
-        'flag_path': lambda v, c, m, p: f'<img src="{m.flag_path}" width="24" height="16" style="border: 1px solid #ddd;">' if m.flag_path else ''
+        'flag_path': lambda v, c, m, p: Markup(f'<img src="{m.flag_path}" width="32" height="24" style="border: 1px solid #ccc;">') if m.flag_path else ''
     }
-    column_formatters_detail = column_formatters
 
-    def create_form(self):
-        """Create form with flag choices."""
-        form = super().create_form()
+    def create_form(self, **kwargs):
+        form = super().create_form(**kwargs)
+        form.code.widget = Select2Widget()
+        form.code.choices = COUNTRY_CHOICES
+        form.flag_path.widget = Select2Widget()
         form.flag_path.choices = get_flag_choices()
+        form.extra_js = COUNTRY_AUTOFILL_JS
+        form.extra_html = Markup('<img id="flag-preview-img" src="" style="display:none; margin-top:10px; border:1px solid #ccc; max-width:64px;">')
         return form
 
-    def edit_form(self, obj):
-        """Edit form with flag choices."""
-        form = super().edit_form(obj)
+    def edit_form(self, obj, **kwargs):
+        form = super().edit_form(obj, **kwargs)
+        form.code.widget = Select2Widget()
+        form.code.choices = COUNTRY_CHOICES
+        form.flag_path.widget = Select2Widget()
         form.flag_path.choices = get_flag_choices()
+        form.extra_js = COUNTRY_AUTOFILL_JS
+        form.extra_html = Markup(f'<img id="flag-preview-img" src="{obj.flag_path}" style="margin-top:10px; border:1px solid #ccc; max-width:64px;">' if obj.flag_path else '<img id="flag-preview-img" src="" style="display:none; margin-top:10px; border:1px solid #ccc; max-width:64px;">')
         return form
 
     def on_model_change(self, form, model, is_created):
-        """Auto-fill country name from code and invalidate cache."""
-        from models import Country
-
-        if is_created and model.code:
-            # Auto-fill name from reference data (only if not manually set)
-            resolved_name = Country.resolve_name(model.code)
-            if resolved_name != "Unknown" and (not model.name or model.name == "Unknown"):
-                model.name = resolved_name
-
+        """Автоматическое заполнение name на основе code."""
+        if form.code.data:
+            model.name = dict(COUNTRY_CHOICES).get(form.code.data, "Unknown")
         invalidate_leaderboard_cache()
 
-    def on_model_delete(self, model):
-        """Invalidate cache when country is deleted."""
-        invalidate_leaderboard_cache()
+    def delete_model(self, model):
+        """Prevent deletion if managers exist."""
+        # Check if any managers use this country
+        manager_count = db.session.query(Manager).filter_by(country_id=model.id).count()
+        if manager_count > 0:
+            flash(f'Невозможно удалить страну "{model.name}". Она используется у {manager_count} менеджер(ов). Сначала измените их страну.', 'error')
+            return False
+        
+        result = super().delete_model(model)
+        if result:
+            invalidate_leaderboard_cache()
+        return result
 
 
 class ManagerModelView(SecureModelView):
     """Admin view for Manager CRUD operations."""
 
-    # Page title (BUG-002)
     name = 'Managers'
 
-    # Display settings - only use columns, not relationships or properties
-    column_list = ('id', 'name', 'country')
+    # Добавляем ссылку на создание достижения для менеджера
+    column_list = ('id', 'name', 'country', 'manage_achievements')
     column_searchable_list = ('name',)
-    column_filters = ('country_id',)
-    form_columns = ('name', 'country_id')
-    column_default_sort = ('id', False)
+    column_filters = ('country.name',)
+    form_columns = ('name', 'country')
+    column_default_sort = ('name', False)
 
-    # Use Select2 for Country
-    form_ajax_refs = {
+    # Используем form_args для надежной загрузки списка стран
+    form_args = {
         'country': {
-            'fields': ['name', 'code'],
-            'page_size': 10
+            'query_factory': lambda: db.session.query(Country).order_by(Country.name),
+            'allow_blank': False,
+            'get_label': 'name'
         }
     }
 
-    # Formatter to show Country name instead of ID
+    form_widget_args = {
+        'country': {
+            'class': 'form-control select2'
+        }
+    }
+
+    # Форматтер для ссылки на достижения
+    def _manage_achievements(view, context, model, name):
+        # Ссылка на создание достижения с предвыбранным менеджером
+        url = url_for('achievement.create_view', manager_id=model.id)
+        return Markup(f'<a href="{url}">Управление наградами ({len(model.achievements)})</a>')
+
     column_formatters = {
-        'country': lambda v, c, m, p: m.country.name if m.country else f'ID: {m.country_id}'
+        'country': lambda v, c, m, p: m.country.name if m.country else 'Unknown',
+        'manage_achievements': _manage_achievements
     }
 
-    # Labels for columns
     column_labels = {
-        'id': 'ID',
-        'name': 'Manager Name',
         'country': 'Country',
-    }
-
-    # Labels for form fields
-    form_labels = {
-        'name': 'Manager Name',
-        'country_id': 'Country',
+        'manage_achievements': 'Achievements'
     }
 
     def on_model_change(self, form, model, is_created):
-        """Invalidate cache when manager is created/updated."""
         invalidate_leaderboard_cache()
 
     def on_model_delete(self, model):
-        """Invalidate cache when manager is deleted."""
         invalidate_leaderboard_cache()
 
 
 class AchievementModelView(SecureModelView):
-    """Admin view for Achievement CRUD operations."""
+    """Admin view for Achievement CRUD operations (FK-based)."""
 
-    # Page title (BUG-002)
     name = 'Achievements'
 
-    # Display settings
-    column_list = ('id', 'achievement_type', 'league', 'season', 'manager', 'title')
-    column_searchable_list = ('title', 'achievement_type')
-    column_filters = ('league', 'season', 'achievement_type', 'manager_id')
-    form_columns = ('achievement_type', 'league', 'season', 'title', 'icon_path', 'manager_id')
-    column_default_sort = ('id', False)
+    column_list = ('id', 'type', 'league', 'season', 'manager', 'final_points')
+    column_searchable_list = ('title',)
+    column_filters = ('league.code', 'season.code', 'type.code', 'manager.name')
+    form_columns = ('manager', 'type', 'league', 'season', 'title', 'icon_path', 'base_points', 'multiplier', 'final_points')
+    column_default_sort = ('manager.name', False)
 
-    # Use Select2 for Manager
+    # 1. Select2 для Менеджера, Типа, Лиги, Сезона (используем имена отношений)
     form_ajax_refs = {
-        'manager': {
-            'fields': ['name'],
-            'page_size': 10
-        }
+        'manager': {'fields': ['name'], 'page_size': 10},
+        'type': {'fields': ['name', 'code'], 'page_size': 10},
+        'league': {'fields': ['name', 'code'], 'page_size': 10},
+        'season': {'fields': ['name', 'code'], 'page_size': 10},
     }
 
-    # Formatter to show Manager name
-    column_formatters = {
-        'manager': lambda v, c, m, p: m.manager.name if m.manager else f'ID: {m.manager_id}',
-        'icon_path': lambda v, c, m, p: f'<img src="{m.icon_path}" width="20">' if m.icon_path else ''
+    form_args = {
+        'type': {'get_label': 'name'},
+        'league': {'get_label': 'name'},
+        'season': {'get_label': 'name'},
     }
 
-    # Labels for columns
+    # 2. Скрываем авто-поля (readonly)
+    form_widget_args = {
+        'title': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
+        'icon_path': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
+        'base_points': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
+        'multiplier': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
+        'final_points': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
+    }
+
     column_labels = {
-        'id': 'ID',
-        'achievement_type': 'Type',
-        'league': 'League',
-        'season': 'Season',
-        'manager': 'Manager',
-        'title': 'Title',
-        'icon_path': 'Icon',
+        'type_id': 'Type',
+        'league_id': 'League',
+        'season_id': 'Season',
+        'final_points': 'Points'
     }
 
-    # Labels for form fields
-    form_labels = {
-        'achievement_type': 'Achievement Type',
-        'league': 'League',
-        'season': 'Season',
-        'title': 'Title',
-        'icon_path': 'Icon Path',
-        'manager_id': 'Manager',
+    # Форматтеры для списка
+    column_formatters = {
+        'type': lambda v, c, m, p: m.type.name if m.type else '-',
+        'league': lambda v, c, m, p: m.league.name if m.league else '-',
+        'season': lambda v, c, m, p: m.season.name if m.season else '-',
+        'manager': lambda v, c, m, p: m.manager.name if m.manager else '-',
     }
 
-    def create_form(self, **kwargs):
-        """Add dynamic choices for reference fields stored as strings."""
-        form = super().create_form(**kwargs)
-        form.achievement_type.choices = _get_choice_tuples(AchievementType)
-        form.league.choices = _get_choice_tuples(League)
-        form.season.choices = _get_choice_tuples(Season)
+    def create_form(self):
+        form = super().create_form()
+        # Подхват менеджера из URL
+        manager_id = request.args.get('manager_id')
+        if manager_id:
+            form.manager.data = db.session.query(Manager).get(int(manager_id))
+        # Добавляем JS для автозаполнения
+        form.extra_js = ACHIEVEMENT_AUTOFILL_JS
         return form
 
-    def edit_form(self, obj, **kwargs):
-        """Add dynamic choices for reference fields stored as strings."""
-        form = super().edit_form(obj, **kwargs)
-        form.achievement_type.choices = _get_choice_tuples(AchievementType)
-        form.league.choices = _get_choice_tuples(League)
-        form.season.choices = _get_choice_tuples(Season)
+    def edit_form(self, obj):
+        form = super().edit_form(obj)
+        form.extra_js = ACHIEVEMENT_AUTOFILL_JS
         return form
 
     def on_model_change(self, form, model, is_created):
-        """Invalidate cache when achievement is created/updated."""
+        # Автозаполнение на сервере (form.type.data is now the object)
+        type_obj = form.type.data
+        league_obj = form.league.data
+        season_obj = form.season.data
+        
+        if type_obj and league_obj and season_obj:
+            # Title & Icon (Variant A)
+            model.title = f"{type_obj.name} {league_obj.name} {season_obj.name}"
+            model.icon_path = f"/static/img/achievements/{type_obj.code}.png"
+            
+            # Points Logic
+            is_l1 = (league_obj.code == '1')
+            model.base_points = float(type_obj.base_points_l1 if is_l1 else type_obj.base_points_l2)
+            model.multiplier = float(season_obj.multiplier)
+            model.final_points = model.base_points * model.multiplier
+        
         invalidate_leaderboard_cache()
 
     def on_model_delete(self, model):
@@ -565,25 +696,25 @@ class ApiKeyModelView(SecureModelView):
     """Admin view for managing API keys."""
 
     name = 'API Keys'
-    column_list = ('name', 'scope', 'is_active', 'created_at', 'last_used_at')
+    # Используем revoked (колонка БД) вместо is_active (свойство модели)
+    column_list = ('name', 'scope', 'revoked', 'created_at', 'last_used_at')
     column_searchable_list = ('name',)
-    column_filters = ('scope', 'is_active', 'revoked')
+    column_filters = ('scope', 'revoked')
     form_columns = ('name', 'scope', 'expires_at', 'revoked')
     column_default_sort = ('created_at', True)
     
     column_formatters = {
         'key_hash': lambda v, c, m, p: '***',
-        'is_active': lambda v, c, m, p: '✅' if m.is_active else '❌',
-        'revoked': lambda v, c, m, p: '🚫' if m.revoked else '—',
+        'revoked': lambda v, c, m, p: '🚫' if m.revoked else '✅',
     }
     
     form_overrides = {
-        'key_hash': StringField, # Поле для отображения ключа при создании
+        'key_hash': StringField,
     }
     
     form_args = {
         'key_hash': {
-            'label': 'API Key (Copy this now!)',
+            'label': 'API Key (Скопируйте сейчас!)',
             'validators': [],
             'render_kw': {'readonly': True},
         }
@@ -631,14 +762,56 @@ class AuditLogModelView(SecureModelView):
         'changes': lambda v, c, m, p: f'<pre style="max-width:300px; white-space:pre-wrap;">{m.changes}</pre>' if m.changes else '',
     }
 
-    def delete_model(self, model):
-        """Allow deleting audit logs for cleanup."""
-        return super().delete_model(model)
+    # Bulk delete action
+    @action('delete_selected', 'Delete Selected', 'Are you sure you want to delete these log entries?')
+    def action_delete_selected(self, ids):
+        count = 0
+        for audit_id in ids:
+            model = db.session.get(AuditLog, int(audit_id))
+            if model:
+                db.session.delete(model)
+                count += 1
+        db.session.commit()
+        flash(f'Удалено записей: {count}', 'success')
 
-    # Добавляем действие для массовой очисткики
-    action_list = (
-        ('delete_selected', 'Delete Selected', 'Delete selected log entries'),
-    )
+
+class ServerControlView(BaseView):
+    """View for server administration actions like restart."""
+
+    def is_accessible(self):
+        return current_user.is_authenticated
+
+    @expose('/')
+    def index(self):
+        return self.render('admin/server_control.html')
+
+    @expose('/restart', methods=['POST'])
+    def restart(self):
+        """Restart the service."""
+        try:
+            if os.name == 'nt':
+                # Windows (Local Dev): Just stop the process.
+                # User needs to restart it manually in console.
+                flash('Server stopped. Please restart it manually in the console (`python app.py`).', 'info')
+                # Return a page that tells user to restart
+                return '<html><body style="font-family:sans-serif; text-align:center; margin-top:50px;"><h1>🛑 Server Stopped</h1><p>Please restart via console: <code>python app.py</code></p></body></html>'
+                # Use background thread to kill self after response? 
+                # No, simple exit is safer for dev.
+                import threading
+                def suicide():
+                    import time
+                    time.sleep(1)
+                    import os
+                    os._exit(0)
+                threading.Thread(target=suicide).start()
+                return redirect(url_for('.index'))
+            else:
+                # Linux (Production): Use systemctl
+                subprocess.Popen(['sudo', 'systemctl', 'restart', 'shadow-hockey-league'])
+                return '<html><body style="font-family:sans-serif; text-align:center; margin-top:50px;"><h1>🔄 Restarting Server...</h1><p>Please wait a moment.</p><script>setTimeout(()=>window.location.href="/admin/", 5000);</script></body></html>'
+        except Exception as e:
+            flash(f'Failed to restart: {str(e)}', 'error')
+            return redirect(url_for('.index'))
 
 
 # ==================== LOGIN / LOGOUT ====================

@@ -200,23 +200,37 @@ class Achievement(db.Model):
     __tablename__ = "achievements"
     __table_args__ = (
         UniqueConstraint(
-            "manager_id", "league", "season", "achievement_type",
+            "manager_id", "type_id", "league_id", "season_id",
             name="uq_achievement_manager_league_season_type"
         ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    achievement_type = db.Column(db.String(20), nullable=False, index=True)
-    league = db.Column(db.String(10), nullable=False, index=True)
-    season = db.Column(db.String(10), nullable=False, index=True)
+    
+    # New Foreign Keys
+    type_id = db.Column(db.Integer, db.ForeignKey("achievement_types.id"), nullable=False, index=True)
+    league_id = db.Column(db.Integer, db.ForeignKey("leagues.id"), nullable=False, index=True)
+    season_id = db.Column(db.Integer, db.ForeignKey("seasons.id"), nullable=False, index=True)
+    
+    # Auto-calculated fields
+    base_points = db.Column(db.Float, nullable=False, default=0.0)
+    multiplier = db.Column(db.Float, nullable=False, default=1.0)
+    final_points = db.Column(db.Float, nullable=False, default=0.0)
+    
+    # Legacy/Visual fields
     title = db.Column(db.String(100), nullable=False)
     icon_path = db.Column(db.String(100), nullable=False)
+    
+    # Relationships
     manager_id = db.Column(
         db.Integer, db.ForeignKey("managers.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    type = db.relationship("AchievementType")
+    league = db.relationship("League")
+    season = db.relationship("Season")
 
     def __repr__(self) -> str:
-        return f"<Achievement {self.achievement_type} {self.league} {self.season}>"
+        return f"<Achievement {self.type_id}/{self.league_id}/{self.season_id}>"
 
     def to_html(self) -> str:
         """Generate HTML img tag for this achievement."""
