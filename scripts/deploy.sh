@@ -12,7 +12,7 @@ SERVICE_NAME="shadow-hockey-league"
 VENV_DIR="$APP_DIR/venv"
 BACKUP_DIR="$APP_DIR/backups"
 ENV_FILE="$APP_DIR/.env"
-HEALTH_URL="http://127.0.0.1:5000/health"
+HEALTH_URL="http://127.0.0.1:8000/health"
 
 log_info()  { echo "[INFO]  $1"; }
 log_warn()  { echo "[WARN]  $1"; }
@@ -97,6 +97,9 @@ if [ -n "${DATABASE_URL:-}" ]; then
     # Check for Windows-style paths (c:/, d:/, etc.) and replace with correct Linux path
     if echo "$DATABASE_URL" | grep -qiE 'sqlite:///[a-z]:'; then
         log_warn "Detected Windows path in DATABASE_URL, fixing..."
+        
+        # Ensure .env is writable by current user
+        chmod u+w "$ENV_FILE" 2>/dev/null || true
         
         # Fix the .env file permanently
         sed -i "s|DATABASE_URL=sqlite:///.*|DATABASE_URL=sqlite:///${APP_DIR}/instance/dev.db|" "$ENV_FILE"
