@@ -596,7 +596,7 @@ class AchievementModelView(SecureModelView):
         form.extra_js = self._get_achievement_js()
         return form
 
-    def _get_achievement_js(self, current_type, current_league, current_season):
+    def _get_achievement_js(self, current_type=None, current_league=None, current_season=None):
         """Генерирует JS с данными для автозаполнения."""
         # Собираем полные данные для JS
         types = [(t.id, t.name, t.code, t.base_points_l1, t.base_points_l2) for t in db.session.query(AchievementType).all()]
