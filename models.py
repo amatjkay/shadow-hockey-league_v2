@@ -234,9 +234,11 @@ class Achievement(db.Model):
 
     def to_html(self) -> str:
         """Generate HTML img tag for this achievement."""
+        league_code = self.league.code if self.league else "?"
+        season_code = self.season.code if self.season else "?"
         return (
             f'<img src="{self.icon_path}" '
-            f'title="Shadow {self.league} league {self.title} s{self.season}">'
+            f'title="Shadow {league_code} league {self.title} s{season_code}">'
         )
 
 
