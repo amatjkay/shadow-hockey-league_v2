@@ -527,33 +527,22 @@ class AchievementModelView(SecureModelView):
     form_columns = ('manager', 'type', 'league', 'season', 'title', 'icon_path', 'base_points', 'multiplier', 'final_points')
     column_default_sort = ('manager.name', False)
 
-    # 1. Select2 для Менеджера (Ajax), для остальных - QuerySelectField (стабильнее)
+    # 1. Select2 для Менеджера (Ajax), для остальных - SelectField (чтобы легко получать code и points в JS)
     form_ajax_refs = {
         'manager': {'fields': ['name'], 'page_size': 10},
     }
 
-    form_args = {
-        'type': {
-            'query_factory': lambda: db.session.query(AchievementType).order_by(AchievementType.name),
-            'get_label': 'name'
-        },
-        'league': {
-            'query_factory': lambda: db.session.query(League).order_by(League.name),
-            'get_label': 'name'
-        },
-        'season': {
-            'query_factory': lambda: db.session.query(Season).order_by(Season.name),
-            'get_label': 'name'
-        }
+    # Переопределяем поля на обычные SelectField
+    form_overrides = {
+        'type': SelectField,
+        'league': SelectField,
+        'season': SelectField,
     }
-
-    # 2. Скрываем авто-поля (readonly)
+    
     form_widget_args = {
-        'title': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
-        'icon_path': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
-        'base_points': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
-        'multiplier': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
-        'final_points': {'readonly': True, 'style': 'background-color: #f0f0f0;'},
+        'type': {'class': 'form-control select2'},
+        'league': {'class': 'form-control select2'},
+        'season': {'class': 'form-control select2'},
     }
 
     column_labels = {
@@ -577,31 +566,112 @@ class AchievementModelView(SecureModelView):
         manager_id = request.args.get('manager_id')
         if manager_id:
             form.manager.data = db.session.query(Manager).get(int(manager_id))
-        # Добавляем JS для автозаполнения
-        form.extra_js = ACHIEVEMENT_AUTOFILL_JS
+        
+        # Заполняем списки для SelectField (id, name)
+        form.type.choices = [(t.id, t.name) for t in db.session.query(AchievementType).order_by(AchievementType.name).all()]
+        form.league.choices = [(l.id, l.name) for l in db.session.query(League).order_by(League.name).all()]
+        form.season.choices = [(s.id, s.name) for s in db.session.query(Season).order_by(Season.name).all()]
+
+        # Генерируем JS для автозаполнения
+        form.extra_js = self._get_achievement_js(form.type.data, form.league.data, form.season.data)
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
-        form.extra_js = ACHIEVEMENT_AUTOFILL_JS
+        
+        form.type.choices = [(t.id, t.name) for t in db.session.query(AchievementType).order_by(AchievementType.name).all()]
+        form.league.choices = [(l.id, l.name) for l in db.session.query(League).order_by(League.name).all()]
+        form.season.choices = [(s.id, s.name) for s in db.session.query(Season).order_by(Season.name).all()]
+        
+        # Если это редактирование, ставим текущие значения
+        if obj:
+            if obj.type: form.type.data = obj.type.id
+            if obj.league: form.league.data = obj.league.id
+            if obj.season: form.season.data = obj.season.id
+
+        form.extra_js = self._get_achievement_js(form.type.data, form.league.data, form.season.data)
         return form
 
+    def _get_achievement_js(self, current_type, current_league, current_season):
+        """Генерирует JS с данными для автозаполнения."""
+        # Собираем полные данные для JS
+        types = [(t.id, t.name, t.code, t.base_points_l1, t.base_points_l2) for t in db.session.query(AchievementType).all()]
+        leagues = [(l.id, l.name, l.code) for l in db.session.query(League).all()]
+        seasons = [(s.id, s.name, s.code, s.multiplier) for s in db.session.query(Season).all()]
+
+        return f"""
+        <script>
+        $(document).ready(function() {{
+            var TYPES = {json.dumps(types)};
+            var LEAGUES = {json.dumps(leagues)};
+            var SEASONS = {json.dumps(seasons)};
+
+            var $type = $('#type');
+            var $league = $('#league');
+            var $season = $('#season');
+            var $title = $('#title');
+            var $icon = $('#icon_path');
+            var $base = $('#base_points');
+            var $mult = $('#multiplier');
+            var $final = $('#final_points');
+
+            function calculate() {{
+                // Ждем инициализации Select2
+                setTimeout(function() {{
+                    var tId = $type.val();
+                    var lId = $league.val();
+                    var sId = $season.val();
+
+                    if (tId && lId && sId) {{
+                        var t = TYPES.find(x => x[0] == tId);
+                        var l = LEAGUES.find(x => x[0] == lId);
+                        var s = SEASONS.find(x => x[0] == sId);
+
+                        if (t && l && s) {{
+                            // 1. Title
+                            $title.val(t[1] + ' ' + l[1] + ' ' + s[1]);
+                            // 2. Icon
+                            $icon.val('/static/img/achievements/' + t[2] + '.png');
+                            // 3. Points
+                            var isL1 = (l[2] == '1'); 
+                            var base = isL1 ? t[3] : t[4];
+                            var mult = s[3];
+                            $base.val(base);
+                            $mult.val(mult);
+                            $final.val((base * mult).toFixed(2));
+                        }}
+                    }}
+                }}, 100);
+            }}
+
+            $type.on('select2:select change', calculate);
+            $league.on('select2:select change', calculate);
+            $season.on('select2:select change', calculate);
+
+            // Запуск при загрузке, если данные уже есть
+            calculate();
+        }});
+        </script>
+        """
+
     def on_model_change(self, form, model, is_created):
-        # Автозаполнение на сервере (form.type.data is now the object)
-        type_obj = form.type.data
-        league_obj = form.league.data
-        season_obj = form.season.data
-        
-        if type_obj and league_obj and season_obj:
-            # Title & Icon (Variant A)
-            model.title = f"{type_obj.name} {league_obj.name} {season_obj.name}"
-            model.icon_path = f"/static/img/achievements/{type_obj.code}.png"
+        # Автозаполнение на сервере
+        # Т.к. используем SelectField, form.type.data - это ID
+        if form.type.data and form.league.data and form.season.data:
+            type_obj = db.session.get(AchievementType, form.type.data)
+            league_obj = db.session.get(League, form.league.data)
+            season_obj = db.session.get(Season, form.season.data)
             
-            # Points Logic
-            is_l1 = (league_obj.code == '1')
-            model.base_points = float(type_obj.base_points_l1 if is_l1 else type_obj.base_points_l2)
-            model.multiplier = float(season_obj.multiplier)
-            model.final_points = model.base_points * model.multiplier
+            if type_obj and league_obj and season_obj:
+                # Title & Icon (Variant A)
+                model.title = f"{type_obj.name} {league_obj.name} {season_obj.name}"
+                model.icon_path = f"/static/img/achievements/{type_obj.code}.png"
+                
+                # Points Logic
+                is_l1 = (league_obj.code == '1')
+                model.base_points = float(type_obj.base_points_l1 if is_l1 else type_obj.base_points_l2)
+                model.multiplier = float(season_obj.multiplier)
+                model.final_points = model.base_points * model.multiplier
         
         invalidate_leaderboard_cache()
 
