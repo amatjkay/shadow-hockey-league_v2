@@ -11,6 +11,34 @@
 
 ---
 
+## 🌐 Production Deployment
+
+**URL:** https://shadow-hockey-league.ru/  
+**Health:** `/health` | **Metrics:** `/metrics` | **Admin:** `/admin/`
+
+### ✅ Статус деплоя (7 апреля 2026)
+
+| Компонент | Статус |
+|-----------|--------|
+| Deploy script | ✅ Auto-fix Windows paths в `.env` |
+| CI/CD | ✅ GitHub Actions через SSH (scp + bash) |
+| Database | ✅ SQLite + Alembic миграции |
+| Cache | ✅ Redis (localhost:6379) |
+| Backups | ✅ Ежедневно в 03:00 (cron, 7 дней) |
+| Secrets | ✅ Production-ключи (сгенерированы на сервере) |
+
+### 🔧 Решение проблем с деплоем
+
+Если деплой падает — смотри [`docs/DEPLOYMENT_FIX.md`](docs/DEPLOYMENT_FIX.md) с полным гайдом.
+
+**Частые проблемы:**
+1. **Windows-пути в `.env`** → deploy.sh исправляет автоматически
+2. **Alembic `no such column`** → `alembic stamp head` или ручное добавление колонок
+3. **systemctl требует пароль** → настроить `/etc/sudoers.d/shleague-systemctl`
+4. **Health check = degraded** → проверить что Redis запущен и `.env` корректен
+
+---
+
 ## 🚀 Быстрый старт
 
 ### Для Windows
