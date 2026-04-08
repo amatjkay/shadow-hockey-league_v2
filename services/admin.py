@@ -527,18 +527,23 @@ class AchievementModelView(SecureModelView):
     form_columns = ('manager', 'type', 'league', 'season', 'title', 'icon_path', 'base_points', 'multiplier', 'final_points')
     column_default_sort = ('manager.name', False)
 
-    # 1. Select2 для Менеджера (Ajax), для остальных - SelectField (чтобы легко получать code и points в JS)
-    form_ajax_refs = {
-        'manager': {'fields': ['name'], 'page_size': 10},
+    # Убираем form_overrides, чтобы Flask-Admin сам создал правильные поля для связей (QuerySelectField)
+    # Используем form_args для настройки отображения
+    form_args = {
+        'type': {
+            'query_factory': lambda: db.session.query(AchievementType).order_by(AchievementType.name),
+            'get_label': 'name'
+        },
+        'league': {
+            'query_factory': lambda: db.session.query(League).order_by(League.name),
+            'get_label': 'name'
+        },
+        'season': {
+            'query_factory': lambda: db.session.query(Season).order_by(Season.name),
+            'get_label': 'name'
+        }
     }
 
-    # Переопределяем поля на обычные SelectField
-    form_overrides = {
-        'type': SelectField,
-        'league': SelectField,
-        'season': SelectField,
-    }
-    
     form_widget_args = {
         'type': {'class': 'form-control select2'},
         'league': {'class': 'form-control select2'},
@@ -560,36 +565,20 @@ class AchievementModelView(SecureModelView):
         'manager': lambda v, c, m, p: m.manager.name if m.manager else '-',
     }
 
-    def create_form(self):
-        form = super().create_form()
+    def create_form(self, obj=None):
+        form = super().create_form(obj=obj)
         # Подхват менеджера из URL
         manager_id = request.args.get('manager_id')
         if manager_id:
             form.manager.data = db.session.query(Manager).get(int(manager_id))
         
-        # Заполняем списки для SelectField (id, name)
-        form.type.choices = [(t.id, t.name) for t in db.session.query(AchievementType).order_by(AchievementType.name).all()]
-        form.league.choices = [(l.id, l.name) for l in db.session.query(League).order_by(League.name).all()]
-        form.season.choices = [(s.id, s.name) for s in db.session.query(Season).order_by(Season.name).all()]
-
         # Генерируем JS для автозаполнения
-        form.extra_js = self._get_achievement_js(form.type.data, form.league.data, form.season.data)
+        form.extra_js = self._get_achievement_js()
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
-        
-        form.type.choices = [(t.id, t.name) for t in db.session.query(AchievementType).order_by(AchievementType.name).all()]
-        form.league.choices = [(l.id, l.name) for l in db.session.query(League).order_by(League.name).all()]
-        form.season.choices = [(s.id, s.name) for s in db.session.query(Season).order_by(Season.name).all()]
-        
-        # Если это редактирование, ставим текущие значения
-        if obj:
-            if obj.type: form.type.data = obj.type.id
-            if obj.league: form.league.data = obj.league.id
-            if obj.season: form.season.data = obj.season.id
-
-        form.extra_js = self._get_achievement_js(form.type.data, form.league.data, form.season.data)
+        form.extra_js = self._get_achievement_js()
         return form
 
     def _get_achievement_js(self, current_type, current_league, current_season):
@@ -828,6 +817,7 @@ class AuditLogModelView(SecureModelView):
     name = 'Audit Log'
     can_create = False
     can_edit = False
+    can_delete = False  # Only bulk delete is allowed, individual delete is disabled
     can_view_details = True
     
     column_list = ('timestamp', 'user_id', 'action', 'target_model', 'target_id')
@@ -855,7 +845,10 @@ class ServerControlView(BaseView):
     """View for server administration actions like restart."""
 
     def is_accessible(self):
-        return current_user.is_authenticated
+        if not current_user.is_authenticated:
+            return False
+        set_current_user_for_audit(current_user.id)
+        return True
 
     @expose('/')
     def index(self):
@@ -864,6 +857,20 @@ class ServerControlView(BaseView):
     @expose('/restart', methods=['POST'])
     def restart(self):
         """Restart the service."""
+        # Log the restart action
+        user_id = current_user.id if current_user.is_authenticated else None
+        platform = 'windows' if os.name == 'nt' else 'linux'
+        try:
+            log_action(
+                user_id=user_id,
+                action='SERVER_RESTART',
+                target_model='Server',
+                changes={'platform': platform}
+            )
+            admin_logger.info(f"SERVER_RESTART initiated by user_id={user_id} on {platform}")
+        except Exception as e:
+            admin_logger.error(f"Failed to log SERVER_RESTART action: {e}")
+
         try:
             if os.name == 'nt':
                 # Windows (Local Dev): Just stop the process.

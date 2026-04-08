@@ -84,23 +84,40 @@ def seeded_db(app, app_context):
         db.session.add(manager)
         db.session.flush()
 
-        # Create achievements
+        # Create reference data for achievements
+        ach_type_top1 = AchievementType(code="TOP1", name="Top 1", base_points_l1=10, base_points_l2=5)
+        ach_type_top2 = AchievementType(code="TOP2", name="Top 2", base_points_l1=8, base_points_l2=4)
+        db.session.add_all([ach_type_top1, ach_type_top2])
+        league = League(code="1", name="League 1")
+        db.session.add(league)
+        season_2324 = Season(code="23/24", name="Season 23/24", multiplier=1.0, is_active=False)
+        season_2122 = Season(code="21/22", name="Season 21/22", multiplier=1.0, is_active=False)
+        db.session.add_all([league, season_2324, season_2122])
+        db.session.flush()
+
+        # Create achievements with FK fields
         achievements = [
             Achievement(
-                achievement_type="TOP1",
-                league="1",
-                season="23/24",
+                type_id=ach_type_top1.id,
+                league_id=league.id,
+                season_id=season_2324.id,
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager.id,
+                base_points=10.0,
+                multiplier=1.0,
+                final_points=10.0,
             ),
             Achievement(
-                achievement_type="TOP2",
-                league="1",
-                season="21/22",
+                type_id=ach_type_top2.id,
+                league_id=league.id,
+                season_id=season_2122.id,
                 title="TOP2",
                 icon_path="/static/img/cups/top2.svg",
                 manager_id=manager.id,
+                base_points=8.0,
+                multiplier=1.0,
+                final_points=8.0,
             ),
         ]
         for ach in achievements:

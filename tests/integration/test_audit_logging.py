@@ -55,20 +55,22 @@ class TestAuditLoggingIntegration:
             from services.admin import CountryModelView
             view = CountryModelView(Country, db.session)
 
-            # Create a mock form with updated data
+            # Create a mock form with proper field objects supporting .data access
+            class MockField:
+                def __init__(self, value):
+                    self.data = value
+
             class MockForm:
-                data = MultiDict([
-                    ('code', country.code),
-                    ('name', 'Updated Name'),
-                    ('flag_path', country.flag_path)
-                ])
-                def __getitem__(self, key):
-                    return self.data[key]
+                def __init__(self):
+                    self.code = MockField(country.code)
+                    self.name = MockField('Updated Name')
+                    self.flag_path = MockField(country.flag_path)
+
                 def populate_obj(self, obj):
                     """Populate model object from form data."""
-                    for key in self.data.keys():
+                    for key in ['code', 'name', 'flag_path']:
                         if hasattr(obj, key):
-                            setattr(obj, key, self.data[key])
+                            setattr(obj, key, getattr(self, key).data)
 
             # Perform update through view (this triggers audit logging)
             view.update_model(MockForm(), country)
@@ -88,7 +90,9 @@ class TestAuditLoggingIntegration:
             changes = json.loads(latest_update.changes)
             assert 'name' in changes
             assert changes['name']['old'] == original_name
-            assert changes['name']['new'] == "Updated Name"
+            # Note: CountryModelView.on_model_change auto-fills name from code,
+            # so "Updated Name" gets overwritten to "Russia" (RUS mapping)
+            assert changes['name']['new'] == "Russia"
 
     def test_crud_delete_logging(self, app, admin_user, seeded_db):
         """Test that DELETE operations are logged correctly through SecureModelView."""
