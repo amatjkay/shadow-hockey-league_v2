@@ -111,7 +111,34 @@ if [ -n "${DATABASE_URL:-}" ]; then
     fi
     
     log_info "Using DATABASE_URL: $DATABASE_URL"
-    DATABASE_URL="$DATABASE_URL" alembic upgrade head 2>&1
+    
+    # Check if alembic_version is empty but tables exist (common after restore)
+    VERSION=$(python3 -c "
+import sqlite3, sys
+try:
+    c=sqlite3.connect('${APP_DIR}/instance/dev.db')
+    v=c.execute('SELECT version_num FROM alembic_version').fetchone()
+    tables=[r[0] for r in c.execute('SELECT name FROM sqlite_master WHERE type=\"table\"').fetchall()]
+    c.close()
+    if v and v[0]:
+        print(v[0])
+    elif 'countries' in tables:
+        print('NEEDS_STAMP')
+    else:
+        print('EMPTY')
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    print('EMPTY')
+" 2>&1)
+    
+    if [ "$VERSION" = "NEEDS_STAMP" ]; then
+        log_warn "Tables exist but alembic_version is empty - stamping to head..."
+        DATABASE_URL="$DATABASE_URL" alembic stamp head 2>&1
+        log_info "Alembic stamped to head"
+    else
+        log_info "Running alembic upgrade (version: $VERSION)"
+        DATABASE_URL="$DATABASE_URL" alembic upgrade head 2>&1
+    fi
 else
     log_warn "DATABASE_URL not set, using alembic default"
     alembic upgrade head 2>&1
