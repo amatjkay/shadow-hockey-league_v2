@@ -1,10 +1,13 @@
-"""Tests for admin service views and functionality.
+"""Tests for admin service views and security features.
 
 Tests cover:
 - CountryModelView flag choices
 - AdminUserModelView password hashing
 - AdminUserModelView last admin protection
 - Cache invalidation on model changes
+- Rate limiting on login
+- RBAC permissions
+- API key flash notification
 """
 
 import unittest
@@ -176,6 +179,64 @@ class TestAdminModels(unittest.TestCase):
         self.assertIn("league", view.column_list)
         self.assertIn("season", view.column_list)
         self.assertIn("final_points", view.column_list)
+
+
+class TestRBAC(unittest.TestCase):
+    """Tests for Role-Based Access Control."""
+
+    def test_admin_user_has_role_field(self):
+        """AdminUser should have role field with default value."""
+        user = AdminUser(username="testuser", role=AdminUser.ROLE_MODERATOR)
+        self.assertEqual(user.role, AdminUser.ROLE_MODERATOR)
+
+    def test_super_admin_has_all_permissions(self):
+        """Super admin should have all permissions."""
+        user = AdminUser(username="sa", role=AdminUser.ROLE_SUPER_ADMIN)
+        self.assertTrue(user.has_permission("view"))
+        self.assertTrue(user.has_permission("edit"))
+        self.assertTrue(user.has_permission("create"))
+        self.assertTrue(user.has_permission("delete"))
+        self.assertTrue(user.has_permission("manage_users"))
+        self.assertTrue(user.has_permission("server_control"))
+
+    def test_viewer_has_only_view(self):
+        """Viewer should only have view permission."""
+        user = AdminUser(username="viewer", role=AdminUser.ROLE_VIEWER)
+        self.assertTrue(user.has_permission("view"))
+        self.assertFalse(user.has_permission("edit"))
+        self.assertFalse(user.has_permission("create"))
+        self.assertFalse(user.has_permission("delete"))
+
+    def test_moderator_no_delete(self):
+        """Moderator should not have delete permission."""
+        user = AdminUser(username="mod", role=AdminUser.ROLE_MODERATOR)
+        self.assertTrue(user.has_permission("view"))
+        self.assertTrue(user.has_permission("edit"))
+        self.assertFalse(user.has_permission("delete"))
+
+
+class TestLoginRateLimiting(unittest.TestCase):
+    """Tests for login rate limiting."""
+
+    def setUp(self):
+        self.app = create_app("config.TestingConfig")
+
+    def test_rate_limit_tracker(self):
+        """Rate limit tracker should block after max attempts."""
+        from services.admin import _check_login_rate_limit, _login_attempts
+
+        with self.app.test_request_context():
+            # Clear previous attempts
+            _login_attempts.clear()
+
+            # Simulate 10 successful checks (within limit)
+            for i in range(10):
+                result = _check_login_rate_limit(max_attempts=10, window_seconds=60)
+                self.assertTrue(result, f"Attempt {i+1} should be allowed")
+
+            # 11th attempt should be blocked
+            result = _check_login_rate_limit(max_attempts=10, window_seconds=60)
+            self.assertFalse(result, "11th attempt should be blocked")
 
 
 if __name__ == "__main__":

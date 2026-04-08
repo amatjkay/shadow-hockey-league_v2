@@ -21,6 +21,39 @@ class AdminUser(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
+    role = db.Column(
+        db.String(20), nullable=False, default="moderator", index=True,
+        comment="super_admin: full access, admin: CRUD, moderator: view/edit only"
+    )
+
+    ROLE_SUPER_ADMIN = "super_admin"
+    ROLE_ADMIN = "admin"
+    ROLE_MODERATOR = "moderator"
+    ROLE_VIEWER = "viewer"
+
+    ROLE_CHOICES = [
+        (ROLE_SUPER_ADMIN, "Super Admin"),
+        (ROLE_ADMIN, "Admin"),
+        (ROLE_MODERATOR, "Moderator"),
+        (ROLE_VIEWER, "Viewer"),
+    ]
+
+    def has_permission(self, permission: str) -> bool:
+        """Check if user has the required permission level.
+
+        Permission hierarchy:
+        - super_admin: all permissions
+        - admin: create, edit, delete, view
+        - moderator: edit, view (no delete)
+        - viewer: view only
+        """
+        hierarchy = {
+            self.ROLE_VIEWER: ["view"],
+            self.ROLE_MODERATOR: ["view", "edit"],
+            self.ROLE_ADMIN: ["view", "edit", "create", "delete"],
+            self.ROLE_SUPER_ADMIN: ["view", "edit", "create", "delete", "manage_users", "server_control"],
+        }
+        return permission in hierarchy.get(self.role, [])
 
     def set_password(self, password: str) -> None:
         """Hash and set the password."""

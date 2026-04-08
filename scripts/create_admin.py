@@ -34,7 +34,16 @@ def create_admin_user() -> None:
             print("❌ Username must be at most 80 characters.")
             continue
         break
-    
+
+    # Get role
+    print(f"\nRole choices: {', '.join(r[0] for r in AdminUser.ROLE_CHOICES)}")
+    while True:
+        role = input("Role (default: super_admin): ").strip() or AdminUser.ROLE_SUPER_ADMIN
+        valid_roles = [r[0] for r in AdminUser.ROLE_CHOICES]
+        if role in valid_roles:
+            break
+        print(f"❌ Invalid role. Choose from: {', '.join(valid_roles)}")
+
     # Get password
     while True:
         password = getpass("Password (at least 6 characters): ")
@@ -59,7 +68,7 @@ def create_admin_user() -> None:
             return
         
         # Create new user
-        user = AdminUser(username=username)
+        user = AdminUser(username=username, role=role)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()

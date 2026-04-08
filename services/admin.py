@@ -299,13 +299,22 @@ class SecureModelView(ModelView):
             return True
         return False
 
+    def _has_permission(self, permission: str) -> bool:
+        """Check if current user has the required permission."""
+        if not current_user.is_authenticated:
+            return False
+        return current_user.has_permission(permission)
+
     def inaccessible_callback(self, name, **kwargs):
         """Redirect to login if not accessible."""
         flash('Please log in to access this page.', 'warning')
         return redirect(url_for('admin_login.index', next=request.url))
 
     def create_model(self, form):
-        """Create model with audit logging."""
+        """Create model with permission check and audit logging."""
+        if not self._has_permission("create"):
+            flash('Insufficient permissions to create.', 'error')
+            return None
         model = super().create_model(form)
         if model and current_user.is_authenticated:
             try:
@@ -324,7 +333,10 @@ class SecureModelView(ModelView):
         return model
 
     def update_model(self, form, model):
-        """Update model with audit logging."""
+        """Update model with permission check and audit logging."""
+        if not self._has_permission("edit"):
+            flash('Insufficient permissions to edit.', 'error')
+            return False
         # Capture changes before update
         old_values = {}
         if hasattr(model, '__table__'):
@@ -364,7 +376,10 @@ class SecureModelView(ModelView):
         return result
 
     def delete_model(self, model):
-        """Delete model with audit logging."""
+        """Delete model with permission check and audit logging."""
+        if not self._has_permission("delete"):
+            flash('Insufficient permissions to delete.', 'error')
+            return False
         model_id = getattr(model, 'id', 'N/A')
         model_name = self.model.__name__
         
@@ -675,14 +690,31 @@ class AdminUserModelView(SecureModelView):
     # Page title (BUG-002)
     name = 'Admin Users'
 
-    column_list = ('username',)
+    column_list = ('username', 'role')
     column_searchable_list = ('username',)
-    form_columns = ('username', 'password_hash')
-    
+    column_filters = ('role',)
+    form_columns = ('username', 'password_hash', 'role')
+
+    form_args = {
+        'role': {
+            'choices': AdminUser.ROLE_CHOICES,
+        }
+    }
+
+    # Only super_admin can manage users
+    def is_accessible(self):
+        if not current_user.is_authenticated:
+            return False
+        set_current_user_for_audit(current_user.id)
+        if not current_user.has_permission('manage_users'):
+            flash('Access denied. Super Admin role required.', 'error')
+            return False
+        return True
+
     # Hide password from list
     def _list_password(self, model):
         return '***'
-    
+
     # Form handling for password
     def on_model_change(self, form, model, is_created):
         """Hash password when creating/updating user."""
@@ -691,7 +723,7 @@ class AdminUserModelView(SecureModelView):
         elif not is_created:
             # Keep existing password if not changed
             pass
-    
+
     def on_model_delete(self, model):
         """Prevent deleting last admin user."""
         user_count = db.session.query(AdminUser).count()
@@ -805,6 +837,16 @@ class ApiKeyModelView(SecureModelView):
             form.key_hash.data = new_key
             # Хэшируем для хранения в БД
             model.key_hash = generate_password_hash(new_key)
+            # Flash с предупреждением
+            flash(
+                Markup(
+                    f'🔑 Новый API ключ создан! <strong>Скопируйте его сейчас:</strong><br>'
+                    f'<code style="background:#f0f0f0; padding:8px; display:block; margin:8px 0; '
+                    f'font-size:14px; user-select:all;">{new_key}</code>'
+                    f'<span style="color:red;">⚠️ Он больше не будет показан!</span>'
+                ),
+                'warning'
+            )
         else:
             # При обновлении не трогаем хэш, если он уже есть
             if not model.key_hash.startswith('pbkdf2:sha256:'):
@@ -846,6 +888,9 @@ class ServerControlView(BaseView):
 
     def is_accessible(self):
         if not current_user.is_authenticated:
+            return False
+        if not current_user.has_permission('server_control'):
+            flash('Access denied. Super Admin role required.', 'error')
             return False
         set_current_user_for_audit(current_user.id)
         return True
@@ -897,19 +942,53 @@ class ServerControlView(BaseView):
             return redirect(url_for('.index'))
 
 
+# ==================== RATE LIMITING FOR LOGIN ====================
+
+_login_attempts = {}  # {ip: [(timestamp, ...)]}
+
+def _check_login_rate_limit(max_attempts=10, window_seconds=60):
+    """Check if IP has exceeded login attempt limit. Returns True if allowed."""
+    import time
+    from flask import request
+
+    ip = request.remote_addr or 'unknown'
+    now = time.time()
+    cutoff = now - window_seconds
+
+    # Clean old attempts
+    if ip in _login_attempts:
+        _login_attempts[ip] = [t for t in _login_attempts[ip] if t > cutoff]
+    else:
+        _login_attempts[ip] = []
+
+    # Check limit
+    if len(_login_attempts[ip]) >= max_attempts:
+        return False
+
+    # Record attempt
+    _login_attempts[ip].append(now)
+    return True
+
+
 # ==================== LOGIN / LOGOUT ====================
 
 
 class LoginView(BaseView):
     """Login view for admin panel."""
-    
+
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         """Handle login form."""
         if current_user.is_authenticated:
             return redirect(url_for('admin.index'))
-        
+
         if request.method == 'POST':
+            # Rate limiting check (10 attempts per minute per IP)
+            if not _check_login_rate_limit():
+                flash('Too many login attempts. Please wait 60 seconds.', 'error')
+                admin_logger.warning("LOGIN rate limit exceeded for IP %s", request.remote_addr)
+                return self.render('admin/login.html'), 429
+
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '')
             remember = request.form.get('remember', False)

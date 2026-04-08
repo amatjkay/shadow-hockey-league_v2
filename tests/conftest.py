@@ -162,7 +162,7 @@ def admin_user(app, app_context):
     with app.app_context():
         db.create_all()  # Ensure tables exist
         
-        admin = AdminUser(username="testadmin")
+        admin = AdminUser(username="testadmin", role=AdminUser.ROLE_SUPER_ADMIN)
         admin.set_password("testpass123")
         db.session.add(admin)
         db.session.commit()
