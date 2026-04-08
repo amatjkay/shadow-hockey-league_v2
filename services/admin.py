@@ -14,7 +14,10 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import SelectField
 
-from models import db, AdminUser, Country, Manager, Achievement
+from models import (
+    db, AdminUser, Country, Manager, Achievement, AuditLog,
+    AchievementType, League, Season, ApiKey
+)
 from services.cache_service import invalidate_leaderboard_cache
 from services.audit_service import log_action, set_current_user_for_audit
 
@@ -22,39 +25,30 @@ from services.audit_service import log_action, set_current_user_for_audit
 admin_logger = logging.getLogger('shleague.admin')
 
 
-class AchievementInlineForm(Form):
-    """Form for inline achievement editing."""
-    achievement_type = StringField('Type')
-    league = StringField('League')
-    season = StringField('Season')
-    title = StringField('Title')
-    icon_path = StringField('Icon')
+import os
+import glob
+import secrets
+from datetime import datetime, timedelta
+from flask_admin.contrib.sqla.fields import QuerySelectField
+from flask_admin.form.upload import ImageUploadField
+from flask import current_app
+
+def get_flag_choices():
+    """Dynamically get flag choices from static folder."""
+    flags_dir = os.path.join(current_app.root_path, 'static', 'img', 'flags')
+    choices = [('', '-- Select Flag --')]
+    
+    if os.path.exists(flags_dir):
+        files = sorted(os.listdir(flags_dir))
+        for f in files:
+            if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                path = f'/static/img/flags/{f}'
+                choices.append((path, f))
+    return choices
 
 # List of available flag images (updated to match actual file names)
-FLAG_CHOICES = [
-    ('/static/img/flags/BLR.png', 'Belarus'),
-    ('/static/img/flags/RUS.png', 'Russia'),
-    ('/static/img/flags/KAZ.png', 'Kazakhstan'),
-    ('/static/img/flags/CHN.png', 'China'),
-    ('/static/img/flags/VNM.png', 'Vietnam'),
-    ('/static/img/flags/UKR.png', 'Ukraine'),
-    ('/static/img/flags/MEX.png', 'Mexico'),
-    ('/static/img/flags/POL.png', 'Poland'),
-    ('/static/img/flags/USA.png', 'USA'),
-    ('/static/img/flags/CAN.png', 'Canada'),
-    ('/static/img/flags/FIN.png', 'Finland'),
-    ('/static/img/flags/SWE.png', 'Sweden'),
-    ('/static/img/flags/CZE.png', 'Czech Republic'),
-    ('/static/img/flags/SVK.png', 'Slovakia'),
-    ('/static/img/flags/GER.png', 'Germany'),
-    ('/static/img/flags/SUI.png', 'Switzerland'),
-    ('/static/img/flags/AUT.png', 'Austria'),
-    ('/static/img/flags/NOR.png', 'Norway'),
-    ('/static/img/flags/DEN.png', 'Denmark'),
-    ('/static/img/flags/FRA.png', 'France'),
-    ('/static/img/flags/GBR.png', 'United Kingdom'),
-    ('/static/img/flags/LAT.png', 'Latvia'),
-]
+# Оставляем как фоллбэк, но приоритет у динамической функции
+FLAG_CHOICES = get_flag_choices()
 
 
 # Initialize Flask-Login
@@ -97,8 +91,17 @@ def init_admin(app) -> None:
                 achievement_count = db.session.query(Achievement).count()
                 country_count = db.session.query(Country).count()
                 admin_count = db.session.query(AdminUser).count()
+                
+                # Новые счетчики
+                api_key_count = db.session.query(ApiKey).count()
+                audit_log_count = db.session.query(AuditLog).count()
+                
+                # Последние действия из AuditLog
+                recent_logs = db.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10).all()
             except Exception:
                 manager_count = achievement_count = country_count = admin_count = 0
+                api_key_count = audit_log_count = 0
+                recent_logs = []
 
             return self.render(
                 'admin/index.html',
@@ -106,6 +109,10 @@ def init_admin(app) -> None:
                 achievement_count=achievement_count,
                 country_count=country_count,
                 admin_count=admin_count,
+                # Новые переменные
+                api_key_count=api_key_count,
+                audit_log_count=audit_log_count,
+                recent_logs=recent_logs,
             )
 
         @expose('/flush-cache', methods=['POST'])
@@ -147,10 +154,29 @@ def init_admin(app) -> None:
     admin.add_view(ManagerModelView(Manager, db.session, name='Managers', category='Data', menu_icon_type='fa', menu_icon_value='fa-user'))
     admin.add_view(AchievementModelView(Achievement, db.session, name='Achievements', category='Data', menu_icon_type='fa', menu_icon_value='fa-trophy'))
     admin.add_view(AdminUserModelView(AdminUser, db.session, name='Admin Users', category='Settings', menu_icon_type='fa', menu_icon_value='fa-users'))
-    
+
+    # Reference Data
+    admin.add_view(AchievementTypeModelView(AchievementType, db.session, name='Achievement Types', category='Reference', menu_icon_type='fa', menu_icon_value='fa-list'))
+    admin.add_view(LeagueModelView(League, db.session, name='Leagues', category='Reference', menu_icon_type='fa', menu_icon_value='fa-shield'))
+    admin.add_view(SeasonModelView(Season, db.session, name='Seasons', category='Reference', menu_icon_type='fa', menu_icon_value='fa-calendar'))
+
+    # System
+    admin.add_view(ApiKeyModelView(ApiKey, db.session, name='API Keys', category='System', menu_icon_type='fa', menu_icon_value='fa-key'))
+    admin.add_view(AuditLogModelView(AuditLog, db.session, name='Audit Log', category='System', menu_icon_type='fa', menu_icon_value='fa-history'))
+
     # Add Login/Logout as separate menu items
     admin.add_view(LoginView(name='Login', endpoint='admin_login', url='/admin/login'))
     admin.add_view(LogoutView(name='Logout', endpoint='admin_logout', url='/admin/logout'))
+
+
+# Helper function to get choices from reference tables
+def _get_choice_tuples(model):
+    """Returns list of tuples (id, name) for reference tables."""
+    try:
+        items = db.session.query(model.id, model.name).order_by(model.code).all()
+        return [('', '-- Select --')] + [(str(i.id), n) for i, n in items]
+    except Exception:
+        return [('', '-- Error loading --')]
 
 
 class SecureModelView(ModelView):
@@ -300,13 +326,13 @@ class CountryModelView(SecureModelView):
     def create_form(self):
         """Create form with flag choices."""
         form = super().create_form()
-        form.flag_path.choices = [('', '-- Select Flag --')] + FLAG_CHOICES
+        form.flag_path.choices = get_flag_choices()
         return form
 
     def edit_form(self, obj):
         """Edit form with flag choices."""
         form = super().edit_form(obj)
-        form.flag_path.choices = [('', '-- Select Flag --')] + FLAG_CHOICES
+        form.flag_path.choices = get_flag_choices()
         return form
 
     def on_model_change(self, form, model, is_created):
@@ -333,24 +359,30 @@ class ManagerModelView(SecureModelView):
     name = 'Managers'
 
     # Display settings - only use columns, not relationships or properties
-    column_list = ('id', 'name', 'country_id')
+    column_list = ('id', 'name', 'country')
     column_searchable_list = ('name',)
     column_filters = ('country_id',)
     form_columns = ('name', 'country_id')
     column_default_sort = ('id', False)
 
-    # Inline achievements
-    form_subdocuments = {
-        'achievements': {
-            'form_class': AchievementInlineForm,
+    # Use Select2 for Country
+    form_ajax_refs = {
+        'country': {
+            'fields': ['name', 'code'],
+            'page_size': 10
         }
+    }
+
+    # Formatter to show Country name instead of ID
+    column_formatters = {
+        'country': lambda v, c, m, p: m.country.name if m.country else f'ID: {m.country_id}'
     }
 
     # Labels for columns
     column_labels = {
         'id': 'ID',
         'name': 'Manager Name',
-        'country_id': 'Country',
+        'country': 'Country',
     }
 
     # Labels for form fields
@@ -374,12 +406,26 @@ class AchievementModelView(SecureModelView):
     # Page title (BUG-002)
     name = 'Achievements'
 
-    # Display settings - only use columns, not relationships
-    column_list = ('id', 'achievement_type', 'league', 'season', 'manager_id', 'title')
+    # Display settings
+    column_list = ('id', 'achievement_type', 'league', 'season', 'manager', 'title')
     column_searchable_list = ('title', 'achievement_type')
     column_filters = ('league', 'season', 'achievement_type', 'manager_id')
     form_columns = ('achievement_type', 'league', 'season', 'title', 'icon_path', 'manager_id')
     column_default_sort = ('id', False)
+
+    # Use Select2 for Manager
+    form_ajax_refs = {
+        'manager': {
+            'fields': ['name'],
+            'page_size': 10
+        }
+    }
+
+    # Formatter to show Manager name
+    column_formatters = {
+        'manager': lambda v, c, m, p: m.manager.name if m.manager else f'ID: {m.manager_id}',
+        'icon_path': lambda v, c, m, p: f'<img src="{m.icon_path}" width="20">' if m.icon_path else ''
+    }
 
     # Labels for columns
     column_labels = {
@@ -387,7 +433,7 @@ class AchievementModelView(SecureModelView):
         'achievement_type': 'Type',
         'league': 'League',
         'season': 'Season',
-        'manager_id': 'Manager ID',
+        'manager': 'Manager',
         'title': 'Title',
         'icon_path': 'Icon',
     }
@@ -395,12 +441,28 @@ class AchievementModelView(SecureModelView):
     # Labels for form fields
     form_labels = {
         'achievement_type': 'Achievement Type',
-        'league': 'League (1 or 2)',
-        'season': 'Season (e.g., 24/25)',
+        'league': 'League',
+        'season': 'Season',
         'title': 'Title',
         'icon_path': 'Icon Path',
         'manager_id': 'Manager',
     }
+
+    def create_form(self, **kwargs):
+        """Add dynamic choices for reference fields stored as strings."""
+        form = super().create_form(**kwargs)
+        form.achievement_type.choices = _get_choice_tuples(AchievementType)
+        form.league.choices = _get_choice_tuples(League)
+        form.season.choices = _get_choice_tuples(Season)
+        return form
+
+    def edit_form(self, obj, **kwargs):
+        """Add dynamic choices for reference fields stored as strings."""
+        form = super().edit_form(obj, **kwargs)
+        form.achievement_type.choices = _get_choice_tuples(AchievementType)
+        form.league.choices = _get_choice_tuples(League)
+        form.season.choices = _get_choice_tuples(Season)
+        return form
 
     def on_model_change(self, form, model, is_created):
         """Invalidate cache when achievement is created/updated."""
@@ -441,6 +503,145 @@ class AdminUserModelView(SecureModelView):
             flash('Cannot delete the last admin user.', 'error')
             return False
         return True
+
+
+# ==================== NEW VIEWS (Reference & System) ====================
+
+
+class AchievementTypeModelView(SecureModelView):
+    """Admin view for managing achievement types and base points."""
+
+    name = 'Achievement Types'
+    column_list = ('code', 'name', 'base_points_l1', 'base_points_l2')
+    column_searchable_list = ('code', 'name')
+    column_filters = ('code', 'name')
+    form_columns = ('code', 'name', 'base_points_l1', 'base_points_l2')
+    column_default_sort = ('code', False)
+    
+    form_widget_args = {
+        'base_points_l1': {'style': 'width: 80px'},
+        'base_points_l2': {'style': 'width: 80px'},
+    }
+
+    column_labels = {
+        'code': 'Code',
+        'name': 'Name',
+        'base_points_l1': 'Points L1',
+        'base_points_l2': 'Points L2',
+    }
+
+
+class LeagueModelView(SecureModelView):
+    """Admin view for managing leagues."""
+
+    name = 'Leagues'
+    column_list = ('code', 'name')
+    column_searchable_list = ('code', 'name')
+    column_filters = ('code', 'name')
+    form_columns = ('code', 'name')
+    column_default_sort = ('code', False)
+
+
+class SeasonModelView(SecureModelView):
+    """Admin view for managing seasons and multipliers."""
+
+    name = 'Seasons'
+    column_list = ('code', 'name', 'multiplier', 'is_active')
+    column_searchable_list = ('code', 'name')
+    column_filters = ('code', 'name', 'is_active')
+    form_columns = ('code', 'name', 'multiplier', 'is_active')
+    column_default_sort = ('code', False)
+    
+    column_formatters = {
+        'is_active': lambda v, c, m, p: '✅' if m.is_active else '❌'
+    }
+    
+    form_widget_args = {
+        'is_active': {'class': 'form-check-input'},
+    }
+
+
+class ApiKeyModelView(SecureModelView):
+    """Admin view for managing API keys."""
+
+    name = 'API Keys'
+    column_list = ('name', 'scope', 'is_active', 'created_at', 'last_used_at')
+    column_searchable_list = ('name',)
+    column_filters = ('scope', 'is_active', 'revoked')
+    form_columns = ('name', 'scope', 'expires_at', 'revoked')
+    column_default_sort = ('created_at', True)
+    
+    column_formatters = {
+        'key_hash': lambda v, c, m, p: '***',
+        'is_active': lambda v, c, m, p: '✅' if m.is_active else '❌',
+        'revoked': lambda v, c, m, p: '🚫' if m.revoked else '—',
+    }
+    
+    form_overrides = {
+        'key_hash': StringField, # Поле для отображения ключа при создании
+    }
+    
+    form_args = {
+        'key_hash': {
+            'label': 'API Key (Copy this now!)',
+            'validators': [],
+            'render_kw': {'readonly': True},
+        }
+    }
+    
+    form_widget_args = {
+        'key_hash': {'readonly': True},
+        'expires_at': {'class': 'form-control', 'placeholder': 'YYYY-MM-DD HH:MM:SS'},
+    }
+    
+    def create_form(self):
+        """Clear key_hash field for new key creation."""
+        form = super().create_form()
+        form.key_hash.data = ''
+        return form
+
+    def on_model_change(self, form, model, is_created):
+        """Generate and hash new API key on creation."""
+        if is_created:
+            # Генерируем новый ключ
+            new_key = secrets.token_urlsafe(32)
+            # Сохраняем ключ во временное поле формы, чтобы показать пользователю
+            form.key_hash.data = new_key
+            # Хэшируем для хранения в БД
+            model.key_hash = generate_password_hash(new_key)
+        else:
+            # При обновлении не трогаем хэш, если он уже есть
+            if not model.key_hash.startswith('pbkdf2:sha256:'):
+                model.key_hash = generate_password_hash(model.key_hash)
+
+
+class AuditLogModelView(SecureModelView):
+    """Admin view for viewing audit logs (Read-Only + Bulk Delete)."""
+
+    name = 'Audit Log'
+    can_create = False
+    can_edit = False
+    can_view_details = True
+    
+    column_list = ('timestamp', 'user_id', 'action', 'target_model', 'target_id')
+    column_filters = ('user_id', 'action', 'target_model', 'timestamp')
+    column_default_sort = ('timestamp', True)
+    
+    column_formatters = {
+        'changes': lambda v, c, m, p: f'<pre style="max-width:300px; white-space:pre-wrap;">{m.changes}</pre>' if m.changes else '',
+    }
+
+    def delete_model(self, model):
+        """Allow deleting audit logs for cleanup."""
+        return super().delete_model(model)
+
+    # Добавляем действие для массовой очисткики
+    action_list = (
+        ('delete_selected', 'Delete Selected', 'Delete selected log entries'),
+    )
+
+
+# ==================== LOGIN / LOGOUT ====================
 
 
 class LoginView(BaseView):
