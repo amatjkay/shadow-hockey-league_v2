@@ -16,18 +16,17 @@
       "direct_only": "Все LLM как универсальные эксперты"
     }
   },
-  "smart_routing": {
-    "enabled": true,
-    "auto_save": true,
-    "max_chain_length": 5,
-    "confirmation_required": false,
-    "log_decisions": true,
-    "interruption_policy": {
-      "intermediate_confirmation": false,
-      "final_acceptance_required": true,
-      "approve_command": "@approve",
-      "reject_command": "@reject"
-    }
+"smart_routing": {
+  "enabled": true,
+  "auto_save": true,
+  "enforce_checkpoint": true,
+  "interruption_policy": {
+    "intermediate_confirmation": false,
+    "final_acceptance_required": true,
+    "approve_command": "@approve",
+    "reject_command": "@reject"
+  }
+}
   },
   "workflow_chain": {
     "default_sequence": ["ANALYST", "ARCHITECT", "PLANNER", "DEVELOPER", "QA_TESTER", "CODE_REVIEWER", "@save"],

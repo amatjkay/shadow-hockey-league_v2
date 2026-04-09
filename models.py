@@ -179,11 +179,26 @@ class Country(db.Model):
     code = db.Column(db.String(3), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False, default="Unknown")  # Название страны (например, "Russia")
     flag_path = db.Column(db.String(100), nullable=False)
+    flag_source_type = db.Column(
+        db.String(20), nullable=False, default='local',
+        comment="Flag source type: 'local' or 'api'"
+    )
+    flag_url = db.Column(
+        db.String(200), nullable=True,
+        comment="Flag URL from API (e.g., FlagCDN) or custom URL"
+    )
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     managers = db.relationship("Manager", backref="country", lazy="select")
 
     def __repr__(self) -> str:
         return f"<Country {self.name} ({self.code})>"
+
+    @property
+    def flag_display_url(self) -> str:
+        """Resolved flag URL for display."""
+        if self.flag_source_type == 'api' and self.flag_url:
+            return self.flag_url
+        return self.flag_path or f"https://flagcdn.com/w320/{self.code.lower()}.png"
 
     @staticmethod
     def resolve_name(code: str) -> str:
