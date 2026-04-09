@@ -6,6 +6,47 @@
 
 ---
 
+## [2.3.3] — 2026-04-09
+
+### 🎉 Admin Panel Enhancement & Bug Fixes
+
+Полное завершение разработки админки: flag preview, tandem warning, bulk operations, country flag source.
+
+### Added
+
+- **Flag Preview в Manager формах** — Country code и флаг автоматически заполняются при выборе страны
+- **Tandem Warning** — Предупреждение при обнаружении запятой в имени менеджера (JS + server-side)
+- **Bulk Operations UI** — Чекбоксы, modal форма, progress dialog, results summary для массового создания достижений
+- **Country Flag Source поля** — `flag_source_type` (local/api), `flag_url` для поддержки FlagCDN API
+- **Migration** — `1fdc901fa43e_add_country_flag_source_fields.py`
+- **Permission check** — `has_permission('create')` в bulk-create endpoint для предотвращения privilege escalation
+- **Rate limiting** — Максимум 100 менеджеров за одну bulk операцию
+
+### Changed
+
+- **CountryModelView** — Упрощены form_columns до ('code', 'name', 'flag_path') для устранения WTForms конфликта
+- **Bulk-create N+1 queries** — Batch-load через `WHERE id IN(...)` — 100 queries → 2 queries (50x improvement)
+- **Bulk-create icon_path** — Используется `ach_type.code.lower()` вместо hardcoded '/static/img/cups/top1.svg'
+- **API-001 /admin/api/countries** — Возвращает `flag_display_url` вместо `flag_path` для корректной поддержки API-sourced флагов
+- **Manager list checkbox ID extraction** — Улучшен regex с fallback chain: edit link → data attr → cell text
+
+### Fixed
+
+- **BUG-001** (Critical) — Country form TypeError: `BaseModelView.edit_view() got an unexpected keyword argument 'cls'`
+- **BUG-002** — CountryModelView form_columns Select2 поля не определены корректно
+- **BUG-003** — COUNTRY_AUTOFILL_JS ссылается на несуществующие элементы
+- **BUG-004** — Manager list checkbox ID extraction unreliable
+- **BUG-005** — Broken image icon при начальной загрузке manager edit/create
+- **BUG-006** — CountryModelView form_args validators могут быть неполными
+- **form_overrides conflict** — Удалён `form_overrides` вызывавший WTForms cls конфликт
+
+### Security
+
+- **Permission enforcement** — Bulk-create endpoint теперь проверяет `create` permission
+- **Rate limiting** — Ограничение на количество менеджеров в bulk операции
+
+---
+
 ## [2.4.0] — 2026-04-04
 
 ### 🎉 Reliable Deployment System
@@ -192,11 +233,11 @@
 
 ## Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| Added | Новые функции |
-| Changed | Изменения в существих функциях |
-| Fixed | Исправления багов |
-| Security | Изменения безопасности |
-| Deprecated | Устаревшие функции |
-| Removed | Удалённые функции |
+| Symbol     | Meaning                        |
+| ---------- | ------------------------------ |
+| Added      | Новые функции                  |
+| Changed    | Изменения в существих функциях |
+| Fixed      | Исправления багов              |
+| Security   | Изменения безопасности         |
+| Deprecated | Устаревшие функции             |
+| Removed    | Удалённые функции              |

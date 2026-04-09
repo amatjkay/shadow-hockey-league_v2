@@ -1,7 +1,7 @@
 # 🛠 Админ-панель Shadow Hockey League
 
-**Версия:** 2.0
-**Дата:** 3 апреля 2026 г.
+**Версия:** 2.3.3
+**Дата:** 9 апреля 2026 г.
 **Статус:** ✅ Production-ready
 
 ---
@@ -12,6 +12,15 @@
 
 **URL:** `https://shadow-hockey-league.ru/admin/`
 **Доступ:** Требуется аутентификация
+
+### ✨ Новые возможности v2.3.3
+
+- **Flag Preview** — автоматическое отображение флага и кода страны в формах менеджеров
+- **Tandem Warning** — предупреждение при вводе имён с запятой (тандемы)
+- **Bulk Operations** — массовое создание достижений для нескольких менеджеров
+- **Country Flag Source** — поддержка локальных файлов и FlagCDN API
+- **Permission Checks** — проверка разрешений для всех CRUD операций
+- **N+1 Query Optimization** — оптимизация bulk-create (100 queries → 2 queries)
 
 ---
 
@@ -215,6 +224,37 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ---
 
+## 📦 Bulk Operations (v2.3.3)
+
+Массовое создание достижений для нескольких менеджеров одновременно.
+
+### Использование
+
+1. Откройте `/admin/manager/`
+2. Отметьте чекбоксами нужных менеджеров
+3. Выберите "With selected..." → "Add achievement..."
+4. В модальном окне выберите:
+   - Achievement Type
+   - League
+   - Season (автоматически фильтруется по League)
+5. Нажмите "Create Records"
+
+### Возможности
+
+- ✅ Preview таблица с расчётом очков
+- ✅ Progress bar во время обработки
+- ✅ Results summary (created/skipped/errors)
+- ✅ Duplicate detection (пропуск существующих)
+- ✅ Rate limiting (макс. 100 менеджеров за операцию)
+- ✅ Permission check (требуется `create` permission)
+
+### Ограничения
+
+- Preview показывает "Manager #ID" вместо имени (требуется дополнительный API call)
+- FlagCDN API может быть недоступен offline (fallback на local files)
+
+---
+
 ## 🛡 Безопасность
 
 ### CSRF защита
@@ -252,12 +292,24 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ## 🐛 Известные проблемы
 
-| Проблема               | Статус        | Workaround                 |
-| ---------------------- | ------------- | -------------------------- |
-| Login/Logout не в меню | ⚠️ В работе   | Прямой URL: `/admin/login` |
-| Нет заголовков страниц | Запланировано | —                          |
+| Проблема                              | Статус          | Workaround                        |
+| ------------------------------------- | --------------- | --------------------------------- |
+| Bulk preview показывает "Manager #ID" | ⚠️ Low priority | Требуется batch API call для имён |
+| FlagCDN API offline                   | ⚠️ Low priority | Fallback на local files           |
 
-### ✅ Решённые проблемы
+### ✅ Решённые проблемы (v2.3.3)
+
+| Проблема                       | Статус    | Решение                                                     |
+| ------------------------------ | --------- | ----------------------------------------------------------- |
+| Country form TypeError         | ✅ Решено | Упрощены form_columns, удалён form_overrides конфликт       |
+| Flag preview не отображается   | ✅ Решено | Исправлены CSS/JS селекторы                                 |
+| Tandem warning отсутствует     | ✅ Решено | Добавлен JS + server-side validation                        |
+| Bulk operations UI отсутствует | ✅ Решено | Реализован полный workflow с modal/progress/results         |
+| N+1 queries в bulk-create      | ✅ Решено | Batch-load через WHERE id IN(...) — 100 queries → 2 queries |
+| Hardcoded icon_path            | ✅ Решено | Используется ach_type.code.lower()                          |
+| Permission check в bulk-create | ✅ Решено | Добавлен has_permission('create')                           |
+
+### ✅ Решённые проблемы (ранее)
 
 | Проблема                  | Статус    | Решение                                                                  |
 | ------------------------- | --------- | ------------------------------------------------------------------------ |
@@ -278,4 +330,4 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ---
 
-**Последнее обновление:** 3 апреля 2026 г.
+**Последнее обновление:** 9 апреля 2026 г. (v2.3.3)

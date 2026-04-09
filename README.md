@@ -18,20 +18,21 @@
 
 ### ✅ Статус деплоя (7 апреля 2026)
 
-| Компонент | Статус |
-|-----------|--------|
-| Deploy script | ✅ Auto-fix Windows paths в `.env` |
-| CI/CD | ✅ GitHub Actions через SSH (scp + bash) |
-| Database | ✅ SQLite + Alembic миграции |
-| Cache | ✅ Redis (localhost:6379) |
-| Backups | ✅ Ежедневно в 03:00 (cron, 7 дней) |
-| Secrets | ✅ Production-ключи (сгенерированы на сервере) |
+| Компонент     | Статус                                         |
+| ------------- | ---------------------------------------------- |
+| Deploy script | ✅ Auto-fix Windows paths в `.env`             |
+| CI/CD         | ✅ GitHub Actions через SSH (scp + bash)       |
+| Database      | ✅ SQLite + Alembic миграции                   |
+| Cache         | ✅ Redis (localhost:6379)                      |
+| Backups       | ✅ Ежедневно в 03:00 (cron, 7 дней)            |
+| Secrets       | ✅ Production-ключи (сгенерированы на сервере) |
 
 ### 🔧 Решение проблем с деплоем
 
 Если деплой падает — смотри [`docs/DEPLOYMENT_FIX.md`](docs/DEPLOYMENT_FIX.md) с полным гайдом.
 
 **Частые проблемы:**
+
 1. **Windows-пути в `.env`** → deploy.sh исправляет автоматически
 2. **Alembic `no such column`** → `alembic stamp head` или ручное добавление колонок
 3. **systemctl требует пароль** → настроить `/etc/sudoers.d/shleague-systemctl`
@@ -302,36 +303,37 @@ python seed_db.py
 
 ## 📚 Документация
 
-| Файл                      | Описание                                            |
-| ------------------------- | --------------------------------------------------- |
-| `README.md`               | Этот файл — быстрый старт                           |
-| `docs/API.md`             | REST API: auth, pagination, scopes, rate limiting   |
-| `docs/ADMIN.md`           | Админ-панель: CSRF, API Keys management             |
-| `docs/ARCHITECTURE.md`    | Архитектура системы: компоненты, стек, модель данных|
-| `docs/TESTING.md`         | Тестирование: запуск, покрытие, best practices      |
-| `docs/SECURITY.md`        | Безопасность: auth, secrets, SSL, audit             |
-| `docs/CONTRIBUTING.md`    | Руководство контрибьютора: как внести вклад         |
-| `docs/MIGRATION_GUIDE.md` | Пошаговый деплой на VPS (Ubuntu + Nginx + Gunicorn) |
-| `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем          |
-| `docs/MONITORING.md`      | Health check, Prometheus метрики                    |
-| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок                 |
-| `docs/ROLLBACK.md`        | Откат деплоя: GitHub Actions, бэкапы                |
-| `CHANGELOG.md`            | История изменений версий                            |
+| Файл                      | Описание                                             |
+| ------------------------- | ---------------------------------------------------- |
+| `README.md`               | Этот файл — быстрый старт                            |
+| `docs/API.md`             | REST API: auth, pagination, scopes, rate limiting    |
+| `docs/ADMIN.md`           | Админ-панель: CSRF, API Keys management              |
+| `docs/ARCHITECTURE.md`    | Архитектура системы: компоненты, стек, модель данных |
+| `docs/TESTING.md`         | Тестирование: запуск, покрытие, best practices       |
+| `docs/SECURITY.md`        | Безопасность: auth, secrets, SSL, audit              |
+| `docs/CONTRIBUTING.md`    | Руководство контрибьютора: как внести вклад          |
+| `docs/MIGRATION_GUIDE.md` | Пошаговый деплой на VPS (Ubuntu + Nginx + Gunicorn)  |
+| `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем           |
+| `docs/MONITORING.md`      | Health check, Prometheus метрики                     |
+| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок                  |
+| `docs/ROLLBACK.md`        | Откат деплоя: GitHub Actions, бэкапы                 |
+| `CHANGELOG.md`            | История изменений версий                             |
 
 ## 📊 Статус проекта
 
-| Этап | Название                              | Статус     | Версия  |
-| ---- | ------------------------------------- | ---------- | ------- |
-| 0    | Базовая архитектура                   | ✅ Завершён | v2.0.0  |
-| 1    | Кэширование (Redis + SimpleCache)     | ✅ Завершён | v2.1.0  |
-| 2    | Метрики (Prometheus)                  | ✅ Завершён | v2.1.0  |
-| 3    | Админ-панель + CSRF защита            | ✅ Завершён | v2.2.0  |
-| 4    | Рефакторинг формулы (из БД)           | ✅ Завершён | v2.3.0  |
-| 5    | API auth + pagination + rate limiting | ✅ Завершён | v2.1.0  |
-| 6    | Интеграционные тесты (87% покрытие)   | ✅ Завершён | v2.2.0  |
-| 7    | Документация и деплой                 | ✅ Завершён | v2.4.0  |
-| 8    | Data Synchronization Layer            | ✅ Завершён | v2.3.0  |
-| 9    | Reliable Deployment System            | ✅ Завершён | v2.4.0  |
+| Этап | Название                              | Статус      | Версия |
+| ---- | ------------------------------------- | ----------- | ------ |
+| 0    | Базовая архитектура                   | ✅ Завершён | v2.0.0 |
+| 1    | Кэширование (Redis + SimpleCache)     | ✅ Завершён | v2.1.0 |
+| 2    | Метрики (Prometheus)                  | ✅ Завершён | v2.1.0 |
+| 3    | Админ-панель + CSRF защита            | ✅ Завершён | v2.2.0 |
+| 4    | Рефакторинг формулы (из БД)           | ✅ Завершён | v2.3.0 |
+| 5    | API auth + pagination + rate limiting | ✅ Завершён | v2.1.0 |
+| 6    | Интеграционные тесты (87% покрытие)   | ✅ Завершён | v2.2.0 |
+| 7    | Документация и деплой                 | ✅ Завершён | v2.4.0 |
+| 8    | Data Synchronization Layer            | ✅ Завершён | v2.3.0 |
+| 9    | Reliable Deployment System            | ✅ Завершён | v2.4.0 |
+| 10   | Admin Panel Enhancement               | ✅ Завершён | v2.3.3 |
 
 ### Что реализовано
 
@@ -374,6 +376,7 @@ python seed_db.py
 ### 🔄 CI/CD (GitHub Actions)
 
 Настроен автоматический деплой при пуше в ветку `main`:
+
 - Atomic updates (`git reset --hard origin/main`)
 - Auto backup БД перед миграциями
 - Health check после деплоя
