@@ -1,0 +1,82 @@
+{% extends 'admin/model_edit.html' %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        // Country AJAX Select2
+        $('#country_id').select2({
+            ajax: {
+                url: '/admin/api/countries',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
+                },
+                processResults: function(data, params) {
+                    return {
+                        results: data.items.map(function(c) {
+                            return {
+                                id: c.id,
+                                text: c.name + ' (' + c.code + ')',
+                                flag: c.flag_url
+                            };
+                        }),
+                        pagination: { more: data.pagination.has_more }
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            placeholder: 'Start typing country name or code...',
+            allowClear: true,
+            width: '100%',
+            templateResult: function(country) {
+                if (!country.id) return country.text;
+                return $('<span><img class="flag-preview-inline" src="' + country.flag + '" onerror="this.style.display=\'none\'">' + country.text + '</span>');
+            },
+            templateSelection: function(country) {
+                if (!country.id) return country.text;
+                return $('<span><img class="flag-preview-inline" src="' + country.flag + '" onerror="this.style.display=\'none\'">' + country.text + '</span>');
+            }
+        });
+
+        // Auto-fill country code and flag preview on selection
+        $('#country_id').on('select2:select', function(e) {
+            var countryId = e.params.data.id;
+            $.get('/admin/api/countries', { q: '', page: 1, page_size: 100 }, function(data) {
+                var country = data.items.find(function(c) { return c.id === countryId; });
+                if (country) {
+                    $('#country_code_display').val(country.code).trigger('change');
+                    $('#flag_preview_img').attr('src', country.flag_url).show();
+                }
+            });
+        });
+
+        // Style readonly fields
+        $('#country_code_display, #flag_path_display').addClass('readonly-field').prop('readonly', true);
+    });
+    </script>
+
+    <style>
+    #country_code_display, #flag_path_display {
+        max-width: 200px;
+        margin-top: 4px;
+    }
+    #flag_preview_img {
+        display: none;
+        width: 48px;
+        height: 48px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 8px;
+    }
+    </style>
+
+    <div id="country_code_field" style="display:none;">
+        <input type="text" id="country_code_display" class="form-control" readonly>
+    </div>
+    <div id="flag_preview_field" style="display:none;">
+        <img id="flag_preview_img" src="" alt="Country flag">
+    </div>
+{% endblock %}

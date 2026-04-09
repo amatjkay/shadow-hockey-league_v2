@@ -1,0 +1,157 @@
+{% extends 'admin/model_edit.html' %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        // Manager AJAX Select2
+        $('#manager_id').select2({
+            ajax: {
+                url: '/admin/api/managers',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
+                },
+                processResults: function(data, params) {
+                    return {
+                        results: data.items.map(function(m) {
+                            return {
+                                id: m.id,
+                                text: m.name + ' (' + m.country_name + ')',
+                                country_flag: m.country_flag
+                            };
+                        }),
+                        pagination: { more: data.pagination.has_more }
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 2,
+            placeholder: 'Start typing manager name...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Type AJAX Select2
+        $('#type_id').select2({
+            ajax: {
+                url: '/admin/api/achievement-types',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
+                },
+                processResults: function(data, params) {
+                    return { results: data.items || [] };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            placeholder: 'Select achievement type...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // League AJAX Select2
+        $('#league_id').select2({
+            ajax: {
+                url: '/admin/api/leagues',
+                dataType: 'json',
+                delay: 250,
+                data: function() { return {}; },
+                processResults: function(data) {
+                    return { results: data.items.map(function(l) { return { id: l.id, text: l.name + ' (' + l.code + ')' }; }) };
+                },
+                cache: true
+            },
+            minimumInputLength: 0,
+            placeholder: 'Select league...',
+            allowClear: false,
+            width: '100%'
+        });
+
+        // Season Select2
+        $('#season_id').select2({
+            ajax: {
+                url: '/admin/api/seasons',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    var leagueId = $('#league_id').val();
+                    return { league_id: leagueId, active_only: true };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.items.map(function(s) {
+                            return { id: s.id, text: s.name + ' (x' + s.multiplier + ')' };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0,
+            placeholder: 'Select league first...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Cascade: League change -> reload seasons
+        $('#league_id').on('select2:select', function(e) {
+            $('#season_id').prop('disabled', false).empty().trigger('change');
+            calculatePoints();
+        });
+
+        // Cascade: Type or League change -> recalculate
+        $('#type_id, #league_id').on('select2:select change', function() {
+            calculatePoints();
+        });
+
+        // Season change -> recalculate
+        $('#season_id').on('select2:select change', function() {
+            calculatePoints();
+        });
+
+        function calculatePoints() {
+            var typeId = $('#type_id').val();
+            var leagueId = $('#league_id').val();
+            if (!typeId || !leagueId) return;
+
+            $.get('/admin/api/achievement-types/' + typeId + '/points', { league_id: leagueId }, function(data) {
+                $('#base_points').val(data.base_points);
+                var seasonId = $('#season_id').val();
+                if (seasonId) {
+                    $.get('/admin/api/seasons', { league_id: leagueId }, function(sdata) {
+                        var season = sdata.items.find(function(s) { return s.id == seasonId; });
+                        if (season) {
+                            $('#multiplier').val(season.multiplier);
+                            var final = (data.base_points * season.multiplier).toFixed(2);
+                            $('#final_points').val(final);
+                            updateFinalPointsDisplay(final);
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateFinalPointsDisplay(value) {
+            $('#final_points_display').html(
+                '<span class="icon">🏆</span><span class="value">' + value + '</span><span class="label">points</span>'
+            ).addClass('final-points-display');
+        }
+
+        // Style readonly fields
+        $('#base_points, #multiplier, #final_points').addClass('readonly-field').prop('readonly', true);
+
+        // Initial calculation on page load
+        setTimeout(calculatePoints, 500);
+    });
+    </script>
+
+    <style>
+    #base_points, #multiplier, #final_points { max-width: 200px; }
+    #final_points_display { margin-top: 10px; }
+    </style>
+
+    <div id="final_points_display"></div>
+{% endblock %}

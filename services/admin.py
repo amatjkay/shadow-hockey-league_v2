@@ -500,6 +500,9 @@ class ManagerModelView(SecureModelView):
 
     name = 'Managers'
 
+    create_template = 'admin/manager_create.html'
+    edit_template = 'admin/manager_edit.html'
+
     # Добавляем ссылку на создание достижения для менеджера
     column_list = ('id', 'name', 'country', 'manage_achievements')
     column_searchable_list = ('name',)
@@ -554,6 +557,9 @@ class AchievementModelView(SecureModelView):
     """Admin view for Achievement CRUD operations (FK-based)."""
 
     name = 'Achievements'
+
+    create_template = 'admin/achievement_create.html'
+    edit_template = 'admin/achievement_edit.html'
 
     column_list = ('id', 'type', 'league', 'season', 'manager', 'final_points')
     column_searchable_list = ('title',)

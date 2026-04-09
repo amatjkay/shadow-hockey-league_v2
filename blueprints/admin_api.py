@@ -259,6 +259,40 @@ def get_leagues():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+# ==================== API-Extra: Achievement Types ====================
+
+@admin_api_bp.route('/achievement-types', methods=['GET'])
+@login_required
+def get_achievement_types():
+    """List all active achievement types for Select2 dropdown."""
+    try:
+        q = request.args.get('q', '').strip()
+        types = db.session.query(AchievementType).filter_by(is_active=True)
+
+        if q:
+            types = types.filter(
+                db.or_(
+                    AchievementType.name.ilike(f'%{q}%'),
+                    AchievementType.code.ilike(f'%{q}%')
+                )
+            )
+
+        types = types.order_by(AchievementType.name).all()
+
+        return jsonify({
+            'items': [
+                {
+                    'id': t.id,
+                    'text': t.name + ' (L1: ' + str(t.base_points_l1) + ', L2: ' + str(t.base_points_l2) + ')'
+                }
+                for t in types
+            ]
+        })
+    except Exception as e:
+        api_logger.error(f"Error in GET /admin/api/achievement-types: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 # ==================== API-006: Bulk Create ====================
 
 @admin_api_bp.route('/achievements/bulk-create', methods=['POST'])
