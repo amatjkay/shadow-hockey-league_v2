@@ -184,6 +184,11 @@ def register_extensions(app: Flask) -> None:
             setup_audit_events()
             app.logger.info("Audit event listeners initialized")
 
+            # Initialize rating recalculation triggers
+            from services.rating_service import setup_rating_triggers
+            setup_rating_triggers()
+            app.logger.info("Rating recalculation triggers initialized")
+
         except Exception as e:
             app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
 

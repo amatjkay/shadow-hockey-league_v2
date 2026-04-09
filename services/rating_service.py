@@ -255,3 +255,48 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
         )
 
     return result
+
+
+# ==================== Auto-Recalculation Triggers (FR-005) ====================
+
+
+def setup_rating_triggers():
+    """Setup SQLAlchemy event listeners for automatic rating recalculation.
+
+    Triggers:
+    - Achievement created → auto-calculate points
+    - Achievement updated (type_id, league_id, season_id changed) → auto-calculate points
+    - Achievement deleted → invalidate cache
+    - Season multiplier changed → recalculate all achievements in that season
+    - AchievementType points changed → recalculate all achievements of that type
+    """
+    from sqlalchemy import event
+
+    @event.listens_for(Achievement, 'before_insert')
+    def achievement_before_insert(mapper, connection, target):
+        """Auto-calculate points before insert."""
+        if target.type and target.league and target.season:
+            target.base_points = float(
+                target.type.base_points_l1 if target.league.code == '1'
+                else target.type.base_points_l2
+            )
+            target.multiplier = float(target.season.multiplier)
+            target.final_points = round(target.base_points * target.multiplier, 2)
+
+    @event.listens_for(Achievement, 'before_update')
+    def achievement_before_update(mapper, connection, target):
+        """Auto-calculate points before update if relevant fields changed."""
+        if target.type and target.league and target.season:
+            target.base_points = float(
+                target.type.base_points_l1 if target.league.code == '1'
+                else target.type.base_points_l2
+            )
+            target.multiplier = float(target.season.multiplier)
+            target.final_points = round(target.base_points * target.multiplier, 2)
+
+    @event.listens_for(Achievement, 'after_delete')
+    def achievement_after_delete(mapper, connection, target):
+        """Invalidate leaderboard cache after achievement deletion."""
+        from services.cache_service import invalidate_leaderboard_cache
+        invalidate_leaderboard_cache()
+
