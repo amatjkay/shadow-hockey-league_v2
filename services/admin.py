@@ -41,12 +41,26 @@ def get_flag_choices():
     """Dynamically get flag choices from static folder."""
     flags_dir = os.path.join(current_app.root_path, 'static', 'img', 'flags')
     choices = [('', '-- Select Flag --')]
-    
+
     if os.path.exists(flags_dir):
         files = sorted(os.listdir(flags_dir))
         for f in files:
             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
                 path = f'/static/img/flags/{f}'
+                choices.append((path, f))
+    return choices
+
+
+def get_achievement_icon_choices():
+    """Dynamically get achievement icon choices from static folder."""
+    icons_dir = os.path.join(current_app.root_path, 'static', 'img', 'cups')
+    choices = [('', '-- Select Icon --')]
+
+    if os.path.exists(icons_dir):
+        files = sorted(os.listdir(icons_dir))
+        for f in files:
+            if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg')):
+                path = f'/static/img/cups/{f}'
                 choices.append((path, f))
     return choices
 
@@ -514,7 +528,12 @@ class ManagerModelView(SecureModelView):
         url = url_for('achievement.create_view', manager_id=model.id)
         return Markup(f'<a href="{url}">Управление наградами ({len(model.achievements)})</a>')
 
+    # Форматтер для имени — убираем <Manager ...>
+    def _format_name(view, context, model, name):
+        return model.name if model.name else str(model.id)
+
     column_formatters = {
+        'name': _format_name,
         'country': lambda v, c, m, p: m.country.name if m.country else 'Unknown',
         'manage_achievements': _manage_achievements
     }
@@ -556,28 +575,49 @@ class AchievementModelView(SecureModelView):
         'season': {
             'query_factory': lambda: db.session.query(Season).order_by(Season.name),
             'get_label': 'name'
+        },
+        'base_points': {
+            'label': 'Base Points',
+            'render_kw': {'readonly': True, 'class': 'form-control'}
+        },
+        'multiplier': {
+            'label': 'Multiplier',
+            'render_kw': {'readonly': True, 'class': 'form-control'}
+        },
+        'final_points': {
+            'label': 'Points',
+            'render_kw': {'readonly': True, 'class': 'form-control'}
         }
+    }
+
+    form_overrides = {
+        'icon_path': SelectField
     }
 
     form_widget_args = {
         'type': {'class': 'form-control select2'},
         'league': {'class': 'form-control select2'},
         'season': {'class': 'form-control select2'},
+        'base_points': {'readonly': True},
+        'multiplier': {'readonly': True},
+        'final_points': {'readonly': True},
     }
 
     column_labels = {
-        'type_id': 'Type',
-        'league_id': 'League',
-        'season_id': 'Season',
+        'type': 'Type',
+        'league': 'League',
+        'season': 'Season',
+        'manager': 'Manager',
         'final_points': 'Points'
     }
 
-    # Форматтеры для списка
+    # Форматтеры для списка — отображают данные relationships
     column_formatters = {
         'type': lambda v, c, m, p: m.type.name if m.type else '-',
         'league': lambda v, c, m, p: m.league.name if m.league else '-',
         'season': lambda v, c, m, p: m.season.name if m.season else '-',
         'manager': lambda v, c, m, p: m.manager.name if m.manager else '-',
+        'icon_path': lambda v, c, m, p: Markup(f'<img src="{m.icon_path}" style="height:32px;">') if m.icon_path else '-',
     }
 
     def create_form(self, obj=None):
@@ -586,13 +626,18 @@ class AchievementModelView(SecureModelView):
         manager_id = request.args.get('manager_id')
         if manager_id:
             form.manager.data = db.session.query(Manager).get(int(manager_id))
-        
+
+        # Icon choices
+        form.icon_path.choices = get_achievement_icon_choices()
+
         # Генерируем JS для автозаполнения
         form.extra_js = self._get_achievement_js()
         return form
 
     def edit_form(self, obj):
         form = super().edit_form(obj)
+        # Icon choices
+        form.icon_path.choices = get_achievement_icon_choices()
         form.extra_js = self._get_achievement_js()
         return form
 
