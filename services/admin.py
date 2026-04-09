@@ -480,12 +480,6 @@ class CountryModelView(SecureModelView):
         'name': {'readonly': True, 'style': 'background-color: #f0f0f0;'}
     }
 
-    # Переопределяем поля на SelectField с виджетом Select2
-    form_overrides = {
-        'code': SelectField,
-        'flag_path': SelectField
-    }
-
     # Размер картинки (соответствует стилю главной страницы)
     column_formatters = {
         'flag_path': lambda v, c, m, p: Markup(f'<img src="{m.flag_display_url}" width="32" height="24" style="border: 1px solid #ccc;">') if m.flag_path or m.flag_url else ''
