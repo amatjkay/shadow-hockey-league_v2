@@ -130,6 +130,7 @@ class AchievementType(db.Model):
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
     base_points_l1 = db.Column(db.Integer, nullable=False, default=0)  # Base points for League 1
     base_points_l2 = db.Column(db.Integer, nullable=False, default=0)  # Base points for League 2
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     def __repr__(self) -> str:
         return f"<AchievementType {self.code}>"
@@ -143,6 +144,7 @@ class League(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(10), unique=True, nullable=False, index=True)  # "1", "2", "3"
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     def __repr__(self) -> str:
         return f"<League {self.code}>"
@@ -158,6 +160,8 @@ class Season(db.Model):
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
     multiplier = db.Column(db.Float, nullable=False, default=1.0)  # Season multiplier for rating
     is_active = db.Column(db.Boolean, nullable=False, default=False)  # Current season flag
+    start_year = db.Column(db.Integer, nullable=True)  # e.g. 2022 for "22/23"
+    end_year = db.Column(db.Integer, nullable=True)    # e.g. 2023 for "22/23"
 
     def __repr__(self) -> str:
         return f"<Season {self.code}>"
@@ -175,6 +179,7 @@ class Country(db.Model):
     code = db.Column(db.String(3), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False, default="Unknown")  # Название страны (например, "Russia")
     flag_path = db.Column(db.String(100), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     managers = db.relationship("Manager", backref="country", lazy="select")
 
     def __repr__(self) -> str:
@@ -207,6 +212,7 @@ class Manager(db.Model):
     country_id = db.Column(
         db.Integer, db.ForeignKey("countries.id", ondelete="RESTRICT"), nullable=False
     )
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     achievements = db.relationship(
         "Achievement", backref="manager", lazy="select", cascade="all, delete-orphan"
     )
@@ -239,21 +245,25 @@ class Achievement(db.Model):
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    
+
     # New Foreign Keys
     type_id = db.Column(db.Integer, db.ForeignKey("achievement_types.id"), nullable=False, index=True)
     league_id = db.Column(db.Integer, db.ForeignKey("leagues.id"), nullable=False, index=True)
     season_id = db.Column(db.Integer, db.ForeignKey("seasons.id"), nullable=False, index=True)
-    
+
     # Auto-calculated fields
     base_points = db.Column(db.Float, nullable=False, default=0.0)
     multiplier = db.Column(db.Float, nullable=False, default=1.0)
     final_points = db.Column(db.Float, nullable=False, default=0.0)
-    
+
     # Legacy/Visual fields
     title = db.Column(db.String(100), nullable=False)
     icon_path = db.Column(db.String(100), nullable=False)
-    
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(), onupdate=db.func.now())
+
     # Relationships
     manager_id = db.Column(
         db.Integer, db.ForeignKey("managers.id", ondelete="CASCADE"), nullable=False, index=True
