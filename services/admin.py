@@ -165,7 +165,8 @@ def init_admin(app) -> None:
     # Add views with proper menu structure
     admin.add_view(CountryModelView(Country, db.session, name='Countries', category='Data', menu_icon_type='fa', menu_icon_value='fa-flag'))
     admin.add_view(ManagerModelView(Manager, db.session, name='Managers', category='Data', menu_icon_type='fa', menu_icon_value='fa-user'))
-    admin.add_view(AchievementModelView(Achievement, db.session, name='Achievements', category='Data', menu_icon_type='fa', menu_icon_value='fa-trophy'))
+    # Achievement CRUD moved to Manager edit page — removed from menu
+    # admin.add_view(AchievementModelView(Achievement, db.session, name='Achievements', category='Data', menu_icon_type='fa', menu_icon_value='fa-trophy'))
     admin.add_view(AdminUserModelView(AdminUser, db.session, name='Admin Users', category='Settings', menu_icon_type='fa', menu_icon_value='fa-users'))
 
     # Reference Data
@@ -521,11 +522,10 @@ class ManagerModelView(SecureModelView):
         }
     }
 
-    # Форматтер для ссылки на достижения
+    # Форматтер для ссылки на достижения — теперь ведёт на edit страницу менеджера
     def _manage_achievements(view, context, model, name):
-        # Ссылка на создание достижения с предвыбранным менеджером
-        url = url_for('achievement.create_view', manager_id=model.id)
-        return Markup(f'<a href="{url}">Управление наградами ({len(model.achievements)})</a>')
+        url = url_for('.edit_view', id=model.id)
+        return Markup(f'<a href="{url}">🏆 Achievements ({len(model.achievements)})</a>')
 
     # Форматтер для имени — убираем <Manager ...>
     def _format_name(view, context, model, name):
@@ -792,6 +792,9 @@ class AchievementTypeModelView(SecureModelView):
     """Admin view for managing achievement types and base points."""
 
     name = 'Achievement Types'
+    category = 'Reference'
+    create_template = 'admin/achievement_type_create.html'
+    edit_template = 'admin/achievement_type_edit.html'
     column_list = ('code', 'name', 'base_points_l1', 'base_points_l2')
     column_searchable_list = ('code', 'name')
     column_filters = ('code', 'name')

@@ -1,0 +1,195 @@
+{% extends 'admin/model/create.html' %}
+
+{% block tail %}
+    {{ super() }}
+
+    <!-- Points Calculator Section -->
+    <div id="points-calculator" style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+        <h4 style="margin-top: 0; margin-bottom: 15px;">🏆 Points Calculator (Preview)</h4>
+
+        <div class="form-group">
+            <label>League (for preview)</label>
+            <select id="calc-league" class="form-control" style="width: 100%;">
+                <option value="">-- Select League --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Season (for preview)</label>
+            <select id="calc-season" class="form-control" style="width: 100%;" disabled>
+                <option value="">-- Select League First --</option>
+            </select>
+        </div>
+
+        <hr style="border-color: rgba(255,255,255,0.3);">
+
+        <div class="row" style="margin-bottom: 10px;">
+            <div class="col-md-3">
+                <strong>League:</strong>
+            </div>
+            <div class="col-md-3">
+                <span id="calc-league-display">—</span>
+            </div>
+            <div class="col-md-3">
+                <strong>Base Points:</strong>
+            </div>
+            <div class="col-md-3">
+                <span id="calc-base-display">—</span>
+            </div>
+        </div>
+
+        <div class="row" style="margin-bottom: 10px;">
+            <div class="col-md-3">
+                <strong>Season:</strong>
+            </div>
+            <div class="col-md-3">
+                <span id="calc-season-display">—</span>
+            </div>
+            <div class="col-md-3">
+                <strong>Multiplier:</strong>
+            </div>
+            <div class="col-md-3">
+                <span id="calc-multiplier-display">—</span>
+            </div>
+        </div>
+
+        <hr style="border-color: rgba(255,255,255,0.3);">
+
+        <div class="row">
+            <div class="col-md-6">
+                <strong style="font-size: 18px;">Final Points:</strong>
+            </div>
+            <div class="col-md-6">
+                <span id="calc-final-display" style="font-size: 28px; font-weight: bold;">—</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        // Initialize Select2 for calculator dropdowns
+        $('#calc-league').select2({
+            ajax: {
+                url: '/admin/api/leagues',
+                dataType: 'json',
+                delay: 250,
+                data: function() { return {}; },
+                processResults: function(data) {
+                    return {
+                        results: data.items.map(function(l) {
+                            return { id: l.id, text: l.name + ' (' + l.code + ')', code: l.code };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0,
+            placeholder: 'Select league...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        $('#calc-season').select2({
+            ajax: {
+                url: '/admin/api/seasons',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    var leagueId = $('#calc-league').val();
+                    return { league_id: leagueId, active_only: true };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data.items.map(function(s) {
+                            return { id: s.id, text: s.name + ' (×' + s.multiplier + ')', multiplier: s.multiplier };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0,
+            placeholder: 'Select league first...',
+            allowClear: true,
+            disabled: true,
+            width: '100%'
+        });
+
+        // Cascade: League → Season
+        $('#calc-league').on('select2:select select2:clear', function(e) {
+            if (!e.params || !e.params.data) {
+                // Clear event
+                $('#calc-season').val(null).prop('disabled', true).trigger('change');
+                $('#calc-season-display').text('—');
+                $('#calc-multiplier-display').text('—');
+                $('#calc-base-display').text('—');
+                $('#calc-league-display').text('—');
+                $('#calc-final-display').text('—');
+                return;
+            }
+            $('#calc-season').prop('disabled', false).empty().trigger('change');
+            updateCalculator();
+        });
+
+        // Season selection
+        $('#calc-season').on('select2:select select2:clear', function() {
+            updateCalculator();
+        });
+
+        // Listen to form field changes for base_points_l1/l2
+        $('#base_points_l1, #base_points_l2').on('input change', function() {
+            updateCalculator();
+        });
+
+        function updateCalculator() {
+            var leagueData = $('#calc-league').select2('data');
+            var seasonData = $('#calc-season').select2('data');
+
+            if (!leagueData || !leagueData[0]) {
+                $('#calc-league-display').text('—');
+                $('#calc-base-display').text('—');
+                $('#calc-season-display').text('—');
+                $('#calc-multiplier-display').text('—');
+                $('#calc-final-display').text('—');
+                return;
+            }
+
+            var league = leagueData[0];
+            var leagueCode = league.code;
+
+            // Get base points from form fields
+            var basePointsL1 = parseFloat($('#base_points_l1').val()) || 0;
+            var basePointsL2 = parseFloat($('#base_points_l2').val()) || 0;
+            var basePoints = (leagueCode === '1') ? basePointsL1 : basePointsL2;
+
+            $('#calc-league-display').text(league.text);
+            $('#calc-base-display').text(basePoints);
+
+            if (seasonData && seasonData[0]) {
+                var season = seasonData[0];
+                var multiplier = parseFloat(season.multiplier) || 1.0;
+                var finalPoints = (basePoints * multiplier).toFixed(2);
+
+                $('#calc-season-display').text(season.text);
+                $('#calc-multiplier-display').text('×' + multiplier);
+                $('#calc-final-display').text(finalPoints);
+            } else {
+                $('#calc-season-display').text('—');
+                $('#calc-multiplier-display').text('—');
+                $('#calc-final-display').text('—');
+            }
+        }
+    });
+    </script>
+
+    <style>
+    #calc-league, #calc-season {
+        background-color: rgba(255,255,255,0.9);
+        border: 1px solid rgba(255,255,255,0.3);
+        color: #333;
+    }
+    #calc-final-display {
+        color: #FFD700;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    </style>
+{% endblock %}
