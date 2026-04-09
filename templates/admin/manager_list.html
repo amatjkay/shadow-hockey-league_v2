@@ -97,17 +97,22 @@
         if (table.length > 0) {
             // Add header checkbox
             table.find('thead tr').prepend('<th style="width: 30px;"><input type="checkbox" id="select-all-managers" title="Select all"></th>');
-            
-            // Add checkbox to each row
+
+            // Add checkbox to each row — extract ID from edit link href reliably
             table.find('tbody tr').each(function() {
-                var link = $(this).find('a').first().attr('href');
                 var id = null;
-                if (link) {
-                    var match = link.match(/id=(\d+)/);
+                // Try to extract from edit link (most reliable)
+                var editLink = $(this).find('a[href*="id="]').first().attr('href');
+                if (editLink) {
+                    var match = editLink.match(/[?&]id=(\d+)/);
                     if (match) id = match[1];
                 }
+                // Fallback: use data attribute if present
                 if (!id) {
-                    // Try to extract from first cell
+                    id = $(this).data('manager-id');
+                }
+                // Final fallback: first cell text
+                if (!id) {
                     id = $(this).find('td').first().text().trim();
                 }
                 $(this).prepend('<td><input type="checkbox" class="manager-checkbox" value="' + id + '"></td>');

@@ -204,15 +204,13 @@ COUNTRY_FLAG_MAP = {code: f'/static/img/flags/{code}.png' for code, _ in _raw_ch
 # Add specific overrides if filenames differ from ISO codes
 COUNTRY_FLAG_MAP['GBR'] = '/static/img/flags/GBR.png' # Or UK.png if exists
 
-# JavaScript to auto-fill Name, Flag Path, Flag URL, and show preview
+# JavaScript to auto-fill Name, Flag Path, and show preview
 COUNTRY_AUTOFILL_JS = """
 <script>
 $(document).ready(function() {
     var $code = $('#code');
     var $name = $('#name');
     var $flag = $('#flag_path');
-    var $flagSource = $('#flag_source_type');
-    var $flagUrl = $('#flag_url');
     var $preview = $('#flag-preview-img');
     var flagMap = """ + json.dumps({k: v for k, v in COUNTRY_FLAG_MAP.items()}) + """;
 
@@ -238,28 +236,6 @@ $(document).ready(function() {
 
     $code.on('select2:select', updateCountryDetails);
 
-    // Auto-generate FlagCDN URL when code changes
-    $code.on('change input', function() {
-        setTimeout(function() {
-            var codeVal = $code.val();
-            if (codeVal && codeVal.length >= 2) {
-                var flagcdnUrl = 'https://flagcdn.com/w320/' + codeVal.toLowerCase() + '.png';
-                $flagUrl.val(flagcdnUrl);
-            }
-        }, 100);
-    });
-
-    // Show/hide flag fields based on source type
-    $flagSource.on('change', function() {
-        if (this.value === 'api') {
-            $('#flag_path').closest('.form-group').hide();
-            $('#flag_url').closest('.form-group').show();
-        } else {
-            $('#flag_path').closest('.form-group').show();
-            $('#flag_url').closest('.form-group').hide();
-        }
-    });
-
     // Initial check on load
     setTimeout(function() {
         var currentVal = $code.val();
@@ -267,8 +243,6 @@ $(document).ready(function() {
              // Trigger update manually if value exists
              updateCountryDetails();
         }
-        // Trigger source type visibility
-        $flagSource.trigger('change');
     }, 1000);
 });
 </script>
@@ -446,37 +420,28 @@ class CountryModelView(SecureModelView):
     """Admin view for Country CRUD operations."""
 
     name = 'Countries'
-    column_list = ('id', 'code', 'name', 'flag_path', 'flag_source_type')
+    column_list = ('id', 'code', 'name', 'flag_path')
     column_searchable_list = ('code', 'name')
-    column_filters = ('code', 'name', 'flag_source_type')
-    form_columns = ('code', 'name', 'flag_source_type', 'flag_path', 'flag_url')
+    column_filters = ('code', 'name')
+    # Simplified form_columns — flag_source_type/flag_url disabled until WTForms compatibility is resolved
+    form_columns = ('code', 'name', 'flag_path')
     column_default_sort = ('name', False)
 
     column_labels = {
         'code': 'Country',
         'name': 'Name (Auto)',
-        'flag_path': 'Flag Img',
-        'flag_source_type': 'Flag Source',
-        'flag_url': 'Flag URL (API)'
+        'flag_path': 'Flag Img'
     }
 
     form_args = {
-        'flag_source_type': {
-            'label': 'Flag Source Type',
-            'choices': [('local', 'Local file from static/img/flags/'), ('api', 'Auto-load from FlagCDN API')]
-        },
-        'flag_url': {
-            'label': 'Flag URL',
-            'render_kw': {'placeholder': 'https://flagcdn.com/w320/{code}.png'}
-        },
         'code': {'validators': []},
         'flag_path': {'validators': []},
+        'name': {'validators': []}
     }
 
     form_widget_args = {
-        'flag_path': {'class': 'form-control'},
-        'flag_url': {'class': 'form-control'},
         'code': {},
+        'flag_path': {},
         'name': {'readonly': True, 'style': 'background-color: #f0f0f0;'}
     }
 
