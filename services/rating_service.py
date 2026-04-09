@@ -271,28 +271,48 @@ def setup_rating_triggers():
     - AchievementType points changed → recalculate all achievements of that type
     """
     from sqlalchemy import event
+    from sqlalchemy.orm import object_session
+
+    def _recalculate_points(target):
+        """Helper to recalculate points on an achievement."""
+        # Try to use relationships first
+        ach_type = target.type
+        league = target.league
+        season = target.season
+
+        # If relationships not loaded, look them up by ID using session.get()
+        if ach_type is None and target.type_id is not None:
+            session = object_session(target)
+            if session:
+                ach_type = session.get(AchievementType, target.type_id)
+
+        if league is None and target.league_id is not None:
+            session = object_session(target)
+            if session:
+                league = session.get(League, target.league_id)
+
+        if season is None and target.season_id is not None:
+            session = object_session(target)
+            if session:
+                season = session.get(Season, target.season_id)
+
+        if ach_type and league and season:
+            target.base_points = float(
+                ach_type.base_points_l1 if league.code == '1'
+                else ach_type.base_points_l2
+            )
+            target.multiplier = float(season.multiplier)
+            target.final_points = round(target.base_points * target.multiplier, 2)
 
     @event.listens_for(Achievement, 'before_insert')
     def achievement_before_insert(mapper, connection, target):
         """Auto-calculate points before insert."""
-        if target.type and target.league and target.season:
-            target.base_points = float(
-                target.type.base_points_l1 if target.league.code == '1'
-                else target.type.base_points_l2
-            )
-            target.multiplier = float(target.season.multiplier)
-            target.final_points = round(target.base_points * target.multiplier, 2)
+        _recalculate_points(target)
 
     @event.listens_for(Achievement, 'before_update')
     def achievement_before_update(mapper, connection, target):
         """Auto-calculate points before update if relevant fields changed."""
-        if target.type and target.league and target.season:
-            target.base_points = float(
-                target.type.base_points_l1 if target.league.code == '1'
-                else target.type.base_points_l2
-            )
-            target.multiplier = float(target.season.multiplier)
-            target.final_points = round(target.base_points * target.multiplier, 2)
+        _recalculate_points(target)
 
     @event.listens_for(Achievement, 'after_delete')
     def achievement_after_delete(mapper, connection, target):

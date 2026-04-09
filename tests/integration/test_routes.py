@@ -1,9 +1,9 @@
 """Integration tests for Shadow Hockey League application.
 
 These tests verify the interaction between components:
-- Flask application ↔ Database
-- API endpoints ↔ Data validation
-- Services ↔ Data models
+- Flask application <-> Database
+- API endpoints <-> Data validation
+- Services <-> Data models
 
 Unlike unit tests, these use a real SQLite database file.
 
@@ -17,7 +17,7 @@ import time
 import unittest
 
 from app import create_app
-from models import Achievement, Country, Manager, db
+from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.rating_service import build_leaderboard
 
 
@@ -26,12 +26,40 @@ def enable_sqlite_fk(session):
     session.execute(db.text("PRAGMA foreign_keys=ON"))
 
 
+def _seed_reference_data():
+    """Seed reference tables. Returns (league_ids, season_ids, type_map)."""
+    leagues = {}
+    for code in ["1", "2"]:
+        lg = League(code=code, name=f"League {code}")
+        db.session.add(lg)
+        leagues[code] = lg
+
+    seasons = {}
+    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
+        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        db.session.add(s)
+        seasons[code] = s
+
+    type_points = {
+        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
+        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+    }
+    types = {}
+    for code, (bp_l1, bp_l2) in type_points.items():
+        at = AchievementType(code=code, name=code, base_points_l1=bp_l1, base_points_l2=bp_l2)
+        db.session.add(at)
+        types[code] = at
+
+    db.session.flush()
+    return {c: lg.id for c, lg in leagues.items()}, {c: s.id for c, s in seasons.items()}, types
+
+
 class TestEmptyDatabase(unittest.TestCase):
     """Tests for empty database scenarios."""
 
     def setUp(self) -> None:
         """Set up test fixtures with empty database."""
-        # Create temporary database file
         self.db_fd, self.db_path = tempfile.mkstemp(suffix='.db')
 
         self.app = create_app("config.TestingConfig")
@@ -47,7 +75,6 @@ class TestEmptyDatabase(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-        # Close and remove temporary file
         os.close(self.db_fd)
         try:
             os.unlink(self.db_path)
@@ -56,18 +83,14 @@ class TestEmptyDatabase(unittest.TestCase):
 
     def test_empty_database_homepage(self) -> None:
         """Home page loads successfully with empty database."""
-        # Arrange: Database is empty (no managers, no countries)
         with self.app.app_context():
             manager_count = db.session.query(Manager).count()
             self.assertEqual(manager_count, 0)
 
-        # Act
         response = self.client.get('/')
 
-        # Assert
         self.assertEqual(response.status_code, 200)
         html = response.data.decode('utf-8')
-        # Page should load, even if empty
         self.assertIn("Shadow Hockey League", html)
 
 
@@ -99,9 +122,17 @@ class TestBulkLoadPerformance(unittest.TestCase):
 
     def test_bulk_load_100_managers(self) -> None:
         """Performance test: Load 100 managers with achievements."""
-        # Arrange & Act: Create 100 managers with 5 achievements each
         with self.app.app_context():
             start = time.time()
+
+            # Create reference data
+            league_ids, season_ids, type_map = _seed_reference_data()
+            db.session.commit()
+
+            # Pre-load reference objects for efficient relationship assignment
+            type_objs = {code: db.session.get(AchievementType, at.id) for code, at in type_map.items()}
+            league_obj = db.session.get(League, league_ids["1"])
+            season_obj = db.session.get(Season, season_ids["25/26"])
 
             # Create countries
             for i in range(10):
@@ -121,29 +152,31 @@ class TestBulkLoadPerformance(unittest.TestCase):
                 db.session.add(manager)
             db.session.commit()
 
-            # Create achievements (5 per manager)
-            seasons = ["25/26", "24/25", "23/24", "22/23", "21/22"]
-            types = [("TOP1", "TOP1"), ("TOP2", "TOP2"), ("TOP3", "TOP3"), ("BEST", "Best regular"), ("R3", "Round 3")]
+            # Create achievements (5 per manager) - assign relationships directly
+            type_list = ["TOP1", "TOP2", "TOP3", "BEST", "R3"]
+            title_list = ["TOP1", "TOP2", "TOP3", "Best regular", "Round 3"]
+            icon_list = ["top1", "top2", "top3", "best", "r3"]
             for manager_id in range(1, 101):
                 for j in range(5):
-                    ach_type, title = types[j]
                     achievement = Achievement(
-                        achievement_type=ach_type,
-                        league="1",
-                        season=seasons[j],
-                        title=title,
-                        icon_path=f"/static/img/cups/{ach_type.lower()}.svg",
-                        manager_id=manager_id
+                        type_id=type_map[type_list[j]].id,
+                        league_id=league_ids["1"],
+                        season_id=season_ids["25/26"],
+                        title=title_list[j],
+                        icon_path=f"/static/img/cups/{icon_list[j]}.svg",
+                        manager_id=manager_id,
                     )
+                    # Assign relationships directly so event listener skips lookups
+                    achievement.type = type_objs[type_list[j]]
+                    achievement.league = league_obj
+                    achievement.season = season_obj
                     db.session.add(achievement)
             db.session.commit()
 
             elapsed = time.time() - start
 
-        # Assert: Bulk load should complete in reasonable time
         self.assertLess(elapsed, 5.0, f"Bulk load took {elapsed:.2f}s (expected < 5s)")
 
-        # Verify counts
         with self.app.app_context():
             manager_count = db.session.query(Manager).count()
             achievement_count = db.session.query(Achievement).count()
@@ -152,8 +185,10 @@ class TestBulkLoadPerformance(unittest.TestCase):
 
     def test_leaderboard_load_performance(self) -> None:
         """Performance test: Leaderboard load with 100 managers."""
-        # Arrange: 100 managers with achievements already created
         with self.app.app_context():
+            league_ids, season_ids, type_map = _seed_reference_data()
+            db.session.commit()
+
             # Create countries
             for i in range(10):
                 country = Country(
@@ -175,9 +210,9 @@ class TestBulkLoadPerformance(unittest.TestCase):
             # Create achievements
             for manager_id in range(1, 101):
                 achievement = Achievement(
-                    achievement_type="TOP1",
-                    league="1",
-                    season="25/26",
+                    type_id=type_map["TOP1"].id,
+                    league_id=league_ids["1"],
+                    season_id=season_ids["25/26"],
                     title="TOP1",
                     icon_path="/static/img/cups/top1.svg",
                     manager_id=manager_id
@@ -185,13 +220,11 @@ class TestBulkLoadPerformance(unittest.TestCase):
                 db.session.add(achievement)
             db.session.commit()
 
-        # Act: Measure leaderboard load time
         with self.app.app_context():
             start = time.time()
             response = self.client.get('/')
             elapsed = time.time() - start
 
-        # Assert: Page load should be fast
         self.assertEqual(response.status_code, 200)
         self.assertLess(elapsed, 2.0, f"Page load took {elapsed:.2f}s (expected < 2s)")
 
@@ -210,7 +243,6 @@ class TestTransactionRollback(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
 
-            # Create initial country
             country = Country(code="TST", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
@@ -229,19 +261,16 @@ class TestTransactionRollback(unittest.TestCase):
 
     def test_unique_constraint_rollback(self) -> None:
         """Transaction rolls back on unique constraint violation."""
-        # Arrange
         with self.app.app_context():
             initial_count = db.session.query(Manager).count()
 
-            # Act: Attempt to create managers with duplicate names
             try:
                 with db.session.begin():
                     db.session.add(Manager(name="Duplicate Name", country_id=1))
-                    db.session.add(Manager(name="Duplicate Name", country_id=1))  # Will fail
+                    db.session.add(Manager(name="Duplicate Name", country_id=1))
             except Exception:
-                pass  # Expected exception
+                pass
 
-            # Assert: Count should be unchanged
             final_count = db.session.query(Manager).count()
             self.assertEqual(initial_count, final_count)
 
@@ -260,7 +289,6 @@ class TestConcurrentRequests(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
 
-            # Create test data
             country = Country(code="CON", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
@@ -292,14 +320,12 @@ class TestConcurrentRequests(unittest.TestCase):
             with lock:
                 results.append(response.status_code)
 
-        # Act: 10 concurrent requests
         threads = [threading.Thread(target=make_request) for _ in range(10)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
 
-        # Assert: All requests successful
         self.assertEqual(len(results), 10)
         self.assertTrue(all(code == 200 for code in results))
 
@@ -318,12 +344,10 @@ class TestAPICRUDOperations(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
 
-            # Create country for tests
             country = Country(code="API", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
 
-            # Create API key
             from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
             self.api_key = generate_api_key()
@@ -360,7 +384,6 @@ class TestAPICRUDOperations(unittest.TestCase):
 
     def test_api_crud_cycle(self) -> None:
         """Complete CRUD cycle through API."""
-        # Create
         response = self._post(
             '/api/managers',
             json={"name": "CRUD Test Manager", "country_id": 1}
@@ -368,12 +391,10 @@ class TestAPICRUDOperations(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
         manager_id = response.get_json()['id']
 
-        # Read
         response = self._get(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()['name'], "CRUD Test Manager")
 
-        # Update
         response = self._put(
             f'/api/managers/{manager_id}',
             json={"name": "Updated Manager"}
@@ -381,38 +402,32 @@ class TestAPICRUDOperations(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()['name'], "Updated Manager")
 
-        # Delete
         response = self._delete(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 200)
 
-        # Verify deletion
         response = self._get(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 404)
 
     def test_api_validation_errors(self) -> None:
         """API rejects invalid data."""
-        # Empty name
         response = self._post(
             '/api/managers',
             json={"name": "", "country_id": 1}
         )
         self.assertEqual(response.status_code, 400)
 
-        # Missing country_id
         response = self._post(
             '/api/managers',
             json={"name": "Test"}
         )
         self.assertEqual(response.status_code, 400)
 
-        # Non-existent country
         response = self._post(
             '/api/managers',
             json={"name": "Test", "country_id": 9999}
         )
         self.assertEqual(response.status_code, 400)
 
-        # Duplicate name
         self._post(
             '/api/managers',
             json={"name": "Duplicate", "country_id": 1}
@@ -452,8 +467,9 @@ class TestRatingCalculationIntegration(unittest.TestCase):
 
     def test_rating_calculation_with_real_db(self) -> None:
         """Rating calculation with real database data."""
-        # Arrange: Create manager with known achievements
         with self.app.app_context():
+            league_ids, season_ids, type_map = _seed_reference_data()
+
             country = Country(code="RAT", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
@@ -464,21 +480,21 @@ class TestRatingCalculationIntegration(unittest.TestCase):
 
             manager_id = manager.id
 
-            # TOP1 s25/26: 800 × 1.00 = 800
+            # TOP1 s25/26: 800 x 1.00 = 800
             db.session.add(Achievement(
-                achievement_type="TOP1",
-                league="1",
-                season="25/26",
+                type_id=type_map["TOP1"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["25/26"],
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager_id
             ))
 
-            # TOP2 s24/25: 550 × 0.95 = 522.5 → 522 (banker's rounding)
+            # TOP2 s24/25: 550 x 0.95 = 522.5 -> 522 (banker's rounding)
             db.session.add(Achievement(
-                achievement_type="TOP2",
-                league="1",
-                season="24/25",
+                type_id=type_map["TOP2"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["24/25"],
                 title="TOP2",
                 icon_path="/static/img/cups/top2.svg",
                 manager_id=manager_id
@@ -486,11 +502,9 @@ class TestRatingCalculationIntegration(unittest.TestCase):
 
             db.session.commit()
 
-        # Act
         with self.app.app_context():
             leaderboard = build_leaderboard(db.session)
 
-        # Assert: 800 + 522 = 1322 (TOP1 s25/26: 800×1.00=800, TOP2 s24/25: 550×0.95=522.5→522 banker's rounding)
         test_entry = next(e for e in leaderboard if e['name'] == 'Rating Test')
         self.assertEqual(test_entry['total'], 1322)
 
@@ -513,7 +527,6 @@ class TestCascadeDelete(unittest.TestCase):
             db.session.add(country)
             db.session.commit()
 
-            # Create API key
             from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
             self.api_key = generate_api_key()
@@ -541,36 +554,37 @@ class TestCascadeDelete(unittest.TestCase):
 
     def test_manager_delete_cascades_to_achievements(self) -> None:
         """Deleting manager also deletes achievements (CASCADE)."""
-        # Arrange: Create manager with achievements
         with self.app.app_context():
+            league_ids, season_ids, type_map = _seed_reference_data()
+            db.session.commit()
+
             manager = Manager(name="Delete Test", country_id=1)
             db.session.add(manager)
             db.session.commit()
 
             manager_id = manager.id
 
+            type_list = ["TOP1", "TOP2", "TOP3"]
+            icon_list = ["top1", "top2", "top3"]
             for i in range(3):
                 db.session.add(Achievement(
-                    achievement_type=["TOP1", "TOP2", "TOP3"][i],
-                    league="1",
-                    season=["25/26", "24/25", "23/24"][i],
-                    title=["TOP1", "TOP2", "TOP3"][i],
-                    icon_path=f"/static/img/cups/{['top1', 'top2', 'top3'][i]}.svg",
+                    type_id=type_map[type_list[i]].id,
+                    league_id=league_ids["1"],
+                    season_id=season_ids["25/26"],
+                    title=type_list[i],
+                    icon_path=f"/static/img/cups/{icon_list[i]}.svg",
                     manager_id=manager_id
                 ))
             db.session.commit()
 
-            # Count before delete
             before_count = db.session.query(Achievement).filter_by(
                 manager_id=manager_id
             ).count()
             self.assertEqual(before_count, 3)
 
-        # Act: Delete manager via API
         response = self._delete(f'/api/managers/{manager_id}')
         self.assertEqual(response.status_code, 200)
 
-        # Assert: Achievements deleted via CASCADE
         with self.app.app_context():
             after_count = db.session.query(Achievement).filter_by(
                 manager_id=manager_id
@@ -612,7 +626,6 @@ class TestDatabaseConstraints(unittest.TestCase):
             db.session.add(country1)
             db.session.commit()
 
-            # Attempt duplicate
             country2 = Country(code="UNI", flag_path="/static/img/flags/test2.png")
             db.session.add(country2)
 
@@ -630,7 +643,6 @@ class TestDatabaseConstraints(unittest.TestCase):
             db.session.add(manager1)
             db.session.commit()
 
-            # Attempt duplicate
             manager2 = Manager(name="Unique Name", country_id=country.id)
             db.session.add(manager2)
 
@@ -640,14 +652,17 @@ class TestDatabaseConstraints(unittest.TestCase):
     def test_achievement_requires_manager(self) -> None:
         """Achievement must reference existing manager."""
         with self.app.app_context():
+            league_ids, season_ids, type_map = _seed_reference_data()
+            db.session.commit()
+
             # Attempt to create achievement with non-existent manager
             achievement = Achievement(
-                achievement_type="TOP1",
-                league="1",
-                season="24/25",
+                type_id=type_map["TOP1"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["24/25"],
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
-                manager_id=9999  # Non-existent
+                manager_id=9999
             )
             db.session.add(achievement)
 

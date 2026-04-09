@@ -16,7 +16,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import Session
 
-from models import Achievement, Country, Manager, db
+from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.validation_service import (
     validate_achievement_data,
     validate_country_data,
@@ -419,9 +419,12 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
                 "achievements": [
                     {
                         "id": a.id,
-                        "achievement_type": a.achievement_type,
-                        "league": a.league,
-                        "season": a.season,
+                        "type_id": a.type_id,
+                        "league_id": a.league_id,
+                        "season_id": a.season_id,
+                        "achievement_type": a.type.code if a.type else None,
+                        "league": a.league.code if a.league else None,
+                        "season": a.season.code if a.season else None,
                         "title": a.title,
                         "icon_path": a.icon_path,
                     }
@@ -553,28 +556,34 @@ def get_achievements() -> tuple[Any, int]:
 
     league = request.args.get("league", "")
     if league:
-        query = query.filter(Achievement.league == league)
+        query = query.join(League).filter(League.code == league)
 
     season = request.args.get("season", "")
     if season:
-        query = query.filter(Achievement.season == season)
+        query = query.join(Season).filter(Season.code == season)
 
     achievement_type = request.args.get("achievement_type", "")
     if achievement_type:
-        query = query.filter(Achievement.achievement_type == achievement_type)
+        query = query.join(AchievementType).filter(AchievementType.code == achievement_type)
 
-    query = query.order_by(Achievement.season.desc())
+    query = query.order_by(Achievement.season_id.desc())
 
     def serialize_achievement(a: Achievement) -> dict:
         return {
             "id": a.id,
-            "achievement_type": a.achievement_type,
-            "league": a.league,
-            "season": a.season,
+            "type_id": a.type_id,
+            "league_id": a.league_id,
+            "season_id": a.season_id,
+            "achievement_type": a.type.code if a.type else None,
+            "league": a.league.code if a.league else None,
+            "season": a.season.code if a.season else None,
             "title": a.title,
             "icon_path": a.icon_path,
             "manager_id": a.manager_id,
             "manager_name": a.manager.name,
+            "base_points": a.base_points,
+            "multiplier": a.multiplier,
+            "final_points": a.final_points,
         }
 
     return paginate_query(query, serialize_achievement)
@@ -588,9 +597,9 @@ def create_achievement() -> tuple[Any, int]:
 
     Request JSON:
         {
-            "achievement_type": "TOP1",  # required
-            "league": "1",  # required (1 or 2)
-            "season": "24/25",  # required
+            "type_code": "TOP1",  # required (or legacy "achievement_type")
+            "league_code": "1",   # required (or legacy "league")
+            "season_code": "24/25",  # required (or legacy "season")
             "title": "Shadow 1 league TOP1",  # required
             "icon_path": "/static/img/cups/top1.svg",  # required
             "manager_id": 1  # required, must exist
@@ -604,15 +613,16 @@ def create_achievement() -> tuple[Any, int]:
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    achievement_type = data.get("achievement_type", "")
-    league = data.get("league", "")
-    season = data.get("season", "")
+    # Support both new FK-style and legacy string fields
+    type_code = data.get("type_code") or data.get("achievement_type", "")
+    league_code = data.get("league_code") or data.get("league", "")
+    season_code = data.get("season_code") or data.get("season", "")
     title = data.get("title", "")
     icon_path = data.get("icon_path", "")
     manager_id = data.get("manager_id")
 
     # Validate data format
-    is_valid, error = validate_achievement_data(achievement_type, league, season, title)
+    is_valid, error = validate_achievement_data(type_code, league_code, season_code, title)
     if not is_valid:
         return jsonify({"error": error}), 400
 
@@ -621,15 +631,36 @@ def create_achievement() -> tuple[Any, int]:
     if not is_valid:
         return jsonify({"error": error}), 400
 
+    # Look up reference data
+    ach_type = db.session.query(AchievementType).filter_by(code=type_code).first()
+    if not ach_type:
+        return jsonify({"error": f"Achievement type '{type_code}' not found"}), 400
+
+    league = db.session.query(League).filter_by(code=league_code).first()
+    if not league:
+        return jsonify({"error": f"League '{league_code}' not found"}), 400
+
+    season = db.session.query(Season).filter_by(code=season_code).first()
+    if not season:
+        return jsonify({"error": f"Season '{season_code}' not found"}), 400
+
+    # Calculate points
+    base_points = ach_type.base_points_l1 if league.code == "1" else ach_type.base_points_l2
+    multiplier = season.multiplier
+    final_points = base_points * multiplier
+
     # Create achievement
     try:
         achievement = Achievement(
-            achievement_type=achievement_type,
-            league=league,
-            season=season,
+            type_id=ach_type.id,
+            league_id=league.id,
+            season_id=season.id,
             title=title,
             icon_path=icon_path,
             manager_id=manager_id,
+            base_points=float(base_points),
+            multiplier=float(multiplier),
+            final_points=float(final_points),
         )
         db.session.add(achievement)
         db.session.commit()
@@ -644,12 +675,18 @@ def create_achievement() -> tuple[Any, int]:
         jsonify(
             {
                 "id": achievement.id,
-                "achievement_type": achievement.achievement_type,
-                "league": achievement.league,
-                "season": achievement.season,
+                "type_id": achievement.type_id,
+                "league_id": achievement.league_id,
+                "season_id": achievement.season_id,
+                "achievement_type": type_code,
+                "league": league_code,
+                "season": season_code,
                 "title": achievement.title,
                 "icon_path": achievement.icon_path,
                 "manager_id": achievement.manager_id,
+                "base_points": achievement.base_points,
+                "multiplier": achievement.multiplier,
+                "final_points": achievement.final_points,
                 "message": "Achievement created successfully",
             }
         ),
@@ -678,13 +715,19 @@ def get_achievement(achievement_id: int) -> tuple[Any, int]:
         jsonify(
             {
                 "id": achievement.id,
-                "achievement_type": achievement.achievement_type,
-                "league": achievement.league,
-                "season": achievement.season,
+                "type_id": achievement.type_id,
+                "league_id": achievement.league_id,
+                "season_id": achievement.season_id,
+                "achievement_type": achievement.type.code if achievement.type else None,
+                "league": achievement.league.code if achievement.league else None,
+                "season": achievement.season.code if achievement.season else None,
                 "title": achievement.title,
                 "icon_path": achievement.icon_path,
                 "manager_id": achievement.manager_id,
                 "manager_name": achievement.manager.name,
+                "base_points": achievement.base_points,
+                "multiplier": achievement.multiplier,
+                "final_points": achievement.final_points,
             }
         ),
         200,
@@ -702,9 +745,9 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
 
     Request JSON:
         {
-            "achievement_type": "TOP1",  # optional
-            "league": "1",  # optional
-            "season": "24/25",  # optional
+            "type_code": "TOP1",  # optional (or legacy "achievement_type")
+            "league_code": "1",   # optional (or legacy "league")
+            "season_code": "24/25",  # optional (or legacy "season")
             "title": "Shadow 1 league TOP1",  # optional
             "icon_path": "/static/img/cups/top1.svg",  # optional
             "manager_id": 1  # optional, must exist
@@ -722,15 +765,29 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    # Update fields
-    if "achievement_type" in data:
-        achievement.achievement_type = data["achievement_type"]
+    # Update type
+    type_code = data.get("type_code") or data.get("achievement_type")
+    if type_code:
+        ach_type = db.session.query(AchievementType).filter_by(code=type_code).first()
+        if not ach_type:
+            return jsonify({"error": f"Achievement type '{type_code}' not found"}), 400
+        achievement.type_id = ach_type.id
 
-    if "league" in data:
-        achievement.league = data["league"]
+    # Update league
+    league_code = data.get("league_code") or data.get("league")
+    if league_code:
+        league = db.session.query(League).filter_by(code=league_code).first()
+        if not league:
+            return jsonify({"error": f"League '{league_code}' not found"}), 400
+        achievement.league_id = league.id
 
-    if "season" in data:
-        achievement.season = data["season"]
+    # Update season
+    season_code = data.get("season_code") or data.get("season")
+    if season_code:
+        season = db.session.query(Season).filter_by(code=season_code).first()
+        if not season:
+            return jsonify({"error": f"Season '{season_code}' not found"}), 400
+        achievement.season_id = season.id
 
     if "title" in data:
         achievement.title = data["title"]
@@ -746,6 +803,18 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
             return jsonify({"error": error}), 400
         achievement.manager_id = new_manager_id
 
+    # Recalculate points if any FK field changed
+    if type_code or league_code or season_code:
+        # Refresh relationships to get updated values
+        db.session.refresh(achievement, attribute_names=['type', 'league', 'season'])
+        if achievement.type and achievement.league and achievement.season:
+            achievement.base_points = float(
+                achievement.type.base_points_l1 if achievement.league.code == '1'
+                else achievement.type.base_points_l2
+            )
+            achievement.multiplier = float(achievement.season.multiplier)
+            achievement.final_points = float(achievement.base_points * achievement.multiplier)
+
     db.session.commit()
 
     # Invalidate leaderboard cache
@@ -755,9 +824,12 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
         jsonify(
             {
                 "id": achievement.id,
-                "achievement_type": achievement.achievement_type,
-                "league": achievement.league,
-                "season": achievement.season,
+                "type_id": achievement.type_id,
+                "league_id": achievement.league_id,
+                "season_id": achievement.season_id,
+                "achievement_type": achievement.type.code if achievement.type else None,
+                "league": achievement.league.code if achievement.league else None,
+                "season": achievement.season.code if achievement.season else None,
                 "title": achievement.title,
                 "icon_path": achievement.icon_path,
                 "manager_id": achievement.manager_id,
