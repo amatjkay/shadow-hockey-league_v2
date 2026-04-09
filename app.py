@@ -210,6 +210,13 @@ def register_blueprints(app: Flask) -> None:
     from blueprints.health import health
     app.register_blueprint(health)
 
+    # Admin API blueprint (for Select2 dropdowns and bulk operations)
+    from blueprints.admin_api import admin_api_bp
+    app.register_blueprint(admin_api_bp)
+    # Exempt admin API from CSRF (uses Flask-Login auth)
+    if 'csrf' in app.extensions:
+        app.extensions['csrf'].exempt(admin_api_bp)
+
     # API blueprint (if enabled)
     if app.config.get("ENABLE_API"):
         from services.api import api
