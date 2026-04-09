@@ -468,30 +468,22 @@ class CountryModelView(SecureModelView):
         'flag_url': {
             'label': 'Flag URL',
             'render_kw': {'placeholder': 'https://flagcdn.com/w320/{code}.png'}
-        }
+        },
+        'code': {'validators': []},
+        'flag_path': {'validators': []},
     }
 
     form_widget_args = {
         'flag_path': {'class': 'form-control'},
-        'flag_url': {'class': 'form-control'}
+        'flag_url': {'class': 'form-control'},
+        'code': {},
+        'name': {'readonly': True, 'style': 'background-color: #f0f0f0;'}
     }
 
     # Переопределяем поля на SelectField с виджетом Select2
     form_overrides = {
         'code': SelectField,
         'flag_path': SelectField
-    }
-    
-    # Убираем DataRequired чтобы не было красной рамки и можно было сохранить без флага
-    form_args = {
-        'code': {'validators': []},
-        'flag_path': {'validators': []},
-    }
-    
-    form_widget_args = {
-        'code': {},  # Будет установлен в create_form/edit_form
-        'flag_path': {}, # Будет установлен в create_form/edit_form
-        'name': {'readonly': True, 'style': 'background-color: #f0f0f0;'}
     }
 
     # Размер картинки (соответствует стилю главной страницы)

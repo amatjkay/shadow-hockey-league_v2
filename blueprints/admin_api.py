@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from flask import Blueprint, request, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from models import (
     db, Country, Manager, Achievement, AchievementType,
@@ -79,7 +79,7 @@ def get_countries():
                     'id': c.id,
                     'code': c.code,
                     'name': c.name,
-                    'flag_url': c.flag_path,
+                    'flag_url': c.flag_display_url,
                     'is_active': c.is_active
                 }
                 for c in result['items']
@@ -307,6 +307,10 @@ def bulk_create_achievements():
         season_id: integer
     """
     try:
+        # Permission check (Critical: prevent privilege escalation)
+        if not current_user.has_permission('create'):
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Request body is required'}), 400
@@ -319,6 +323,8 @@ def bulk_create_achievements():
         # Validate required fields
         if not manager_ids or not isinstance(manager_ids, list):
             return jsonify({'error': 'manager_ids array is required'}), 400
+        if len(manager_ids) > 100:
+            return jsonify({'error': 'Maximum 100 managers per bulk operation'}), 400
         if not type_id or not league_id or not season_id:
             return jsonify({'error': 'type_id, league_id, season_id are required'}), 400
 
@@ -348,13 +354,33 @@ def bulk_create_achievements():
         multiplier = season.multiplier
         final_points = round(base_points * multiplier, 2)
 
+        # Fix N+1: Batch-load managers and existing achievements (Critical: performance)
+        managers = {
+            m.id: m for m in db.session.query(Manager)
+            .filter(Manager.id.in_(manager_ids))
+            .all()
+        }
+        existing_achievements = set(
+            db.session.query(Achievement.manager_id).filter(
+                Achievement.manager_id.in_(manager_ids),
+                Achievement.type_id == type_id,
+                Achievement.league_id == league_id,
+                Achievement.season_id == season_id
+            ).all()
+        )
+        existing_manager_ids = {ea[0] for ea in existing_achievements}
+
+        # Fix: Use correct icon_path based on achievement type (Critical: correctness)
+        icon_path = f'/static/img/cups/{ach_type.code.lower()}.svg'
+
         # Process each manager
         created = []
         skipped = []
         errors = []
 
         for mid in manager_ids:
-            manager = db.session.get(Manager, mid)
+            # Fix N+1: Use batch-loaded dict instead of db.session.get
+            manager = managers.get(mid)
             if not manager:
                 errors.append({
                     'manager_id': mid,
@@ -372,15 +398,8 @@ def bulk_create_achievements():
                 })
                 continue
 
-            # VR-003: Check uniqueness
-            existing = db.session.query(Achievement).filter_by(
-                manager_id=mid,
-                type_id=type_id,
-                league_id=league_id,
-                season_id=season_id
-            ).first()
-
-            if existing:
+            # Fix N+1: Use pre-loaded set instead of per-manager query
+            if mid in existing_manager_ids:
                 skipped.append({
                     'manager_id': mid,
                     'manager_name': manager.name,
@@ -395,7 +414,7 @@ def bulk_create_achievements():
                 league_id=league_id,
                 season_id=season_id,
                 title=f'{ach_type.name} {league.name} {season.name}',
-                icon_path='/static/img/cups/top1.svg',
+                icon_path=icon_path,
                 base_points=base_points,
                 multiplier=multiplier,
                 final_points=final_points
