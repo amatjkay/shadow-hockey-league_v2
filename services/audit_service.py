@@ -175,10 +175,11 @@ def cleanup_old_audit_logs(days_to_keep: int = 90) -> int:
     Returns:
         Number of entries deleted
     """
-    from datetime import datetime, timedelta
-    
+    from datetime import datetime, timedelta, timezone
+
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
+        # Use naive UTC datetime to match database (which stores naive datetimes)
+        cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_to_keep)
         
         deleted_count = AuditLog.query.filter(
             AuditLog.timestamp < cutoff_date

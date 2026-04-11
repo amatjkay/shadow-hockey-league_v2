@@ -5,6 +5,7 @@ Database schema for storing managers, countries, achievements, and reference dat
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -98,8 +99,11 @@ class ApiKey(db.Model):
         """Check if key has expired."""
         if self.expires_at is None:
             return False
-        from datetime import datetime
-        return datetime.utcnow() > self.expires_at
+        # Handle both naive and aware datetimes
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > expires
 
     @property
     def is_active(self) -> bool:

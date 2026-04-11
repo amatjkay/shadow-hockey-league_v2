@@ -7,11 +7,12 @@ All endpoints require admin authentication.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload
 
 from models import (
     db, Country, Manager, Achievement, AchievementType,
@@ -102,12 +103,50 @@ def get_managers():
         q: Search query (manager name)
         page: Page number (default: 1)
         page_size: Items per page (default: 20, max: 100)
+        ids: Comma-separated list of manager IDs for bulk fetch (optional)
     """
     try:
         q = request.args.get('q', '').strip()
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('page_size', 20, type=int)
+        ids_param = request.args.get('ids', '').strip()
 
+        # Handle bulk fetch by IDs (P0-1: bulk preview with real data)
+        if ids_param:
+            try:
+                ids = [int(x.strip()) for x in ids_param.split(',') if x.strip()]
+                if not ids:
+                    return jsonify({'items': [], 'pagination': {'total': 0}})
+
+                managers = db.session.query(Manager).filter(
+                    Manager.id.in_(ids),
+                    Manager.is_active == True
+                ).all()
+
+                # Sort by original order of IDs
+                manager_map = {m.id: m for m in managers}
+                sorted_managers = [manager_map[mid] for mid in ids if mid in manager_map]
+
+                return jsonify({
+                    'items': [
+                        {
+                            'id': m.id,
+                            'name': m.name,
+                            'country_id': m.country_id,
+                            'country_name': m.country.name if m.country else 'Unknown',
+                            'country_code': m.country.code if m.country else '',
+                            'country_flag': m.country.flag_path if m.country else '',
+                            'country_flag_url': m.country.flag_display_url if m.country else '',
+                            'is_tandem': m.is_tandem
+                        }
+                        for m in sorted_managers
+                    ],
+                    'pagination': {'total': len(sorted_managers)}
+                })
+            except ValueError:
+                return jsonify({'error': 'Invalid IDs format'}), 400
+
+        # Standard paginated search
         query = db.session.query(Manager).filter_by(is_active=True)
 
         if q:
@@ -354,21 +393,30 @@ def bulk_create_achievements():
         multiplier = season.multiplier
         final_points = round(base_points * multiplier, 2)
 
+        # VR-005: Range validation for points (non-negative)
+        if base_points < 0:
+            return jsonify({'error': 'Base points cannot be negative'}), 400
+        if multiplier < 0:
+            return jsonify({'error': 'Season multiplier cannot be negative'}), 400
+        if final_points < 0:
+            return jsonify({'error': 'Final points cannot be negative'}), 400
+
         # Fix N+1: Batch-load managers and existing achievements (Critical: performance)
         managers = {
             m.id: m for m in db.session.query(Manager)
             .filter(Manager.id.in_(manager_ids))
             .all()
         }
-        existing_achievements = set(
-            db.session.query(Achievement.manager_id).filter(
-                Achievement.manager_id.in_(manager_ids),
-                Achievement.type_id == type_id,
-                Achievement.league_id == league_id,
-                Achievement.season_id == season_id
-            ).all()
-        )
-        existing_manager_ids = {ea[0] for ea in existing_achievements}
+        # VR-003: Get existing achievement IDs for duplicate handling
+        existing_achievements = db.session.query(
+            Achievement.id, Achievement.manager_id
+        ).filter(
+            Achievement.manager_id.in_(manager_ids),
+            Achievement.type_id == type_id,
+            Achievement.league_id == league_id,
+            Achievement.season_id == season_id
+        ).all()
+        existing_manager_map = {ea[1]: ea[0] for ea in existing_achievements}  # manager_id -> achievement_id
 
         # Fix: Use correct icon_path based on achievement type (Critical: correctness)
         icon_path = f'/static/img/cups/{ach_type.code.lower()}.svg'
@@ -398,12 +446,15 @@ def bulk_create_achievements():
                 })
                 continue
 
-            # Fix N+1: Use pre-loaded set instead of per-manager query
-            if mid in existing_manager_ids:
+            # VR-003: Use pre-loaded map for duplicate check with existing_id
+            existing_achievement_id = existing_manager_map.get(mid)
+            if existing_achievement_id:
                 skipped.append({
                     'manager_id': mid,
                     'manager_name': manager.name,
-                    'reason': 'Achievement already exists'
+                    'reason': 'Achievement already exists for this manager',
+                    'existing_id': existing_achievement_id,
+                    'existing_url': f'/admin/achievement/edit/?id={existing_achievement_id}'
                 })
                 continue
 
@@ -441,7 +492,7 @@ def bulk_create_achievements():
                 'errors': errors
             },
             'recalculation_triggered': True,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         })
 
     except Exception as e:
@@ -458,40 +509,59 @@ def bulk_create_achievements():
 def get_manager_achievements(manager_id):
     """Get all achievements for a manager."""
     try:
-        manager = db.session.query(Manager).options(
-            db.joinedload(Achievement).joinedload(Achievement.type),
-            db.joinedload(Achievement).joinedload(Achievement.league),
-            db.joinedload(Achievement).joinedload(Achievement.season)
-        ).filter(Manager.id == manager_id).first()
-
+        manager = db.session.get(Manager, manager_id)
         if not manager:
             return jsonify({'error': 'Manager not found'}), 404
 
-        achievements = manager.achievements
-        total_points = sum(a.final_points for a in achievements)
+        achievements = db.session.query(Achievement).filter_by(manager_id=manager_id).all()
+
+        result_achievements = []
+        total_points = 0.0
+
+        for a in achievements:
+            ach_type = db.session.get(AchievementType, a.type_id)
+            league = db.session.get(League, a.league_id)
+            season = db.session.get(Season, a.season_id)
+
+            points = a.final_points or 0.0
+            total_points += points
+
+            result_achievements.append({
+                'id': a.id,
+                'type': {
+                    'id': a.type_id,
+                    'code': ach_type.code if ach_type else '',
+                    'name': ach_type.name if ach_type else ''
+                },
+                'league': {
+                    'id': a.league_id,
+                    'code': league.code if league else '',
+                    'name': league.name if league else ''
+                },
+                'season': {
+                    'id': a.season_id,
+                    'code': season.code if season else '',
+                    'name': season.name if season else '',
+                    'multiplier': season.multiplier if season else 1.0
+                },
+                'base_points': a.base_points,
+                'multiplier': a.multiplier,
+                'final_points': a.final_points,
+                'title': a.title,
+            })
 
         return jsonify({
             'manager_id': manager.id,
             'manager_name': manager.name,
             'total_points': total_points,
-            'achievements': [
-                {
-                    'id': a.id,
-                    'type': {'id': a.type_id, 'code': a.type.code if a.type else '', 'name': a.type.name if a.type else ''},
-                    'league': {'id': a.league_id, 'code': a.league.code if a.league else '', 'name': a.league.name if a.league else ''},
-                    'season': {'id': a.season_id, 'code': a.season.code if a.season else '', 'name': a.season.name if a.season else '', 'multiplier': a.season.multiplier if a.season else 1.0},
-                    'base_points': a.base_points,
-                    'multiplier': a.multiplier,
-                    'final_points': a.final_points,
-                    'title': a.title,
-                }
-                for a in achievements
-            ]
+            'achievements': result_achievements
         })
 
     except Exception as e:
-        api_logger.error(f"Error in GET /admin/api/managers/{manager_id}/achievements: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        import traceback
+        error_detail = traceback.format_exc()
+        api_logger.error(f"Error in GET /admin/api/managers/{manager_id}/achievements: {e}\n{error_detail}")
+        return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
 
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements/bulk-add', methods=['POST'])
@@ -526,11 +596,11 @@ def bulk_add_achievements(manager_id):
         leagues = {l.id: l for l in db.session.query(League).filter(League.id.in_(league_ids)).all()}
         seasons = {s.id: s for s in db.session.query(Season).filter(Season.id.in_(season_ids)).all()}
 
-        # Load existing achievements for duplicate check
+        # VR-003: Load existing achievements for duplicate check with IDs
         existing = db.session.query(
-            Achievement.type_id, Achievement.league_id, Achievement.season_id
+            Achievement.id, Achievement.type_id, Achievement.league_id, Achievement.season_id
         ).filter(Achievement.manager_id == manager_id).all()
-        existing_keys = {(e[0], e[1], e[2]) for e in existing}
+        existing_key_map = {(e[1], e[2], e[3]): e[0] for e in existing}  # (type, league, season) -> achievement_id
 
         created = []
         skipped = []
@@ -564,14 +634,18 @@ def bulk_add_achievements(manager_id):
                 errors.append({'index': idx, 'error': f'League {league.code} only available from season 25/26'})
                 continue
 
-            # VR-003: Duplicate check
+            # VR-003: Duplicate check with existing_id
             key = (type_id, league_id, season_id)
-            if key in existing_keys:
+            existing_achievement_id = existing_key_map.get(key)
+            if existing_achievement_id:
                 skipped.append({
+                    'type_id': type_id,
                     'type_name': ach_type.name,
                     'league_name': league.name,
                     'season_name': season.name,
-                    'reason': 'Achievement already exists for this manager'
+                    'reason': 'Achievement already exists for this manager',
+                    'existing_id': existing_achievement_id,
+                    'existing_url': f'/admin/achievement/edit/?id={existing_achievement_id}'
                 })
                 continue
 
@@ -579,6 +653,14 @@ def bulk_add_achievements(manager_id):
             base_points = float(ach_type.base_points_l1 if league.code == '1' else ach_type.base_points_l2)
             multiplier = float(season.multiplier)
             final_points = round(base_points * multiplier, 2)
+
+            # VR-005: Range validation for points (non-negative)
+            if base_points < 0 or multiplier < 0 or final_points < 0:
+                errors.append({
+                    'index': idx,
+                    'error': f'Points calculation error: negative values (base={base_points}, multiplier={multiplier})'
+                })
+                continue
 
             # Icon path
             icon_path = f'/static/img/cups/{ach_type.code.lower()}.svg'
@@ -596,8 +678,9 @@ def bulk_add_achievements(manager_id):
                 final_points=final_points
             )
             db.session.add(achievement)
+            db.session.flush()  # Get ID before commit
             created.append(achievement.id)
-            existing_keys.add(key)  # Prevent intra-batch duplicates
+            existing_key_map[key] = achievement.id  # Prevent intra-batch duplicates
 
         db.session.commit()
 
@@ -623,7 +706,7 @@ def bulk_add_achievements(manager_id):
             },
             'manager_total_points': total_points,
             'recalculation_triggered': True,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         })
 
     except Exception as e:

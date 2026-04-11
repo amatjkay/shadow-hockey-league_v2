@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any
 
@@ -79,7 +79,7 @@ def authenticate_api_key(required_scope: str = "read"):
                 }), 403
 
             # Update last used timestamp
-            api_key.last_used_at = datetime.utcnow()
+            api_key.last_used_at = datetime.now(timezone.utc)
             db.session.commit()
 
             # Store key info in request context for logging/auditing
@@ -110,7 +110,7 @@ def create_api_key(name: str, scope: str = "read", expires_in_days: int | None =
 
     expires_at = None
     if expires_in_days:
-        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
 
     api_key = ApiKey(
         key_hash=key_hash,
