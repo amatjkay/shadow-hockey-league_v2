@@ -9,16 +9,12 @@
 
         <div class="form-group">
             <label>League (for preview)</label>
-            <select id="calc-league" class="form-control" style="width: 100%;">
-                <option value="">-- Select League --</option>
-            </select>
+            <select id="calc-league" class="form-control" style="width: 100%;"></select>
         </div>
 
         <div class="form-group">
             <label>Season (for preview)</label>
-            <select id="calc-season" class="form-control" style="width: 100%;" disabled>
-                <option value="">-- Select League First --</option>
-            </select>
+            <select id="calc-season" class="form-control" style="width: 100%;" disabled></select>
         </div>
 
         <hr style="border-color: rgba(255,255,255,0.3);">
@@ -67,57 +63,13 @@
 
     <script>
     $(document).ready(function() {
-        // Initialize Select2 for calculator dropdowns
-        $('#calc-league').select2({
-            ajax: {
-                url: '/admin/api/leagues',
-                dataType: 'json',
-                delay: 250,
-                data: function() { return {}; },
-                processResults: function(data) {
-                    return {
-                        results: data.items.map(function(l) {
-                            return { id: l.id, text: l.name + ' (' + l.code + ')', code: l.code };
-                        })
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            placeholder: 'Select league...',
-            allowClear: true,
-            width: '100%'
-        });
+        // Load leagues on page load
+        loadLeagues();
 
-        $('#calc-season').select2({
-            ajax: {
-                url: '/admin/api/seasons',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    var leagueId = $('#calc-league').val();
-                    return { league_id: leagueId, active_only: true };
-                },
-                processResults: function(data) {
-                    return {
-                        results: data.items.map(function(s) {
-                            return { id: s.id, text: s.name + ' (×' + s.multiplier + ')', multiplier: s.multiplier };
-                        })
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            placeholder: 'Select league first...',
-            allowClear: true,
-            disabled: true,
-            width: '100%'
-        });
-
-        // Cascade: League → Season
-        $('#calc-league').on('select2:select select2:clear', function(e) {
-            if (!e.params || !e.params.data) {
-                // Clear event
+        // Cascade: League → Season (plain select change event)
+        $('#calc-league').on('change', function() {
+            var leagueId = $(this).val();
+            if (!leagueId) {
                 $('#calc-season').val(null).prop('disabled', true).trigger('change');
                 $('#calc-season-display').text('—');
                 $('#calc-multiplier-display').text('—');
@@ -126,12 +78,12 @@
                 $('#calc-final-display').text('—');
                 return;
             }
-            $('#calc-season').prop('disabled', false).empty().trigger('change');
+            loadSeasons(leagueId);
             updateCalculator();
         });
 
         // Season selection
-        $('#calc-season').on('select2:select select2:clear', function() {
+        $('#calc-season').on('change', function() {
             updateCalculator();
         });
 
@@ -140,11 +92,41 @@
             updateCalculator();
         });
 
-        function updateCalculator() {
-            var leagueData = $('#calc-league').select2('data');
-            var seasonData = $('#calc-season').select2('data');
+        function loadLeagues() {
+            $.get('/admin/api/leagues', function(data) {
+                if (data.items) {
+                    $('#calc-league').empty().append('<option value=""></option>');
+                    data.items.forEach(function(item) {
+                        $('#calc-league').append('<option value="' + item.id + '" data-code="' + item.code + '">' + item.name + ' (' + item.code + ')</option>');
+                    });
+                }
+            }).fail(function() {
+                console.error('Failed to load leagues');
+            });
+        }
 
-            if (!leagueData || !leagueData[0]) {
+        function loadSeasons(leagueId) {
+            if (!leagueId) {
+                $('#calc-season').empty().append('<option value=""></option>');
+                return;
+            }
+            $.get('/admin/api/seasons', { league_id: leagueId, active_only: true }, function(data) {
+                if (data.items) {
+                    $('#calc-season').empty().append('<option value=""></option>');
+                    data.items.forEach(function(item) {
+                        $('#calc-season').append('<option value="' + item.id + '" data-multiplier="' + item.multiplier + '">' + item.name + ' (×' + item.multiplier + ')</option>');
+                    });
+                }
+            }).fail(function() {
+                console.error('Failed to load seasons');
+            });
+        }
+
+        function updateCalculator() {
+            var leagueOption = $('#calc-league option:selected');
+            var seasonOption = $('#calc-season option:selected');
+
+            if (!leagueOption || !leagueOption.val()) {
                 $('#calc-league-display').text('—');
                 $('#calc-base-display').text('—');
                 $('#calc-season-display').text('—');
@@ -153,23 +135,22 @@
                 return;
             }
 
-            var league = leagueData[0];
-            var leagueCode = league.code;
+            var leagueCode = leagueOption.data('code');
+            var leagueText = leagueOption.text();
 
             // Get base points from form fields
             var basePointsL1 = parseFloat($('#base_points_l1').val()) || 0;
             var basePointsL2 = parseFloat($('#base_points_l2').val()) || 0;
             var basePoints = (leagueCode === '1') ? basePointsL1 : basePointsL2;
 
-            $('#calc-league-display').text(league.text);
+            $('#calc-league-display').text(leagueText);
             $('#calc-base-display').text(basePoints);
 
-            if (seasonData && seasonData[0]) {
-                var season = seasonData[0];
-                var multiplier = parseFloat(season.multiplier) || 1.0;
+            if (seasonOption && seasonOption.val()) {
+                var multiplier = parseFloat(seasonOption.data('multiplier')) || 1.0;
                 var finalPoints = (basePoints * multiplier).toFixed(2);
 
-                $('#calc-season-display').text(season.text);
+                $('#calc-season-display').text(seasonOption.text());
                 $('#calc-multiplier-display').text('×' + multiplier);
                 $('#calc-final-display').text(finalPoints);
             } else {
@@ -186,6 +167,15 @@
         background-color: rgba(255,255,255,0.9);
         border: 1px solid rgba(255,255,255,0.3);
         color: #333;
+        display: block;
+        height: calc(1.5em + 0.75rem + 2px);
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        background-clip: padding-box;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
     #calc-final-display {
         color: #FFD700;

@@ -8,6 +8,28 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <!-- Select2 Bootstrap theme -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+    <!-- Select2 Russian Localization (P3-1) -->
+    <script>
+        // Global Select2 defaults for Russian UI
+        $.fn.select2.defaults.set('language', {
+            errorLoading: function() { return 'Невозможно загрузить результаты'; },
+            inputTooLong: function(args) {
+                var overChars = args.input.length - args.maximum;
+                return 'Пожалуйста, удалите ' + overChars + ' символ' + (overChars === 1 ? '' : overChars < 5 ? 'а' : 'ов');
+            },
+            inputTooShort: function(args) {
+                var remainingChars = args.minimum - args.input.length;
+                return 'Пожалуйста, введите ещё ' + remainingChars + ' символ' + (remainingChars === 1 ? '' : remainingChars < 5 ? 'а' : 'ов');
+            },
+            loadingMore: function() { return 'Загрузка данных…'; },
+            maximumSelected: function(args) {
+                return 'Вы можете выбрать не более ' + args.maximum + ' элемент' + (args.maximum === 1 ? 'а' : 'ов');
+            },
+            noResults: function() { return 'Ничего не найдено'; },
+            searching: function() { return 'Поиск…'; },
+            removeAllItems: function() { return 'Удалить все элементы'; }
+        });
+    </script>
 {% endblock %}
 
 {% block head %}

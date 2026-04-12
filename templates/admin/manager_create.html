@@ -4,51 +4,19 @@
     {{ super() }}
     <script>
     $(document).ready(function() {
-        // Country AJAX Select2
-        $('#country_id').select2({
-            ajax: {
-                url: '/admin/api/countries',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
-                },
-                processResults: function(data, params) {
-                    return {
-                        results: data.items.map(function(c) {
-                            return {
-                                id: c.id,
-                                text: c.name + ' (' + c.code + ')',
-                                flag: c.flag_url
-                            };
-                        }),
-                        pagination: { more: data.pagination.has_more }
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 2,
-            placeholder: 'Start typing country name or code...',
-            allowClear: true,
+        // Simple Select2 for country dropdown (SelectField compatible)
+        $('#country').select2({
             width: '100%',
-            templateResult: function(country) {
-                if (!country.id) return country.text;
-                return $('<span><img class="flag-preview-inline" src="' + country.flag + '" onerror="this.style.display=\'none\'">' + country.text + '</span>');
-            },
-            templateSelection: function(country) {
-                if (!country.id) return country.text;
-                return $('<span><img class="flag-preview-inline" src="' + country.flag + '" onerror="this.style.display=\'none\'">' + country.text + '</span>');
-            }
+            placeholder: 'Select country...'
         });
 
         // Auto-fill country code and flag preview on selection
-        $('#country_id').on('select2:select', function(e) {
+        $('#country').on('select2:select', function(e) {
             var data = e.params.data;
             if (data) {
-                $('#country_code_display').val(data.text.match(/\(([^)]+)\)/)?.[1] || '').trigger('change');
-                if (data.flag) {
-                    $('#flag_preview_img').attr('src', data.flag).show();
-                }
+                var match = data.text.match(/\(([^)]+)\)/);
+                var code = match ? match[1] : '';
+                $('#country_code_display').val(code).trigger('change');
             }
         });
 

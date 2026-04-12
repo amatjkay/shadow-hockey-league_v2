@@ -1,405 +1,567 @@
-{% extends 'admin/model/list.html' %}
+{% extends 'admin/model/list.html' %} {% block tail %} {{ super() }}
 
-{% block tail %}
-    {{ super() }}
-    
-    <!-- Bulk action dropdown -->
-    <div class="bulk-actions" style="margin: 15px 0; display: flex; align-items: center; gap: 15px;">
-        <span id="selected-count" style="font-weight: bold; color: #666;">0 managers selected</span>
-        <div class="btn-group">
-            <button class="btn btn-primary dropdown-toggle" id="bulk-action-btn" disabled data-toggle="dropdown">
-                With selected...
-            </button>
-            <ul class="dropdown-menu">
-                <li><a href="#" id="bulk-add-achievement">➕ Add achievement...</a></li>
-            </ul>
-        </div>
+<!-- Bulk action dropdown -->
+<div
+  class="bulk-actions"
+  style="margin: 15px 0; display: flex; align-items: center; gap: 15px"
+>
+  <span id="selected-count" style="font-weight: bold; color: #666"
+    >0 managers selected</span
+  >
+  <div class="btn-group">
+    <button
+      class="btn btn-primary dropdown-toggle"
+      id="bulk-action-btn"
+      disabled
+      data-toggle="dropdown"
+    >
+      With selected...
+    </button>
+    <ul class="dropdown-menu">
+      <li><a href="#" id="bulk-add-achievement">➕ Add achievement...</a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- Bulk achievement modal -->
+<div class="modal fade" id="bulkAchievementModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Add Achievement</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          &times;
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Selection Summary -->
+        <div id="selection-summary" class="alert alert-info"></div>
+
+        <!-- Achievement Details Form -->
+        <form id="bulk-achievement-form">
+          <div class="form-group">
+            <label>Achievement Type *</label>
+            <select id="bulk-type-id" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label>League *</label>
+            <select id="bulk-league-id" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label>Season *</label>
+            <select
+              id="bulk-season-id"
+              class="form-control"
+              required
+              disabled
+            ></select>
+          </div>
+        </form>
+
+        <!-- Preview Table -->
+        <table
+          class="table table-sm"
+          id="bulk-preview-table"
+          style="display: none; margin-top: 20px"
+        >
+          <thead>
+            <tr>
+              <th>Manager</th>
+              <th>Country</th>
+              <th>Achievement</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="bulk-preview-body"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="bulk-submit-btn"
+          disabled
+        >
+          Create Records
+        </button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Bulk achievement modal -->
-    <div class="modal fade" id="bulkAchievementModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Bulk Add Achievement</h5>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <!-- Selection Summary -->
-                    <div id="selection-summary" class="alert alert-info"></div>
-                    
-                    <!-- Achievement Details Form -->
-                    <form id="bulk-achievement-form">
-                        <div class="form-group">
-                            <label>Achievement Type *</label>
-                            <select id="bulk-type-id" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>League *</label>
-                            <select id="bulk-league-id" class="form-control" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Season *</label>
-                            <select id="bulk-season-id" class="form-control" required disabled></select>
-                        </div>
-                    </form>
-                    
-                    <!-- Preview Table -->
-                    <table class="table table-sm" id="bulk-preview-table" style="display:none; margin-top: 20px;">
-                        <thead>
-                            <tr>
-                                <th>Manager</th>
-                                <th>Country</th>
-                                <th>Achievement</th>
-                                <th>Points</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bulk-preview-body"></tbody>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="bulk-submit-btn" disabled>
-                        Create Records
-                    </button>
-                </div>
-            </div>
+<!-- Progress/Results modal -->
+<div class="modal fade" id="bulkProgressModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="progress-modal-title">Processing...</h5>
+      </div>
+      <div class="modal-body" id="progress-modal-body">
+        <div class="progress" style="height: 25px">
+          <div
+            class="progress-bar bg-primary"
+            id="bulk-progress-bar"
+            role="progressbar"
+            style="width: 0%"
+          >
+            0%
+          </div>
         </div>
+        <p
+          id="bulk-progress-stage"
+          style="margin-top: 10px; text-align: center"
+        >
+          Validating selections...
+        </p>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Progress/Results modal -->
-    <div class="modal fade" id="bulkProgressModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="progress-modal-title">Processing...</h5>
-                </div>
-                <div class="modal-body" id="progress-modal-body">
-                    <div class="progress" style="height: 25px;">
-                        <div class="progress-bar bg-primary" id="bulk-progress-bar" role="progressbar" style="width: 0%;">
-                            0%
-                        </div>
-                    </div>
-                    <p id="bulk-progress-stage" style="margin-top: 10px; text-align: center;">Validating selections...</p>
-                </div>
-            </div>
-        </div>
-    </div>
+<script>
+  $(document).ready(function () {
+    // Add checkbox column to manager list table
+    var table = $(".fa-user").closest("table");
+    if (table.length === 0) {
+      table = $("table.table").first();
+    }
 
-    <script>
-    $(document).ready(function() {
-        // Add checkbox column to manager list table
-        var table = $('.fa-user').closest('table');
-        if (table.length === 0) {
-            table = $('table.table').first();
+    if (table.length > 0) {
+      // Add header checkbox
+      table
+        .find("thead tr")
+        .prepend(
+          '<th style="width: 30px;"><input type="checkbox" id="select-all-managers" title="Select all"></th>',
+        );
+
+      // Add checkbox to each row — extract ID from edit link href reliably
+      table.find("tbody tr").each(function () {
+        var id = null;
+        // Try to extract from edit link (most reliable)
+        var editLink = $(this).find('a[href*="id="]').first().attr("href");
+        if (editLink) {
+          var match = editLink.match(/[?&]id=(\d+)/);
+          if (match) id = match[1];
         }
-        
-        if (table.length > 0) {
-            // Add header checkbox
-            table.find('thead tr').prepend('<th style="width: 30px;"><input type="checkbox" id="select-all-managers" title="Select all"></th>');
-
-            // Add checkbox to each row — extract ID from edit link href reliably
-            table.find('tbody tr').each(function() {
-                var id = null;
-                // Try to extract from edit link (most reliable)
-                var editLink = $(this).find('a[href*="id="]').first().attr('href');
-                if (editLink) {
-                    var match = editLink.match(/[?&]id=(\d+)/);
-                    if (match) id = match[1];
-                }
-                // Fallback: use data attribute if present
-                if (!id) {
-                    id = $(this).data('manager-id');
-                }
-                // Final fallback: first cell text
-                if (!id) {
-                    id = $(this).find('td').first().text().trim();
-                }
-                $(this).prepend('<td><input type="checkbox" class="manager-checkbox" value="' + id + '"></td>');
-            });
+        // Fallback: use data attribute if present
+        if (!id) {
+          id = $(this).data("manager-id");
         }
-
-        // Select all handler
-        $('#select-all-managers').on('change', function() {
-            $('.manager-checkbox').prop('checked', this.checked);
-            updateSelectedCount();
-        });
-
-        // Individual checkbox handler
-        $('.manager-checkbox').on('change', function() {
-            updateSelectedCount();
-            // Update "select all" checkbox state
-            var total = $('.manager-checkbox').length;
-            var checked = $('.manager-checkbox:checked').length;
-            $('#select-all-managers').prop('indeterminate', checked > 0 && checked < total);
-            $('#select-all-managers').prop('checked', checked === total);
-        });
-
-        function updateSelectedCount() {
-            var count = $('.manager-checkbox:checked').length;
-            $('#selected-count').text(count + ' manager' + (count !== 1 ? 's' : '') + ' selected');
-            $('#bulk-action-btn').prop('disabled', count === 0);
+        // Final fallback: first cell text
+        if (!id) {
+          id = $(this).find("td").first().text().trim();
         }
+        $(this).prepend(
+          '<td><input type="checkbox" class="manager-checkbox" value="' +
+            id +
+            '"></td>',
+        );
+      });
+    }
 
-        // Select2 initialization for bulk form
-        $('#bulk-type-id').select2({
-            dropdownParent: $('#bulkAchievementModal'),
-            ajax: {
-                url: '/admin/api/achievement-types',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
-                },
-                processResults: function(data) {
-                    return { results: data.items || [] };
-                },
-                cache: true
-            },
-            minimumInputLength: 1,
-            placeholder: 'Select achievement type...',
-            allowClear: true,
-            width: '100%'
-        });
-
-        $('#bulk-league-id').select2({
-            dropdownParent: $('#bulkAchievementModal'),
-            ajax: {
-                url: '/admin/api/leagues',
-                dataType: 'json',
-                delay: 250,
-                data: function() { return {}; },
-                processResults: function(data) {
-                    return {
-                        results: data.items.map(function(l) {
-                            return { id: l.id, text: l.name + ' (' + l.code + ')' };
-                        })
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            placeholder: 'Select league...',
-            allowClear: false,
-            width: '100%'
-        });
-
-        $('#bulk-season-id').select2({
-            dropdownParent: $('#bulkAchievementModal'),
-            ajax: {
-                url: '/admin/api/seasons',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    var leagueId = $('#bulk-league-id').val();
-                    return { league_id: leagueId, active_only: true };
-                },
-                processResults: function(data) {
-                    return {
-                        results: data.items.map(function(s) {
-                            return { id: s.id, text: s.name + ' (×' + s.multiplier + ')' };
-                        })
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            placeholder: 'Select league first...',
-            allowClear: true,
-            width: '100%',
-            disabled: true
-        });
-
-        // Cascade: League → Season
-        $('#bulk-league-id').on('select2:select', function(e) {
-            var leagueId = e.params.data.id;
-            $('#bulk-season-id').prop('disabled', false).empty().trigger('change');
-            updatePreview();
-        });
-
-        // Type change -> update preview
-        $('#bulk-type-id').on('select2:select change', function() {
-            updatePreview();
-        });
-
-        // Season change -> update preview
-        $('#bulk-season-id').on('select2:select change', function() {
-            updatePreview();
-        });
-
-        // Open modal on bulk action
-        $('#bulk-add-achievement').on('click', function(e) {
-            e.preventDefault();
-            var selectedIds = $('.manager-checkbox:checked').map(function() { return this.value; }).get();
-            if (selectedIds.length === 0) return;
-
-            $('#selection-summary').html('<strong>Selected:</strong> ' + selectedIds.length + ' managers');
-            $('#bulkAchievementModal').modal('show');
-        });
-
-        // Preview table update
-        function updatePreview() {
-            var typeId = $('#bulk-type-id').val();
-            var leagueId = $('#bulk-league-id').val();
-            var seasonId = $('#bulk-season-id').val();
-
-            if (!typeId || !leagueId || !seasonId) {
-                $('#bulk-preview-table').hide();
-                $('#bulk-submit-btn').prop('disabled', true);
-                return;
-            }
-
-            $('#bulk-submit-btn').prop('disabled', false);
-
-            // Fetch type points
-            $.get('/admin/api/achievement-types/' + typeId + '/points', { league_id: leagueId }, function(typeData) {
-                // Fetch season multiplier
-                $.get('/admin/api/seasons', { league_id: leagueId }, function(seasonData) {
-                    var season = seasonData.items.find(function(s) { return s.id == seasonId; });
-                    if (!season) return;
-
-                    var basePoints = typeData.base_points;
-                    var multiplier = season.multiplier;
-                    var finalPoints = (basePoints * multiplier).toFixed(2);
-
-                    // Get selected manager names
-                    var selectedIds = $('.manager-checkbox:checked').map(function() { return this.value; }).get();
-                    
-                    var tbody = $('#bulk-preview-body');
-                    tbody.empty();
-
-                    // For preview, we'll show generic info (full names would require additional API calls)
-                    selectedIds.slice(0, 10).forEach(function(id) {
-                        tbody.append(
-                            '<tr>' +
-                            '<td>Manager #' + id + '</td>' +
-                            '<td>-</td>' +
-                            '<td>' + typeData.type_name + '</td>' +
-                            '<td><strong>' + finalPoints + '</strong></td>' +
-                            '</tr>'
-                        );
-                    });
-
-                    if (selectedIds.length > 10) {
-                        tbody.append(
-                            '<tr><td colspan="4" class="text-center text-muted">... and ' + (selectedIds.length - 10) + ' more</td></tr>'
-                        );
-                    }
-
-                    $('#bulk-preview-table').show();
-                });
-            });
-        }
-
-        // Submit bulk creation
-        $('#bulk-submit-btn').on('click', function() {
-            var managerIds = $('.manager-checkbox:checked').map(function() {
-                var val = parseInt(this.value);
-                return isNaN(val) ? null : val;
-            }).get().filter(function(v) { return v !== null; });
-
-            var typeId = $('#bulk-type-id').val();
-            var leagueId = $('#bulk-league-id').val();
-            var seasonId = $('#bulk-season-id').val();
-
-            if (!typeId || !leagueId || !seasonId) {
-                alert('Please fill all fields');
-                return;
-            }
-
-            if (managerIds.length === 0) {
-                alert('No valid managers selected');
-                return;
-            }
-
-            // Hide achievement modal and show progress
-            $('#bulkAchievementModal').modal('hide');
-            $('#bulkProgressModal').modal('show');
-            $('#bulk-progress-bar').css('width', '10%').text('10%').removeClass('bg-danger bg-success').addClass('bg-primary');
-            $('#bulk-progress-stage').text('Validating selections...');
-            $('#progress-modal-title').text('Processing...');
-
-            $.ajax({
-                url: '/admin/api/achievements/bulk-create',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    manager_ids: managerIds,
-                    type_id: parseInt(typeId),
-                    league_id: parseInt(leagueId),
-                    season_id: parseInt(seasonId)
-                }),
-                success: function(response) {
-                    $('#bulk-progress-bar').css('width', '100%').text('100%').removeClass('bg-primary').addClass('bg-success');
-                    $('#bulk-progress-stage').text('Completed!');
-                    $('#progress-modal-title').text('Bulk Operation Complete');
-
-                    setTimeout(function() {
-                        showBulkResults(response);
-                    }, 800);
-                },
-                error: function(xhr) {
-                    $('#bulk-progress-bar').css('width', '100%').text('Error').removeClass('bg-primary').addClass('bg-danger');
-                    var errorMsg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Unknown error occurred';
-                    $('#bulk-progress-stage').html('<span style="color: red;">Error: ' + errorMsg + '</span>');
-                    $('#progress-modal-title').text('Error');
-                }
-            });
-        });
-
-        function showBulkResults(response) {
-            var summary = response.summary;
-            var html = '<div class="alert alert-success">';
-            html += '<h6>✅ Results Summary</h6>';
-            html += '<ul class="mb-0">';
-            html += '<li><strong>Created:</strong> <span style="color: green;">' + summary.created + '</span></li>';
-            html += '<li><strong>Skipped (duplicates):</strong> <span style="color: orange;">' + summary.skipped_duplicates + '</span></li>';
-            html += '<li><strong>Errors:</strong> <span style="color: red;">' + summary.errors + '</span></li>';
-            html += '</ul></div>';
-
-            if (response.details.skipped && response.details.skipped.length > 0) {
-                html += '<details style="margin-top: 15px;"><summary style="cursor: pointer; font-weight: bold;">⚠️ Skipped (' + response.details.skipped.length + ')</summary><ul style="max-height: 150px; overflow-y: auto;">';
-                response.details.skipped.forEach(function(s) {
-                    html += '<li><strong>' + s.manager_name + ':</strong> ' + s.reason + '</li>';
-                });
-                html += '</ul></details>';
-            }
-
-            if (response.details.errors && response.details.errors.length > 0) {
-                html += '<details style="margin-top: 10px;"><summary style="cursor: pointer; font-weight: bold;">❌ Errors (' + response.details.errors.length + ')</summary><ul style="max-height: 150px; overflow-y: auto;">';
-                response.details.errors.forEach(function(e) {
-                    html += '<li><strong>' + e.manager_name + ':</strong> ' + e.error_message + '</li>';
-                });
-                html += '</ul></details>';
-            }
-
-            html += '<div style="margin-top: 20px; text-align: center;">';
-            html += '<button class="btn btn-primary" onclick="location.reload();" style="margin-right: 10px;">View Records</button>';
-            html += '<button class="btn btn-secondary" data-dismiss="modal">Close</button>';
-            html += '</div>';
-
-            $('#progress-modal-body').html(html);
-        }
+    // Select all handler
+    $("#select-all-managers").on("change", function () {
+      $(".manager-checkbox").prop("checked", this.checked);
+      updateSelectedCount();
     });
-    </script>
 
-    <style>
-    .manager-checkbox {
-        margin: 0;
-        vertical-align: middle;
+    // Individual checkbox handler
+    $(".manager-checkbox").on("change", function () {
+      updateSelectedCount();
+      // Update "select all" checkbox state
+      var total = $(".manager-checkbox").length;
+      var checked = $(".manager-checkbox:checked").length;
+      $("#select-all-managers").prop(
+        "indeterminate",
+        checked > 0 && checked < total,
+      );
+      $("#select-all-managers").prop("checked", checked === total);
+    });
+
+    function updateSelectedCount() {
+      var count = $(".manager-checkbox:checked").length;
+      $("#selected-count").text(
+        count + " manager" + (count !== 1 ? "s" : "") + " selected",
+      );
+      $("#bulk-action-btn").prop("disabled", count === 0);
     }
-    #bulk-preview-table {
-        background: #f9f9f9;
-        border-radius: 4px;
+
+    // Load achievement types manually (no Select2 ajax)
+    function loadBulkAchievementTypes() {
+      $.get("/admin/api/achievement-types", function (data) {
+        if (data.items) {
+          $("#bulk-type-id").empty().append('<option value=""></option>');
+          data.items.forEach(function (item) {
+            $("#bulk-type-id").append(
+              '<option value="' + item.id + '">' + item.text + "</option>",
+            );
+          });
+        }
+      });
     }
-    #bulk-preview-table th {
-        background: #f0f0f0;
+
+    // Load leagues manually (no Select2 ajax)
+    function loadBulkLeagues() {
+      $.get("/admin/api/leagues", function (data) {
+        if (data.items) {
+          $("#bulk-league-id").empty().append('<option value=""></option>');
+          data.items.forEach(function (l) {
+            $("#bulk-league-id").append(
+              '<option value="' +
+                l.id +
+                '">' +
+                l.name +
+                " (" +
+                l.code +
+                ")</option>",
+            );
+          });
+        }
+      });
     }
-    .bulk-actions {
-        padding: 10px;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+
+    // Load seasons manually based on league (no Select2 ajax)
+    function loadBulkSeasons(leagueId) {
+      if (!leagueId) {
+        $("#bulk-season-id")
+          .empty()
+          .append('<option value=""></option>')
+          .prop("disabled", true);
+        return;
+      }
+      $.get(
+        "/admin/api/seasons",
+        { league_id: leagueId, active_only: true },
+        function (data) {
+          if (data.items) {
+            $("#bulk-season-id").empty().append('<option value=""></option>');
+            data.items.forEach(function (s) {
+              $("#bulk-season-id").append(
+                '<option value="' +
+                  s.id +
+                  '" data-multiplier="' +
+                  s.multiplier +
+                  '">' +
+                  s.name +
+                  " (×" +
+                  s.multiplier +
+                  ")</option>",
+              );
+            });
+            $("#bulk-season-id").prop("disabled", false);
+          }
+        },
+      );
     }
-    </style>
+
+    // Cascade: League → Season (plain select change event)
+    $("#bulk-league-id").on("change", function () {
+      var leagueId = $(this).val();
+      loadBulkSeasons(leagueId);
+      updatePreview();
+    });
+
+    // Type change -> update preview
+    $("#bulk-type-id").on("change", function () {
+      updatePreview();
+    });
+
+    // Season change -> update preview
+    $("#bulk-season-id").on("change", function () {
+      updatePreview();
+    });
+
+    // Open modal on bulk action
+    $("#bulk-add-achievement").on("click", function (e) {
+      e.preventDefault();
+      var selectedIds = $(".manager-checkbox:checked")
+        .map(function () {
+          return this.value;
+        })
+        .get();
+      if (selectedIds.length === 0) return;
+
+      $("#selection-summary").html(
+        "<strong>Selected:</strong> " + selectedIds.length + " managers",
+      );
+      // Load dropdown options when modal opens
+      loadBulkAchievementTypes();
+      loadBulkLeagues();
+      $("#bulk-season-id")
+        .empty()
+        .append('<option value=""></option>')
+        .prop("disabled", true);
+      $("#bulkAchievementModal").modal("show");
+    });
+
+    // Preview table update
+    function updatePreview() {
+      var typeId = $("#bulk-type-id").val();
+      var leagueId = $("#bulk-league-id").val();
+      var seasonId = $("#bulk-season-id").val();
+
+      if (!typeId || !leagueId || !seasonId) {
+        $("#bulk-preview-table").hide();
+        $("#bulk-submit-btn").prop("disabled", true);
+        return;
+      }
+
+      $("#bulk-submit-btn").prop("disabled", false);
+
+      // Get selected manager IDs
+      var selectedIds = $(".manager-checkbox:checked")
+        .map(function () {
+          return this.value;
+        })
+        .get();
+      if (selectedIds.length === 0) return;
+
+      // Fetch type points, season data, and manager details in parallel
+      $.when(
+        $.get("/admin/api/achievement-types/" + typeId + "/points", {
+          league_id: leagueId,
+        }),
+        $.get("/admin/api/seasons", { league_id: leagueId }),
+        $.get("/admin/api/managers", { ids: selectedIds.join(",") }),
+      )
+        .done(function (typeResponse, seasonResponse, managerResponse) {
+          var typeData = typeResponse[0];
+          var seasonData = seasonResponse[0];
+          var managerData = managerResponse[0];
+
+          var season = seasonData.items.find(function (s) {
+            return s.id == seasonId;
+          });
+          if (!season) return;
+
+          var basePoints = typeData.base_points;
+          var multiplier = season.multiplier;
+          var finalPoints = (basePoints * multiplier).toFixed(2);
+
+          var managers = managerData.items || [];
+          var tbody = $("#bulk-preview-body");
+          tbody.empty();
+
+          // Show real manager data with country and flag
+          managers.slice(0, 10).forEach(function (m) {
+            var flagHtml = m.country_flag_url
+              ? '<img src="' +
+                m.country_flag_url +
+                '" style="height: 16px; margin-right: 5px;">'
+              : "";
+            tbody.append(
+              "<tr>" +
+                "<td>" +
+                m.name +
+                (m.is_tandem
+                  ? ' <span class="badge badge-info">Tandem</span>'
+                  : "") +
+                "</td>" +
+                "<td>" +
+                flagHtml +
+                (m.country_name || "-") +
+                "</td>" +
+                "<td>" +
+                typeData.type_name +
+                "</td>" +
+                "<td><strong>" +
+                finalPoints +
+                "</strong></td>" +
+                "</tr>",
+            );
+          });
+
+          if (managers.length > 10) {
+            tbody.append(
+              '<tr><td colspan="4" class="text-center text-muted">... and ' +
+                (managers.length - 10) +
+                " more</td></tr>",
+            );
+          }
+
+          $("#bulk-preview-table").show();
+        })
+        .fail(function () {
+          // Fallback to generic preview if API fails
+          var tbody = $("#bulk-preview-body");
+          tbody.empty();
+          selectedIds.slice(0, 10).forEach(function (id) {
+            tbody.append(
+              "<tr>" +
+                "<td>Manager #" +
+                id +
+                "</td>" +
+                "<td>-</td>" +
+                "<td>-</td>" +
+                "<td><strong>-</strong></td>" +
+                "</tr>",
+            );
+          });
+          $("#bulk-preview-table").show();
+        });
+    }
+
+    // Submit bulk creation
+    $("#bulk-submit-btn").on("click", function () {
+      var managerIds = $(".manager-checkbox:checked")
+        .map(function () {
+          var val = parseInt(this.value);
+          return isNaN(val) ? null : val;
+        })
+        .get()
+        .filter(function (v) {
+          return v !== null;
+        });
+
+      var typeId = $("#bulk-type-id").val();
+      var leagueId = $("#bulk-league-id").val();
+      var seasonId = $("#bulk-season-id").val();
+
+      if (!typeId || !leagueId || !seasonId) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      if (managerIds.length === 0) {
+        alert("No valid managers selected");
+        return;
+      }
+
+      // Hide achievement modal and show progress
+      $("#bulkAchievementModal").modal("hide");
+      $("#bulkProgressModal").modal("show");
+      $("#bulk-progress-bar")
+        .css("width", "10%")
+        .text("10%")
+        .removeClass("bg-danger bg-success")
+        .addClass("bg-primary");
+      $("#bulk-progress-stage").text("Validating selections...");
+      $("#progress-modal-title").text("Processing...");
+
+      $.ajax({
+        url: "/admin/api/achievements/bulk-create",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+          manager_ids: managerIds,
+          type_id: parseInt(typeId),
+          league_id: parseInt(leagueId),
+          season_id: parseInt(seasonId),
+        }),
+        success: function (response) {
+          $("#bulk-progress-bar")
+            .css("width", "100%")
+            .text("100%")
+            .removeClass("bg-primary")
+            .addClass("bg-success");
+          $("#bulk-progress-stage").text("Completed!");
+          $("#progress-modal-title").text("Bulk Operation Complete");
+
+          setTimeout(function () {
+            showBulkResults(response);
+          }, 800);
+        },
+        error: function (xhr) {
+          $("#bulk-progress-bar")
+            .css("width", "100%")
+            .text("Error")
+            .removeClass("bg-primary")
+            .addClass("bg-danger");
+          var errorMsg =
+            xhr.responseJSON && xhr.responseJSON.error
+              ? xhr.responseJSON.error
+              : "Unknown error occurred";
+          $("#bulk-progress-stage").html(
+            '<span style="color: red;">Error: ' + errorMsg + "</span>",
+          );
+          $("#progress-modal-title").text("Error");
+        },
+      });
+    });
+
+    function showBulkResults(response) {
+      var summary = response.summary;
+      var html = '<div class="alert alert-success">';
+      html += "<h6>✅ Results Summary</h6>";
+      html += '<ul class="mb-0">';
+      html +=
+        '<li><strong>Created:</strong> <span style="color: green;">' +
+        summary.created +
+        "</span></li>";
+      html +=
+        '<li><strong>Skipped (duplicates):</strong> <span style="color: orange;">' +
+        summary.skipped_duplicates +
+        "</span></li>";
+      html +=
+        '<li><strong>Errors:</strong> <span style="color: red;">' +
+        summary.errors +
+        "</span></li>";
+      html += "</ul></div>";
+
+      if (response.details.skipped && response.details.skipped.length > 0) {
+        html +=
+          '<details style="margin-top: 15px;"><summary style="cursor: pointer; font-weight: bold;">⚠️ Skipped (' +
+          response.details.skipped.length +
+          ')</summary><ul style="max-height: 150px; overflow-y: auto;">';
+        response.details.skipped.forEach(function (s) {
+          html +=
+            "<li><strong>" +
+            s.manager_name +
+            ":</strong> " +
+            s.reason +
+            "</li>";
+        });
+        html += "</ul></details>";
+      }
+
+      if (response.details.errors && response.details.errors.length > 0) {
+        html +=
+          '<details style="margin-top: 10px;"><summary style="cursor: pointer; font-weight: bold;">❌ Errors (' +
+          response.details.errors.length +
+          ')</summary><ul style="max-height: 150px; overflow-y: auto;">';
+        response.details.errors.forEach(function (e) {
+          html +=
+            "<li><strong>" +
+            e.manager_name +
+            ":</strong> " +
+            e.error_message +
+            "</li>";
+        });
+        html += "</ul></details>";
+      }
+
+      html += '<div style="margin-top: 20px; text-align: center;">';
+      html +=
+        '<button class="btn btn-primary" onclick="location.reload();" style="margin-right: 10px;">View Records</button>';
+      html +=
+        '<button class="btn btn-secondary" data-dismiss="modal">Close</button>';
+      html += "</div>";
+
+      $("#progress-modal-body").html(html);
+    }
+  });
+</script>
+
+<style>
+  .manager-checkbox {
+    margin: 0;
+    vertical-align: middle;
+  }
+  #bulk-preview-table {
+    background: #f9f9f9;
+    border-radius: 4px;
+  }
+  #bulk-preview-table th {
+    background: #f0f0f0;
+  }
+  .bulk-actions {
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+</style>
 {% endblock %}

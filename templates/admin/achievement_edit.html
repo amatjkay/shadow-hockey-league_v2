@@ -4,96 +4,25 @@
     {{ super() }}
     <script>
     $(document).ready(function() {
-        // Manager AJAX Select2
-        $('#manager_id').select2({
-            ajax: {
-                url: '/admin/api/managers',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
-                },
-                processResults: function(data, params) {
-                    return {
-                        results: data.items.map(function(m) {
-                            return {
-                                id: m.id,
-                                text: m.name + ' (' + m.country_name + ')',
-                                country_flag: m.country_flag
-                            };
-                        }),
-                        pagination: { more: data.pagination.has_more }
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 2,
-            placeholder: 'Start typing manager name...',
-            allowClear: true,
-            width: '100%'
+        // Simple Select2 for standard dropdowns (QuerySelectField compatible)
+        $('#manager').select2({
+            width: '100%',
+            placeholder: 'Select manager...'
         });
 
-        // Type AJAX Select2
-        $('#type_id').select2({
-            ajax: {
-                url: '/admin/api/achievement-types',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return { q: params.term || '', page: params.page || 1, page_size: 20 };
-                },
-                processResults: function(data, params) {
-                    return { results: data.items || [] };
-                },
-                cache: true
-            },
-            minimumInputLength: 1,
-            placeholder: 'Select achievement type...',
-            allowClear: true,
-            width: '100%'
+        $('#type').select2({
+            width: '100%',
+            placeholder: 'Select achievement type...'
         });
 
-        // League AJAX Select2
-        $('#league_id').select2({
-            ajax: {
-                url: '/admin/api/leagues',
-                dataType: 'json',
-                delay: 250,
-                data: function() { return {}; },
-                processResults: function(data) {
-                    return { results: data.items.map(function(l) { return { id: l.id, text: l.name + ' (' + l.code + ')' }; }) };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            placeholder: 'Select league...',
-            allowClear: false,
-            width: '100%'
+        $('#league').select2({
+            width: '100%',
+            placeholder: 'Select league...'
         });
 
-        // Season Select2
-        $('#season_id').select2({
-            ajax: {
-                url: '/admin/api/seasons',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    var leagueId = $('#league_id').val();
-                    return { league_id: leagueId, active_only: true };
-                },
-                processResults: function(data) {
-                    return {
-                        results: data.items.map(function(s) {
-                            return { id: s.id, text: s.name + ' (x' + s.multiplier + ')' };
-                        })
-                    };
-                },
-                cache: true
-            },
-            minimumInputLength: 0,
-            placeholder: 'Select league first...',
-            allowClear: true,
-            width: '100%'
+        $('#season').select2({
+            width: '100%',
+            placeholder: 'Select season...'
         });
 
         // Cascade: League change -> reload seasons

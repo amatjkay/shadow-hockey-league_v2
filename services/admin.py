@@ -18,6 +18,31 @@ from wtforms import SelectField, Form, StringField, validators
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Monkey-patch Flask-Admin 2.0.2 BaseView._run_view to not pass 'cls' parameter
+# Flask-Admin 2.0.2 passes cls=self to view functions but they don't accept it
+import flask_admin.base
+
+def patched_run_view(self, f, *args, **kwargs):
+    """Remove cls parameter from _run_view for compatibility."""
+    # Call the function with self as positional argument instead of cls keyword
+    return f(self, *args, **kwargs)
+
+flask_admin.base.BaseView._run_view = patched_run_view
+
+# Monkey-patch WTForms Field.__init__ to remove allow_blank parameter for Flask-Admin compatibility
+# Flask-Admin passes allow_blank to fields, but WTForms 3.x doesn't accept it in base Field
+from wtforms.fields.core import Field
+original_field_init = Field.__init__
+
+def patched_field_init(self, *args, **kwargs):
+    """Remove allow_blank from field options for WTForms 3.x compatibility."""
+    # Remove allow_blank if present (Flask-Admin passes it but WTForms 3.x doesn't accept it)
+    if 'allow_blank' in kwargs:
+        del kwargs['allow_blank']
+    return original_field_init(self, *args, **kwargs)
+
+Field.__init__ = patched_field_init
+
 from models import (
     db, AdminUser, Country, Manager, Achievement, AuditLog,
     AchievementType, League, Season, ApiKey
@@ -163,8 +188,10 @@ def init_admin(app) -> None:
     )
 
     # Add views with proper menu structure
-    admin.add_view(CountryModelView(Country, db.session, name='Countries', category='Data', menu_icon_type='fa', menu_icon_value='fa-flag'))
     admin.add_view(ManagerModelView(Manager, db.session, name='Managers', category='Data', menu_icon_type='fa', menu_icon_value='fa-user'))
+
+    # Reference Data
+    admin.add_view(CountryModelView(Country, db.session, name='Countries', category='Reference', menu_icon_type='fa', menu_icon_value='fa-flag'))
     # Achievement CRUD moved to Manager edit page — removed from menu
     # admin.add_view(AchievementModelView(Achievement, db.session, name='Achievements', category='Data', menu_icon_type='fa', menu_icon_value='fa-trophy'))
     admin.add_view(AdminUserModelView(AdminUser, db.session, name='Admin Users', category='Settings', menu_icon_type='fa', menu_icon_value='fa-users'))
@@ -434,9 +461,24 @@ class CountryModelView(SecureModelView):
         'flag_path': 'Flag Img'
     }
 
+    form_overrides = {
+        'code': SelectField,
+        'flag_path': SelectField,
+    }
+
     form_args = {
-        'code': {'validators': []},
-        'flag_path': {'validators': []},
+        'code': {
+            'choices': COUNTRY_CHOICES,
+            'validators': [
+                validators.DataRequired(message='Country code is required'),
+                validators.Regexp(r'^[A-Z]{2,3}$', message='Country code must be 2-3 uppercase letters (e.g., RU, USA)'),
+                validators.Length(min=2, max=3, message='Country code must be 2-3 characters')
+            ]
+        },
+        'flag_path': {
+            'choices': get_flag_choices,
+            'validators': []
+        },
         'name': {'validators': []}
     }
 
@@ -453,20 +495,12 @@ class CountryModelView(SecureModelView):
 
     def create_form(self, **kwargs):
         form = super().create_form(**kwargs)
-        form.code.widget = Select2Widget()
-        form.code.choices = COUNTRY_CHOICES
-        form.flag_path.widget = Select2Widget()
-        form.flag_path.choices = get_flag_choices()
         form.extra_js = COUNTRY_AUTOFILL_JS
         form.extra_html = Markup('<img id="flag-preview-img" src="" style="display:none; margin-top:10px; border:1px solid #ccc; max-width:64px;">')
         return form
 
     def edit_form(self, obj, **kwargs):
         form = super().edit_form(obj, **kwargs)
-        form.code.widget = Select2Widget()
-        form.code.choices = COUNTRY_CHOICES
-        form.flag_path.widget = Select2Widget()
-        form.flag_path.choices = get_flag_choices()
         form.extra_js = COUNTRY_AUTOFILL_JS
         form.extra_html = Markup(f'<img id="flag-preview-img" src="{obj.flag_path}" style="margin-top:10px; border:1px solid #ccc; max-width:64px;">' if obj.flag_path else '<img id="flag-preview-img" src="" style="display:none; margin-top:10px; border:1px solid #ccc; max-width:64px;">')
         return form
@@ -501,24 +535,44 @@ class ManagerModelView(SecureModelView):
     list_template = 'admin/manager_list.html'
 
     # Добавляем ссылку на создание достижения для менеджера
-    column_list = ('id', 'name', 'country', 'manage_achievements')
+    column_list = ('id', 'name', 'country', 'is_active', 'manage_achievements')
     column_searchable_list = ('name',)
-    column_filters = ('country.name',)
-    form_columns = ('name', 'country')
+    column_filters = ('country.name', 'is_active')
+    form_columns = ('name', 'country', 'is_active')
     column_default_sort = ('name', False)
 
-    # Используем form_args для надежной загрузки списка стран
+    # Используем SelectField для country (QuerySelectField не совместим с Select2 ajax)
+    form_overrides = {
+        'country': SelectField,
+    }
+
+    def get_country_choices():
+        """Get countries for SelectField choices."""
+        from data.countries_reference import COUNTRY_NAMES
+        choices = [('', '-- Select Country --')]
+        countries = db.session.query(Country).filter_by(is_active=True).order_by(Country.name).all()
+        for c in countries:
+            name = COUNTRY_NAMES.get(c.code, c.name)
+            choices.append((str(c.id), f"{name} ({c.code})"))
+        return choices
+
     form_args = {
+        'name': {
+            'validators': [
+                validators.DataRequired(message='Manager name is required'),
+                validators.Regexp(r'^[a-zA-Z0-9\s,.\'-]+$', message='Name can only contain letters, numbers, spaces, commas, periods, hyphens and apostrophes'),
+                validators.Length(min=2, max=100, message='Name must be between 2 and 100 characters')
+            ]
+        },
         'country': {
-            'query_factory': lambda: db.session.query(Country).order_by(Country.name),
-            'allow_blank': False,
-            'get_label': 'name'
+            'choices': get_country_choices,
+            'validators': [validators.DataRequired(message='Country is required')]
         }
     }
 
     form_widget_args = {
         'country': {
-            'class': 'form-control select2'
+            'class': 'form-control'
         }
     }
 
@@ -541,6 +595,68 @@ class ManagerModelView(SecureModelView):
         'country': 'Country',
         'manage_achievements': 'Achievements'
     }
+
+    def create_model(self, form):
+        """Create manager with proper country handling."""
+        try:
+            model = Manager()
+            # Manually set country from ID
+            country_id = form.country.data
+            if country_id:
+                country = db.session.get(Country, int(country_id))
+                if country:
+                    model.country = country
+            # Set other fields
+            model.name = form.name.data
+            model.is_active = form.is_active.data if hasattr(form, 'is_active') else True
+            
+            db.session.add(model)
+            db.session.commit()
+            
+            # Log and invalidate cache
+            if current_user.is_authenticated:
+                log_action(
+                    user_id=current_user.id,
+                    action='CREATE',
+                    target_model='Manager',
+                    target_id=model.id
+                )
+            invalidate_leaderboard_cache()
+            return model
+        except Exception as e:
+            db.session.rollback()
+            admin_logger.error(f"Error creating manager: {e}")
+            raise
+
+    def update_model(self, form, model):
+        """Update manager with proper country handling."""
+        try:
+            # Manually update country from ID
+            country_id = form.country.data
+            if country_id:
+                country = db.session.get(Country, int(country_id))
+                if country:
+                    model.country = country
+            # Update other fields
+            model.name = form.name.data
+            model.is_active = form.is_active.data
+            
+            db.session.commit()
+            
+            # Log and invalidate cache
+            if current_user.is_authenticated:
+                log_action(
+                    user_id=current_user.id,
+                    action='UPDATE',
+                    target_model='Manager',
+                    target_id=model.id
+                )
+            invalidate_leaderboard_cache()
+            return True
+        except Exception as e:
+            db.session.rollback()
+            admin_logger.error(f"Error updating manager: {e}")
+            raise
 
     def on_model_change(self, form, model, is_created):
         """Invalidate cache and show tandem warning if applicable."""
@@ -1085,4 +1201,4 @@ class LogoutView(BaseView):
         """Handle logout."""
         logout_user()
         flash('Logged out successfully.', 'info')
-        return redirect(url_for('admin_login'))
+        return redirect(url_for('admin_login.index'))

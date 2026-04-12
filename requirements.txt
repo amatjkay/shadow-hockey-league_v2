@@ -2,9 +2,10 @@
 # For PythonAnywhere deployment
 
 # Core Flask dependencies
-Flask>=3.1.0,<4
-Flask-SQLAlchemy==3.1.1
+Flask>=2.3.0,<3
+Flask-SQLAlchemy>=3.0.0,<3.1
 python-dotenv>=1.0.0
+SQLAlchemy>=1.4.0,<2
 
 # Database migrations
 alembic==1.14.0
@@ -23,9 +24,10 @@ redis>=5.0.0
 prometheus-flask-exporter>=0.23.0
 
 # Admin Panel ( Этап 3: Flask-Admin )
-Flask-Admin>=1.6.0
+Flask-Admin==2.0.2
 Flask-Login>=0.6.0
 Flask-WTF>=1.2.0
+WTForms>=3.0.0,<4
 
 # API Authentication & Rate Limiting ( Этап 5 )
 Flask-Limiter>=3.5.0
