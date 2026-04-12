@@ -16,7 +16,7 @@
 **URL:** https://shadow-hockey-league.ru/  
 **Health:** `/health` | **Metrics:** `/metrics` | **Admin:** `/admin/`
 
-### ✅ Статус деплоя (7 апреля 2026)
+### ✅ Статус деплоя (9 апреля 2026)
 
 | Компонент     | Статус                                         |
 | ------------- | ---------------------------------------------- |
@@ -26,6 +26,8 @@
 | Cache         | ✅ Redis (localhost:6379)                      |
 | Backups       | ✅ Ежедневно в 03:00 (cron, 7 дней)            |
 | Secrets       | ✅ Production-ключи (сгенерированы на сервере) |
+
+> ⚠️ Текущий рабочий контур: в админке выявлены runtime-дефекты, см. `docs/PROJECT_AUDIT_2026-04-09.md` и план исправлений `docs/IMPROVEMENT_PLAN_2026-04-09.md`.
 
 ### 🔧 Решение проблем с деплоем
 
@@ -311,6 +313,9 @@ python seed_db.py
 | `docs/ARCHITECTURE.md`    | Архитектура системы: компоненты, стек, модель данных |
 | `docs/TESTING.md`         | Тестирование: запуск, покрытие, best practices       |
 | `docs/SECURITY.md`        | Безопасность: auth, secrets, SSL, audit              |
+| `docs/BUSINESS_REQUIREMENTS.md` | Актуальные бизнес-требования (версия 1.1)      |
+| `docs/PROJECT_AUDIT_2026-04-09.md` | Подтверждённые проблемные места и риски       |
+| `docs/IMPROVEMENT_PLAN_2026-04-09.md` | Приоритизированный план доработок          |
 | `docs/CONTRIBUTING.md`    | Руководство контрибьютора: как внести вклад          |
 | `docs/MIGRATION_GUIDE.md` | Пошаговый деплой на VPS (Ubuntu + Nginx + Gunicorn)  |
 | `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем           |
