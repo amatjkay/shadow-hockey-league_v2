@@ -206,7 +206,7 @@ class Country(db.Model):
 
     @staticmethod
     def resolve_name(code: str) -> str:
-        """Resolve country name from code using reference data.
+        """Resolve country name from code using static paths reference data.
 
         Falls back to "Unknown" if code is not found.
 
@@ -216,9 +216,14 @@ class Country(db.Model):
         Returns:
             Human-readable country name
         """
-        from data.countries_reference import get_country_name
+        from data.static_paths import StaticPaths
 
-        return get_country_name(code) or "Unknown"
+        paths = StaticPaths()
+        # Reverse lookup: code → flag filename (which is the name)
+        filename = paths.code_to_flag(code)
+        if filename:
+            return filename.replace(".png", "")
+        return "Unknown"
 
 
 class Manager(db.Model):

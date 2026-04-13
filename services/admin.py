@@ -548,12 +548,19 @@ class ManagerModelView(SecureModelView):
 
     def get_country_choices():
         """Get countries for SelectField choices."""
-        from data.countries_reference import COUNTRY_NAMES
+        from data.static_paths import StaticPaths
+
+        paths = StaticPaths()
         choices = [('', '-- Select Country --')]
         countries = db.session.query(Country).filter_by(is_active=True).order_by(Country.name).all()
         for c in countries:
-            name = COUNTRY_NAMES.get(c.code, c.name)
-            choices.append((str(c.id), f"{name} ({c.code})"))
+            # Use code_to_flag to get display name
+            display_name = paths.code_to_flag(c.code)
+            if display_name:
+                display_name = display_name.replace(".png", "")
+            else:
+                display_name = c.name
+            choices.append((str(c.id), f"{display_name} ({c.code})"))
         return choices
 
     form_args = {
