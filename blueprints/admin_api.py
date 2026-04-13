@@ -571,22 +571,30 @@ def bulk_create_achievements():
 @admin_api_bp.route('/managers/<int:manager_id>/achievements', methods=['GET'])
 @login_required
 def get_manager_achievements(manager_id):
-    """Get all achievements for a manager."""
+    """Get all achievements for a manager.
+
+    Uses joinedload to avoid N+1 queries on type/league/season relationships.
+    """
     try:
         manager = db.session.get(Manager, manager_id)
         if not manager:
             return jsonify({'error': 'Manager not found'}), 404
 
-        achievements = db.session.query(Achievement).filter_by(manager_id=manager_id).all()
+        achievements = (
+            db.session.query(Achievement)
+            .options(
+                joinedload(Achievement.type),
+                joinedload(Achievement.league),
+                joinedload(Achievement.season),
+            )
+            .filter_by(manager_id=manager_id)
+            .all()
+        )
 
         result_achievements = []
         total_points = 0.0
 
         for a in achievements:
-            ach_type = db.session.get(AchievementType, a.type_id)
-            league = db.session.get(League, a.league_id)
-            season = db.session.get(Season, a.season_id)
-
             points = a.final_points or 0.0
             total_points += points
 
@@ -594,19 +602,19 @@ def get_manager_achievements(manager_id):
                 'id': a.id,
                 'type': {
                     'id': a.type_id,
-                    'code': ach_type.code if ach_type else '',
-                    'name': ach_type.name if ach_type else ''
+                    'code': a.type.code if a.type else '',
+                    'name': a.type.name if a.type else ''
                 },
                 'league': {
                     'id': a.league_id,
-                    'code': league.code if league else '',
-                    'name': league.name if league else ''
+                    'code': a.league.code if a.league else '',
+                    'name': a.league.name if a.league else ''
                 },
                 'season': {
                     'id': a.season_id,
-                    'code': season.code if season else '',
-                    'name': season.name if season else '',
-                    'multiplier': season.multiplier if season else 1.0
+                    'code': a.season.code if a.season else '',
+                    'name': a.season.name if a.season else '',
+                    'multiplier': a.season.multiplier if a.season else 1.0
                 },
                 'base_points': a.base_points,
                 'multiplier': a.multiplier,

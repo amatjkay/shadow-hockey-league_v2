@@ -35,6 +35,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Lint (flake8)
+        run: |
+          pip install flake8
+          flake8 --max-line-length=120 --ignore=E501,W503,E722,F401,F841 \
+            app.py models.py config.py wsgi.py blueprints/ services/ scripts/
+
       - name: Run tests (Prod-Like with Redis & No Rate Limits)
         env:
           TESTING: "1"
