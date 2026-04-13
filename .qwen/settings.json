@@ -5,7 +5,8 @@
       "Bash(alembic *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(python *)"
     ]
   },
   "$version": 3

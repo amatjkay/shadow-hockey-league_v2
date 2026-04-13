@@ -298,6 +298,70 @@ def get_leagues():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+# ==================== API-Extra: Achievement Calculator ====================
+
+@admin_api_bp.route('/calculate-points', methods=['GET'])
+@login_required
+def calculate_points():
+    """Calculate final points for achievement type based on league and season.
+    
+    Query params:
+        type_id: Achievement Type ID (required)
+        league_id: League ID (required)
+        season_id: Season ID (required)
+    """
+    try:
+        type_id = request.args.get('type_id', type=int)
+        league_id = request.args.get('league_id', type=int)
+        season_id = request.args.get('season_id', type=int)
+        
+        if not all([type_id, league_id, season_id]):
+            return jsonify({'error': 'type_id, league_id, and season_id are required'}), 400
+        
+        # Get entities
+        ach_type = db.session.get(AchievementType, type_id)
+        league = db.session.get(League, league_id)
+        season = db.session.get(Season, season_id)
+        
+        if not ach_type:
+            return jsonify({'error': 'Achievement type not found'}), 404
+        if not league:
+            return jsonify({'error': 'League not found'}), 404
+        if not season:
+            return jsonify({'error': 'Season not found'}), 404
+        
+        # Calculate base points based on league code
+        if league.code == '1':
+            base_points = ach_type.base_points_l1
+            points_source = 'base_points_l1'
+        else:
+            base_points = ach_type.base_points_l2
+            points_source = 'base_points_l2'
+        
+        # Calculate final points
+        final_points = base_points * season.multiplier
+        
+        return jsonify({
+            'type_id': ach_type.id,
+            'type_code': ach_type.code,
+            'type_name': ach_type.name,
+            'league_id': league.id,
+            'league_code': league.code,
+            'league_name': league.name,
+            'season_id': season.id,
+            'season_code': season.code,
+            'season_name': season.name,
+            'base_points': base_points,
+            'points_source': points_source,
+            'multiplier': season.multiplier,
+            'final_points': round(final_points, 2)
+        })
+        
+    except Exception as e:
+        api_logger.error(f"Error in GET /admin/api/calculate-points: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 # ==================== API-Extra: Achievement Types ====================
 
 @admin_api_bp.route('/achievement-types', methods=['GET'])
