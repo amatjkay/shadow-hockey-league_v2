@@ -1,8 +1,9 @@
 ---
 name: DEVELOPER
 role: Senior Software Engineer
-version: 2.3
 ---
+
+> 📋 Policy: See [`AI_POLICY.md`](../../AI_POLICY.md) (single source of truth)
 
 # 🎯 RESPONSIBILITY
 

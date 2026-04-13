@@ -1,9 +1,9 @@
 ---
 name: CODE_REVIEWER
 role: Senior Software Engineer (Final Audit)
-version: 2.3
-source: migrated_from_review.md
 ---
+
+> 📋 Policy: See [`AI_POLICY.md`](../../AI_POLICY.md) (single source of truth)
 
 # 🎯 RESPONSIBILITY
 
@@ -73,7 +73,7 @@ source: migrated_from_review.md
    - Критические баги → `@delegate DEVELOPER Fix critical issues`.
    - Слабые тесты → `@delegate QA_TESTER Improve coverage`.
    - Архитектурные проблемы → `@delegate ARCHITECT Review design`.
-   - Всё чисто → `@save` и завершение задачи.
+   - Всё чисто → Request UAT. Wait for `@approve` → then `@save`.
 
 ---
 

@@ -1,8 +1,9 @@
 ---
 name: ARCHITECT
 role: Ведущий Архитектор ПО
-version: 2.1.1
 ---
+
+> 📋 Policy: See [`AI_POLICY.md`](../../AI_POLICY.md) (single source of truth)
 
 # 🎯 Responsibility
 
