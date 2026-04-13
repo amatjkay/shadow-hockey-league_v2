@@ -1,110 +1,56 @@
 # Shadow Hockey League v2
 
-Веб-приложение на **Flask** с базой данных **SQLite**: таблица менеджеров (соло и тандемы) с кубками и **рейтинг по очкам** на одной странице.
+Веб-приложение на **Flask** для управления хоккейной лигой: менеджеры (соло и тандемы), достижения, кубки и **рейтинг по очкам** на одной странице.
 
-**Production:** https://shadow-hockey-league.ru/ | **Health:** `/health` | **Metrics:** `/metrics`
+**Production:** https://shadow-hockey-league.ru/ | **Health:** `/health` | **Metrics:** `/metrics` | **Admin:** `/admin/`
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
 [![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-296%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
-
----
-
-## 🌐 Production Deployment
-
-**URL:** https://shadow-hockey-league.ru/  
-**Health:** `/health` | **Metrics:** `/metrics` | **Admin:** `/admin/`
-
-### ✅ Статус деплоя (9 апреля 2026)
-
-| Компонент     | Статус                                         |
-| ------------- | ---------------------------------------------- |
-| Deploy script | ✅ Auto-fix Windows paths в `.env`             |
-| CI/CD         | ✅ GitHub Actions через SSH (scp + bash)       |
-| Database      | ✅ SQLite + Alembic миграции                   |
-| Cache         | ✅ Redis (localhost:6379)                      |
-| Backups       | ✅ Ежедневно в 03:00 (cron, 7 дней)            |
-| Secrets       | ✅ Production-ключи (сгенерированы на сервере) |
-
-> ⚠️ Текущий рабочий контур: в админке выявлены runtime-дефекты, см. `docs/PROJECT_AUDIT_2026-04-09.md` и план исправлений `docs/IMPROVEMENT_PLAN_2026-04-09.md`.
-
-### 🔧 Решение проблем с деплоем
-
-Если деплой падает — смотри [`docs/DEPLOYMENT_FIX.md`](docs/DEPLOYMENT_FIX.md) с полным гайдом.
-
-**Частые проблемы:**
-
-1. **Windows-пути в `.env`** → deploy.sh исправляет автоматически
-2. **Alembic `no such column`** → `alembic stamp head` или ручное добавление колонок
-3. **systemctl требует пароль** → настроить `/etc/sudoers.d/shleague-systemctl`
-4. **Health check = degraded** → проверить что Redis запущен и `.env` корректен
 
 ---
 
 ## 🚀 Быстрый старт
 
-### Для Windows
-
-#### Вариант 1: Использование .bat файлов (рекомендуется)
+### Windows
 
 ```cmd
-REM 1. Установка и настройка
-.\setup.bat
-
-REM 2. Запуск сервера
-.\run.bat
+.\setup.bat    # Установка и настройка
+.\run.bat      # Запуск сервера
 ```
 
-#### Вариант 2: Прямые команды PowerShell
-
-```powershell
-# 1. Установка зависимостей
-pip install -r requirements.txt
-
-# 2. Инициализация базы данных
-python seed_db.py
-
-# 3. Запуск сервера
-python app.py
-```
-
-### Для Linux/Mac
+### Linux/Mac
 
 ```bash
-# 1. Установка и настройка
-make setup
-
-# 2. Запуск сервера
-make run
+make setup     # Установка зависимостей + инициализация БД
+make run       # Запуск сервера разработки
 ```
 
-Приложение будет доступно по адресу: `http://127.0.0.1:5000/`
+Приложение: `http://127.0.0.1:5000/`
 
 ---
 
-- Единая таблица **«Рейтинг лиги»** (колонки: **страна** · **Место** · **Очки** · **Участник** · **Кубки** · **Расчёт**). Детальный расчёт по наградам — в последней колонке, раскрывается по нажатию.
-- Правила начисления очков — в блоке **«Как считаются очки»** (свернут по умолчанию).
-- Для **топ-10** строк анимированный градиент на колонках **Место**, **Очки** и **Участник** синхронизирован (`background-attachment: fixed` и общий `@keyframes league-top10-sheen`).
-- **Тандемы:** префикс `Tandem:` в интерфейсе не показывается (остаётся только состав, например `Vlad, whiplash 92`). Бейдж **«тандем»** выводится, если в **исходном** имени записи есть запятая (пара участников в данных).
-- Старый URL `/rating` перенаправляет на главную с якорем `/#rating`.
+## 📋 Возможности
 
-## Расчёт очков
+- **Единая таблица «Рейтинг лиги»** — сортировка по очкам, детализация расчёта по нажатию
+- **Тандемы** — поддержка парных участников с автоматическим бейджем
+- **Формула из БД** — базовые очки × множитель сезона (AchievementType + Season)
+- **Админ-панель** — CRUD для стран, менеджеров, достижений, типов достижений, сезонов, лиг
+- **REST API** — API Key auth (read/write/admin scopes), пагинация, rate limiting
+- **Кэширование** — Redis с SimpleCache fallback, автоматическая инвалидация
+- **Audit Log** — фиксация всех действий администраторов
+- **Мониторинг** — `/health` + `/metrics` (Prometheus)
+- **CI/CD** — GitHub Actions с SSH-деплоем, автобэкапом и откатом
 
-Логика в модуле `services/rating_service.py`: за каждую награду берётся **база** (лига и тип кубка) × **множитель сезона**, результат округляется, затем суммируется по строке участника.
+---
 
-### Множители сезонов
+## 🏆 Расчёт очков
 
-Текущий сезон — базовый (×1.00), старые сезоны имеют дисконт:
-
-| Сезон  | Множитель       |
-| ------ | --------------- |
-| s24/25 | ×1.00 (базовый) |
-| s23/24 | ×0.95 (−5%)     |
-| s22/23 | ×0.90 (−10%)    |
-| s21/22 | ×0.85 (−15%)    |
-
-**Логика:** последние достижения ценнее старых — это мотивирует играть сейчас.
+```
+points = base_points(league, achievement_type) × season_multiplier
+```
 
 ### Базовые очки
 
@@ -116,282 +62,216 @@ make run
 | Best regular | 50     | 40     |
 | Round 3      | 30     | 20     |
 | Round 1      | 10     | 5      |
-| Toxic        | 0      | 0      |
 
-**Логика:** увеличен разрыв между TOP1 и остальными наградами, чтобы победа в Лиге 1 была значимее.
+### Множители сезонов
 
-## Структура лиг
+| Сезон  | Множитель       |
+| ------ | --------------- |
+| 24/25  | ×1.00 (базовый) |
+| 23/24  | ×0.95 (−5%)     |
+| 22/23  | ×0.90 (−10%)    |
+| 21/22  | ×0.85 (−15%)    |
 
-- **Лига 1** — высшая лига
-- **Лига 2** — вторая лига (с сезона 25/26 разделена на **Лигу 2.1** и **Лигу 2.2**)
-- **Сезон 24/25** — единая Лига 2 (без разделения)
-- **Сезон 25/26** — Лига 2 разделена на две подлиги для розыгрыша повышения в Лигу 1
+---
 
-## Структура проекта
+## 📁 Структура проекта
 
 ```
 shadow-hockey-league_v2/
-├── app.py                      # Application Factory (инициализация приложения)
-├── models.py                   # SQLAlchemy модели (AdminUser, Country, Manager, Achievement, ApiKey)
-├── config.py                   # Конфигурация (Development/Production/Testing)
-├── wsgi.py                     # WSGI entry point для деплоя
+├── app.py                      # Application Factory
+├── models.py                   # SQLAlchemy модели
+├── config.py                   # Dev/Prod/Test конфиг
+├── wsgi.py                     # WSGI entry point
 ├── blueprints/                 # Flask blueprints
 │   ├── main.py                 #   Главная страница, leaderboard
-│   └── health.py               #   Health check endpoint
+│   ├── health.py               #   Health check
+│   └── admin_api.py            #   Admin API endpoints
 ├── services/                   # Бизнес-логика
-│   ├── rating_service.py       #   Расчёт рейтинга (формула из БД)
+│   ├── rating_service.py       #   Расчёт рейтинга
 │   ├── cache_service.py        #   Кэширование и инвалидация
-│   ├── api.py                  #   REST API (auth + pagination)
-│   ├── admin.py                #   Flask-Admin (CRUD + CSRF)
-│   ├── metrics_service.py      #   Prometheus метрики
+│   ├── api.py                  #   REST API
+│   ├── admin.py                #   Flask-Admin
+│   ├── api_auth.py             #   API Key auth
+│   ├── audit_service.py        #   Audit Log
 │   ├── validation_service.py   #   Валидация данных
-│   ├── audit_service.py        #   Audit Log действий администраторов
-│   ├── seed_service.py         #   JSON Seed импорт/экспорт
-│   └── export_service.py       #   Экспорт данных из БД
+│   ├── seed_service.py         #   JSON Seed импорт
+│   └── export_service.py       #   Экспорт из БД
 ├── data/                       # Справочные данные
 │   ├── seed/                   #   Исходные данные (JSON)
 │   ├── export/                 #   Экспорт из БД (JSON)
 │   └── schemas.py              #   Валидация JSON схем
-├── tests/                      # Pytest тесты (239 тестов, ~87% покрытие)
-│   ├── conftest.py             #   Fixtures
-│   ├── test_*.py               #   Unit тесты
+├── tests/                      # Pytest тесты (296 тестов, ~87%)
 │   ├── integration/            #   Интеграционные тесты
-│   └── e2e/                    #   E2E тесты (15 тестов)
+│   └── e2e/                    #   E2E тесты
 ├── docs/                       # Документация
-├── .qwen/                      # Система субагентов (config, context, agents)
-├── agents/                     # Python модуль мульти-агентной системы
-├── context/                    # Контекст модульной системы
-├── prompts/                    # Промпты ролей AI (6 ролей)
-├── scripts/                    # Утилиты (create_admin, validate_db)
-├── .env.example                # Пример переменных окружения
+├── scripts/                    # Утилиты (create_admin, check_*)
+├── .qwen/                      # AI Agent конфигурация
 ├── requirements.txt            # Python зависимости
-├── Makefile                    # Команды для разработки
-└── alembic.ini                 # Alembic конфигурация
+├── Makefile                    # Команды разработки
+└── alembic.ini                 # Alembic миграции
 ```
+
+---
 
 ## 🔧 Команды Makefile
 
 | Команда         | Описание                                    |
 | --------------- | ------------------------------------------- |
 | `make setup`    | Установка зависимостей + инициализация БД   |
-| `make install`  | Установка зависимостей из requirements.txt  |
-| `make init-db`  | Инициализация БД (создание таблиц + seed)   |
-| `make seed-db`  | Наполнение БД данными (без создания таблиц) |
-| `make validate` | Проверка состояния БД                       |
 | `make run`      | Запуск сервера разработки                   |
-| `make test`     | Запуск тестов                               |
-| `make lint`     | Проверка кода через flake8                  |
-| `make format`   | Форматирование кода (black + isort)         |
+| `make test`     | Запуск тестов (296 тестов)                  |
+| `make lint`     | Проверка кода (flake8)                      |
+| `make format`   | Форматирование (black + isort)              |
 | `make clean`    | Очистка временных файлов                    |
-| `make clean-db` | Очистка БД (удаление всех данных)           |
+
+---
 
 ## 🧪 Тесты
 
-Проект содержит **239 тестов с покрытием ~87%**, покрывающих логику рейтинга, API, маршруты, инвалидацию кэша, CSRF, аутентификацию, Audit Log и E2E сценарии.
+**296 тестов, ~87% покрытие:**
+
+- **Unit:** rating service, validation, cache, API auth, models
+- **Integration:** routes, API CRUD, database constraints, cache invalidation
+- **Admin:** CSRF, auth, CRUD, smoke-тесты
+- **E2E:** полный цикл приложения
 
 ```bash
-# Используя Makefile
 make test
-
-# С покрытием
+# или
 pytest --cov=. --cov-report=term-missing
-
-# Или вручную
-python -m unittest discover -v
 ```
 
-**Покрытие:**
-
-- **Unit тесты:** rating service, validation, cache service, API auth, pagination
-- **Integration тесты:** routes, API CRUD, database constraints, cache invalidation
-- **Admin тесты:** CSRF защита, admin auth, CRUD операции
-- **API тесты:** API Keys auth, rate limiting, scopes, pagination
-
-> **Примечание:** Ранее указывалось 72 теста — актуальное количество может отличаться из-за рефакторинга. Используйте `pytest --cov` для актуальной метрики.
+---
 
 ## 🛠 Админ-панель
-
-Админ-панель для управления менеджерами, странами и достижениями.
 
 **URL:** `/admin/`
 
 ### Первый вход
 
 ```bash
-# Создать первого админа
 python scripts/create_admin.py
 ```
 
 ### Возможности
 
-- ✅ CRUD для стран, менеджеров, достижений
-- ✅ Аутентификация (логин/пароль)
-- ✅ Автоматическая инвалидация кэша
-- ✅ Поиск и фильтры
+- CRUD для стран, менеджеров, достижений, типов достижений, сезонов, лиг
+- Реактивный калькулятор очков
+- Bulk-операции для массового создания достижений
+- Audit Log всех действий
+- Автоматическая инвалидация кэша
 
-**Подробная документация:** [`docs/ADMIN.md`](docs/ADMIN.md)
+---
+
+## 📡 REST API
+
+**Base URL:** `/api/`
+
+| Endpoint | Auth | Scope | Описание |
+|----------|------|-------|----------|
+| `GET /api/countries` | ❌ | — | Все страны |
+| `GET /api/managers` | ✅ | read | Менеджеры (пагинация) |
+| `GET /api/achievements` | ✅ | read | Достижения (пагинация) |
+| `POST/PUT/DELETE` | ✅ | write/admin | CRUD операции |
+
+API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, `write`, `admin`.
+
+📖 **Полная документация:** [`docs/API.md`](docs/API.md)
+
+---
 
 ## 📊 Мониторинг
 
-Приложение предоставляет эндпоинты для мониторинга:
-
 ### Health Check (`/health`)
-
-```bash
-curl https://shadow-hockey-league.ru/health
-```
-
-**Пример ответа:**
 
 ```json
 {
   "status": "healthy",
   "managers_count": 50,
-  "achievements_count": 200,
-  "countries_count": 8,
-  "response_time_ms": 15,
   "redis_status": "connected",
-  "cache_status": "working",
   "database_status": "connected"
 }
 ```
 
 ### Prometheus Metrics (`/metrics`)
 
-Метрики в формате Prometheus для сбора статистики:
+`http_requests_total`, `http_request_duration_seconds`
 
-- `http_requests_total` — всего запросов
-- `http_request_duration_seconds` — время ответа
-
-**Подробная документация:** [`docs/MONITORING.md`](docs/MONITORING.md)
+---
 
 ## 🔐 Переменные окружения
 
-Проект использует файл `.env` для конфигурации:
+| Переменная            | Описание                      | По умолчанию       |
+| --------------------- | ----------------------------- | ------------------ |
+| `FLASK_ENV`           | Режим работы                  | `development`      |
+| `DATABASE_URL`        | URL базы данных               | `sqlite:///dev.db` |
+| `SECRET_KEY`          | Ключ сессий                   | Автогенерация      |
+| `ENABLE_API`          | Включение REST API            | `True`             |
+| `API_KEY_SECRET`      | Секрет для API ключей         | —                  |
+| `WTF_CSRF_SECRET_KEY` | CSRF защита                   | —                  |
+| `REDIS_URL`           | Redis URL                     | `redis://localhost`|
 
-| Переменная            | Описание                              | По умолчанию        |
-| --------------------- | ------------------------------------- | ------------------- |
-| `FLASK_ENV`           | Режим работы (development/production) | `development`       |
-| `DATABASE_URL`        | URL базы данных                       | `sqlite:///dev.db`  |
-| `SECRET_KEY`          | Ключ сессий                           | Автогенерация (dev) |
-| `LOG_LEVEL`           | Уровень логирования                   | `INFO`              |
-| `ENABLE_API`          | Включение REST API                    | `True`              |
-| `API_KEY_SECRET`      | Секрет для генерации API ключей       | —                   |
-| `WTF_CSRF_SECRET_KEY` | CSRF защита админ-панели              | —                   |
-| `REDIS_URL`           | Redis URL для кэширования             | `redis://localhost` |
-
-**Важно:** В production режиме `ENABLE_API=True` требует аутентификации через API Keys.
-
-## 🛠 Устранение неполадок
-
-### Ошибка "An error occurred"
-
-```bash
-# Переинициализируйте БД
-python seed_db.py
-```
-
-### Ошибка "no such table"
-
-```bash
-# Пересоздайте БД
-del dev.db
-python seed_db.py
-```
-
-### Проблемы с путями к БД
-
-Убедитесь, что `DATABASE_URL` в `.env` и `sqlalchemy.url` в `alembic.ini` указывают на один файл.
+---
 
 ## 📚 Документация
 
-| Файл                      | Описание                                             |
-| ------------------------- | ---------------------------------------------------- |
-| `README.md`               | Этот файл — быстрый старт                            |
-| `docs/API.md`             | REST API: auth, pagination, scopes, rate limiting    |
-| `docs/ADMIN.md`           | Админ-панель: CSRF, API Keys management              |
-| `docs/ARCHITECTURE.md`    | Архитектура системы: компоненты, стек, модель данных |
-| `docs/TESTING.md`         | Тестирование: запуск, покрытие, best practices       |
-| `docs/SECURITY.md`        | Безопасность: auth, secrets, SSL, audit              |
-| `docs/BUSINESS_REQUIREMENTS.md` | Актуальные бизнес-требования (версия 1.1)      |
-| `docs/PROJECT_AUDIT_2026-04-09.md` | Подтверждённые проблемные места и риски       |
-| `docs/IMPROVEMENT_PLAN_2026-04-09.md` | Приоритизированный план доработок          |
-| `docs/CONTRIBUTING.md`    | Руководство контрибьютора: как внести вклад          |
-| `docs/MIGRATION_GUIDE.md` | Пошаговый деплой на VPS (Ubuntu + Nginx + Gunicorn)  |
-| `docs/REDIS.md`           | Redis: настройка, запуск, управление кэшем           |
-| `docs/MONITORING.md`      | Health check, Prometheus метрики                     |
-| `docs/TROUBLESHOOTING.md` | Руководство по устранению неполадок                  |
-| `docs/ROLLBACK.md`        | Откат деплоя: GitHub Actions, бэкапы                 |
-| `CHANGELOG.md`            | История изменений версий                             |
+| Файл | Описание |
+|------|----------|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Архитектура системы |
+| [`docs/API.md`](docs/API.md) | REST API документация |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Руководство разработчика |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Эксплуатация и безопасность |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок |
+| [`docs/MCP.md`](docs/MCP.md) | MCP конфигурация |
+| [`CHANGELOG.md`](CHANGELOG.md) | История изменений |
+
+---
 
 ## 📊 Статус проекта
 
-| Этап | Название                              | Статус      | Версия |
-| ---- | ------------------------------------- | ----------- | ------ |
-| 0    | Базовая архитектура                   | ✅ Завершён | v2.0.0 |
-| 1    | Кэширование (Redis + SimpleCache)     | ✅ Завершён | v2.1.0 |
-| 2    | Метрики (Prometheus)                  | ✅ Завершён | v2.1.0 |
-| 3    | Админ-панель + CSRF защита            | ✅ Завершён | v2.2.0 |
-| 4    | Рефакторинг формулы (из БД)           | ✅ Завершён | v2.3.0 |
-| 5    | API auth + pagination + rate limiting | ✅ Завершён | v2.1.0 |
-| 6    | Интеграционные тесты (87% покрытие)   | ✅ Завершён | v2.2.0 |
-| 7    | Документация и деплой                 | ✅ Завершён | v2.4.0 |
-| 8    | Data Synchronization Layer            | ✅ Завершён | v2.3.0 |
-| 9    | Reliable Deployment System            | ✅ Завершён | v2.4.0 |
-| 10   | Admin Panel Enhancement               | ✅ Завершён | v2.3.3 |
-
-### Что реализовано
-
-- ✅ Покрытие тестами **87%** (239 тестов: 224 unit+integration + 15 E2E)
-- ✅ Код отформатирован (`black`, `isort`, `flake8`)
-- ✅ REST API с аутентификацией (API Keys, 3 scope)
-- ✅ Пагинация API (`page`/`per_page`, max 100)
-- ✅ Rate limiting (100 req/min на ключ)
-- ✅ CSRF защита админ-панели
-- ✅ Audit Log всех действий администраторов
-- ✅ Кэширование Redis с fallback на SimpleCache
-- ✅ Автоматическая инвалидация кэша (Admin + API)
-- ✅ UniqueConstraint на достижениях (нет дубликатов)
-- ✅ Alembic миграции
-- ✅ Формула расчёта очков из БД (AchievementType + Season)
-- ✅ JSON Seed/Export для синхронизации данных
-- ✅ Reliable Deployment с atomic updates, auto backup, health check, auto rollback
-- ✅ CI/CD через GitHub Actions с SSH деплоем
-- ✅ E2E тесты (15 тестов)
+| Этап | Название | Статус | Версия |
+|------|----------|--------|--------|
+| 0 | Базовая архитектура | ✅ | v2.0.0 |
+| 1 | Кэширование (Redis + SimpleCache) | ✅ | v2.1.0 |
+| 2 | Метрики (Prometheus) | ✅ | v2.1.0 |
+| 3 | Админ-панель + CSRF | ✅ | v2.2.0 |
+| 4 | Формула рейтинга из БД | ✅ | v2.3.0 |
+| 5 | REST API с API Key auth | ✅ | v2.0.0 |
+| 6 | Тестовый контур | ✅ | v2.2.0 |
+| 7 | Деплой на VPS + CI/CD | ✅ | v2.4.0 |
+| 8 | Data sync (seed/export) | ✅ | v2.3.0 |
+| 9 | Надёжный деплой (backup/rollback) | ✅ | v2.4.0 |
+| 10 | Расширение админки | ✅ | v2.5.0 |
+| 11 | Стабилизация админки | ✅ | v2.5.0 |
+| 12 | AI Policy Stabilization | ✅ | v2.6.0 |
 
 ---
 
 ## 🌐 Деплой
 
-### Production сервер
+### Production
 
-Проект развёрнут на **VPS (Ubuntu 22.04)**:
-**https://shadow-hockey-league.ru/**
+**URL:** https://shadow-hockey-league.ru/
 
-| Компонент  | Версия/Значение                |
-| ---------- | ------------------------------ |
-| ОС         | Ubuntu 22.04 LTS               |
-| Веб-сервер | Nginx                          |
-| WSGI       | Gunicorn (4 workers)           |
-| Python     | 3.10                           |
-| БД         | SQLite                         |
-| SSL        | Let's Encrypt (автообновление) |
-| Домен      | shadow-hockey-league.ru        |
-
-### 🔄 CI/CD (GitHub Actions)
-
-Настроен автоматический деплой при пуше в ветку `main`:
-
-- Atomic updates (`git reset --hard origin/main`)
-- Auto backup БД перед миграциями
-- Health check после деплоя
-- Auto rollback при ошибках
-
-📖 **Полная инструкция деплоя:** [`docs/MIGRATION_GUIDE.md`](docs/MIGRATION_GUIDE.md)
+| Компонент | Значение |
+|-----------|----------|
+| ОС | Ubuntu 22.04 LTS |
+| Веб-сервер | Nginx + SSL (Let's Encrypt) |
+| WSGI | Gunicorn (4 workers) |
+| Python | 3.10+ |
+| БД | SQLite + Alembic |
+| Кэш | Redis (localhost:6379) |
+| CI/CD | GitHub Actions → SSH deploy |
+| Бэкапы | Ежедневно 03:00 UTC + pre-deploy |
 
 ---
 
-### PythonAnywhere (архив)
+## 🛠 Устранение неполадок
 
-Старая версия на PythonAnywhere доступна по адресу:
-**https://amatjkay.pythonanywhere.com/**
+| Проблема | Решение |
+|----------|---------|
+| `no such table` | `alembic upgrade head` |
+| Health `degraded` | Проверить Redis: `sudo systemctl restart redis-server` |
+| 502 Bad Gateway | `systemctl restart shadow-hockey-league && systemctl restart nginx` |
+
+📖 **Полный гайд:** [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)

@@ -6,6 +6,55 @@
 
 ---
 
+## [2.6.0] — 2026-04-13
+
+### AI Policy Stabilization & Project Cleanup
+
+### Added
+
+- **AI_POLICY.md v1.2** — единый источник правил для всех AI-агентов (7 ролей)
+- **Thin IDE adapters** — `.windsurfrules`, `.cursorrules`, `copilot-instructions.md`
+- **CODE_REVIEWER prompt** — `prompts/07_CODE_REVIEWER.md`
+- **Policy validation script** — `scripts/check_policy_sync.py`
+- **UAT Gate** — блокировка `@save` до `@approve`
+
+### Changed
+
+- **Documentation** — полная актуализация README.md, docs/ARCHITECTURE.md, docs/API.md, docs/DEVELOPMENT.md, docs/OPERATIONS.md, docs/TROUBLESHOOTING.md
+- **datetime.utcnow()** → **datetime.now(timezone.utc)** — устранены все 14 deprecation warnings
+- **Context files** — `.qwen/context/state_summary.md`, `active_plan.md` обновлены
+
+### Removed
+
+- **Dead agent system** — 11 файлов `agents/` (не интегрировано в app.py)
+- **Duplicate prompts** — 7 файлов `prompts/` (дублировали `.qwen/agents/`)
+- **Debug scripts** — `check_*.py`, `smoke_test.py`, `export_to_seed.py`, `wsgi_template.py`, `manage.py`
+- **Archive** — `docs/history/`, `PATCH_REPORT_V2.3.3.json`
+- **Data duplicates** — `data/countries_reference.py`, `data/managers_data.py`
+- **.idea/** — удалены из git tracking
+
+---
+
+## [2.5.0] — 2026-04-11
+
+### Admin Stabilization
+
+### Added
+
+- **Smoke-тесты** — 6 тестов login → dashboard → logout
+- **Admin API тесты** — 28 тестов
+- **Reactive Points Calculator** — серверная валидация в админке
+
+### Fixed
+
+- **BuildError: achievement.index_view** в dashboard
+- **500** в `GET /admin/api/managers/{id}/achievements`
+- **BuildError: admin_login** при logout
+- **Debug-логи** — удалены 23 строки из production-кода
+- **datetime.utcnow() deprecation** — исправлено в production
+
+---
+
 ## [2.3.3] — 2026-04-09
 
 ### 🎉 Admin Panel Enhancement & Bug Fixes
