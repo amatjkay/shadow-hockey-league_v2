@@ -26,8 +26,7 @@
     "approve_command": "@approve",
     "reject_command": "@reject"
   }
-}
-  },
+},
   "workflow_chain": {
     "default_sequence": ["ANALYST", "ARCHITECT", "PLANNER", "DEVELOPER", "QA_TESTER", "CODE_REVIEWER", "@save"],
     "smart_routing_rules": {

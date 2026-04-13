@@ -2,7 +2,7 @@
 
 import json
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 
 from models import AuditLog, AdminUser, db
@@ -261,7 +261,7 @@ class TestAuditService:
         """Test cleanup of old audit logs."""
         with app.app_context():
             # Create an old log entry (91 days ago)
-            old_timestamp = datetime.utcnow() - timedelta(days=91)
+            old_timestamp = datetime.now(timezone.utc) - timedelta(days=91)
             old_log = AuditLog(
                 user_id=admin_user.id,
                 action='CREATE',
@@ -309,7 +309,7 @@ class TestAuditService:
         with app.app_context():
             # Create audit entry with timestamp
             from datetime import datetime
-            test_timestamp = datetime.utcnow()
+            test_timestamp = datetime.now(timezone.utc)
             
             audit_entry = AuditLog(
                 user_id=admin_user.id,

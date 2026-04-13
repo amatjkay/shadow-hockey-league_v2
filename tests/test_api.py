@@ -8,7 +8,7 @@ Tests cover:
 """
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app import create_app
 from models import Achievement, AchievementType, ApiKey, Country, League, Manager, Season, db
@@ -109,7 +109,7 @@ class TestAPIAuthentication(unittest.TestCase):
                 key_hash=hash_api_key(self.expired_key),
                 name="Expired Key",
                 scope="read",
-                expires_at=datetime.utcnow() - timedelta(days=1),
+                expires_at=datetime.now(timezone.utc) - timedelta(days=1),
             ))
 
             # Create revoked key

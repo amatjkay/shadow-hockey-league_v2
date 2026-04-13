@@ -7,7 +7,7 @@ Tests cover:
 """
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app import create_app
 from models import ApiKey, db
@@ -48,7 +48,7 @@ class TestApiKeyModel(unittest.TestCase):
             key_hash=hash_api_key("test_key"),
             name="Test Key",
             scope="read",
-            expires_at=datetime.utcnow() + timedelta(days=1),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
         )
         self.assertFalse(key.is_expired)
 
@@ -58,7 +58,7 @@ class TestApiKeyModel(unittest.TestCase):
             key_hash=hash_api_key("test_key"),
             name="Test Key",
             scope="read",
-            expires_at=datetime.utcnow() - timedelta(days=1),
+            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
         self.assertTrue(key.is_expired)
 
@@ -87,7 +87,7 @@ class TestApiKeyModel(unittest.TestCase):
             key_hash=hash_api_key("test_key"),
             name="Test Key",
             scope="read",
-            expires_at=datetime.utcnow() - timedelta(days=1),
+            expires_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
         self.assertFalse(key.is_active)
 
