@@ -938,33 +938,68 @@ class AchievementTypeModelView(SecureModelView):
 
 
 class LeagueModelView(SecureModelView):
-    """Admin view for managing leagues."""
+    """Admin view for managing leagues.
+
+    Supports parent_code for subleagues (e.g. 2.1, 2.2 are subleagues of 2).
+    """
 
     name = 'Leagues'
-    column_list = ('code', 'name')
+    column_list = ('code', 'name', 'parent_code', 'is_active')
     column_searchable_list = ('code', 'name')
-    column_filters = ('code', 'name')
-    form_columns = ('code', 'name')
+    column_filters = ('code', 'name', 'parent_code', 'is_active')
+    form_columns = ('code', 'name', 'parent_code', 'is_active')
     column_default_sort = ('code', False)
+
+    form_args = {
+        'code': {
+            'validators': [validators.DataRequired(), validators.Regexp(r'^[\w.]+$', message='Code can only contain letters, numbers, and dots')],
+        },
+        'name': {
+            'validators': [validators.DataRequired()],
+        },
+    }
 
 
 class SeasonModelView(SecureModelView):
-    """Admin view for managing seasons and multipliers."""
+    """Admin view for managing seasons and multipliers.
+
+    V-009: Cannot deactivate the last active season.
+    """
 
     name = 'Seasons'
-    column_list = ('code', 'name', 'multiplier', 'is_active')
+    column_list = ('code', 'name', 'multiplier', 'start_year', 'end_year', 'is_active')
     column_searchable_list = ('code', 'name')
-    column_filters = ('code', 'name', 'is_active')
-    form_columns = ('code', 'name', 'multiplier', 'is_active')
-    column_default_sort = ('code', False)
-    
+    column_filters = ('code', 'name', 'is_active', 'multiplier')
+    form_columns = ('code', 'name', 'multiplier', 'start_year', 'end_year', 'is_active')
+    column_default_sort = ('start_year', True)
+
     column_formatters = {
-        'is_active': lambda v, c, m, p: '✅' if m.is_active else '❌'
+        'is_active': lambda v, c, m, p: '✅' if m.is_active else '❌',
+        'multiplier': lambda v, c, m, p: f'×{m.multiplier:.2f}',
     }
-    
+
     form_widget_args = {
         'is_active': {'class': 'form-check-input'},
     }
+
+    form_args = {
+        'code': {
+            'validators': [validators.DataRequired(), validators.Regexp(r'^\d{2}/\d{2}$', message='Code must be in YY/YY format (e.g. 24/25)')],
+        },
+        'name': {
+            'validators': [validators.DataRequired()],
+        },
+        'multiplier': {
+            'validators': [validators.NumberRange(min=0.01, message='Multiplier must be ≥ 0.01')],
+        },
+    }
+
+    def on_model_change(self, form, model, is_created):
+        """V-009: Prevent deactivating the last active season."""
+        if not is_created and not model.is_active:
+            active_count = Season.query.filter_by(is_active=True).count()
+            if active_count <= 1:
+                raise ValueError("Cannot deactivate the last active season. Activate another season first.")
 
 
 class ApiKeyModelView(SecureModelView):
