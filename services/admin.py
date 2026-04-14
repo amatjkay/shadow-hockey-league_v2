@@ -968,7 +968,10 @@ class AchievementTypeModelView(SecureModelView):
     }
 
     def on_model_change(self, form, model, is_created):
-        """V-006: Validate base_points and auto-set icon_path."""
+        """V-006: Validate base_points and auto-set icon_path.
+        
+        Also triggers recalculation if base_points change.
+        """
         # Auto-uppercase code
         model.code = model.code.upper().strip()
 
@@ -982,6 +985,17 @@ class AchievementTypeModelView(SecureModelView):
         icon_full_path = Path(__file__).parent.parent / 'static' / 'img' / 'cups' / icon_filename
         if not icon_full_path.exists():
             model.icon_path = '/static/img/cups/default.svg'
+
+        # Trigger recalculation if points changed
+        if not is_created:
+            old = AchievementType.query.get(model.id)
+            if old and (old.base_points_l1 != model.base_points_l1 or old.base_points_l2 != model.base_points_l2):
+                from services.recalc_service import recalc_by_achievement_type
+                result = recalc_by_achievement_type(model.id)
+                if result['errors']:
+                    flash(f"Error recalculating points: {', '.join(result['errors'])}", 'error')
+                elif result['affected'] > 0:
+                    flash(f"Recalculated points for {result['affected']} achievements.", 'info')
 
     def delete_model(self, model):
         """V-008: Prevent deletion if achievements exist."""
@@ -1058,11 +1072,25 @@ class SeasonModelView(SecureModelView):
     }
 
     def on_model_change(self, form, model, is_created):
-        """V-009: Prevent deactivating the last active season."""
+        """V-009: Prevent deactivating the last active season.
+        Also triggers recalculation if multiplier changes.
+        """
+        # V-009 Check
         if not is_created and not model.is_active:
             active_count = Season.query.filter_by(is_active=True).count()
             if active_count <= 1:
                 raise ValueError("Cannot deactivate the last active season. Activate another season first.")
+
+        # Trigger recalculation if multiplier changed
+        if not is_created:
+            old = Season.query.get(model.id)
+            if old and old.multiplier != model.multiplier:
+                from services.recalc_service import recalc_by_season
+                result = recalc_by_season(model.id)
+                if result['errors']:
+                    flash(f"Error recalculating points: {', '.join(result['errors'])}", 'error')
+                elif result['affected'] > 0:
+                    flash(f"Recalculated points for {result['affected']} achievements.", 'info')
 
     def delete_model(self, model):
         """V-008: Prevent deletion if achievements exist."""
