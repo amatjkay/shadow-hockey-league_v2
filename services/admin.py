@@ -912,18 +912,27 @@ class AdminUserModelView(SecureModelView):
 
 
 class AchievementTypeModelView(SecureModelView):
-    """Admin view for managing achievement types and base points."""
+    """Admin view for managing achievement types and base points.
+
+    Supports custom icon_path with fallback to /static/img/cups/default.svg.
+    V-006: base_points cannot be negative.
+    Triggers point recalculation when base_points change.
+    """
 
     name = 'Achievement Types'
     category = 'Reference'
     create_template = 'admin/achievement_type_create.html'
     edit_template = 'admin/achievement_type_edit.html'
-    column_list = ('code', 'name', 'base_points_l1', 'base_points_l2')
+    column_list = ('code', 'name', 'base_points_l1', 'base_points_l2', 'is_active')
     column_searchable_list = ('code', 'name')
-    column_filters = ('code', 'name')
-    form_columns = ('code', 'name', 'base_points_l1', 'base_points_l2')
+    column_filters = ('code', 'name', 'is_active')
+    form_columns = ('code', 'name', 'base_points_l1', 'base_points_l2', 'icon_path', 'is_active')
     column_default_sort = ('code', False)
-    
+
+    column_formatters = {
+        'icon_path': lambda v, c, m, p: f'<img src="{m.icon_path}" width="24" alt="">' if m.icon_path else '—',
+    }
+
     form_widget_args = {
         'base_points_l1': {'style': 'width: 80px'},
         'base_points_l2': {'style': 'width: 80px'},
@@ -934,7 +943,45 @@ class AchievementTypeModelView(SecureModelView):
         'name': 'Name',
         'base_points_l1': 'Points L1',
         'base_points_l2': 'Points L2',
+        'icon_path': 'Icon',
     }
+
+    form_args = {
+        'code': {
+            'validators': [
+                validators.DataRequired(),
+                validators.Regexp(r'^[A-Z0-9_]+$', message='Code must be uppercase letters, numbers, and underscores'),
+            ],
+        },
+        'name': {
+            'validators': [validators.DataRequired()],
+        },
+        'base_points_l1': {
+            'validators': [validators.NumberRange(min=0, message='Base points cannot be negative')],
+        },
+        'base_points_l2': {
+            'validators': [validators.NumberRange(min=0, message='Base points cannot be negative')],
+        },
+        'icon_path': {
+            'validators': [validators.Optional(), validators.Regexp(r'^/static/img/cups/.*\.(svg|png)$', message='Icon must be /static/img/cups/*.svg or *.png')],
+        },
+    }
+
+    def on_model_change(self, form, model, is_created):
+        """V-006: Validate base_points and auto-set icon_path."""
+        # Auto-uppercase code
+        model.code = model.code.upper().strip()
+
+        # Auto-set icon_path if empty
+        if not model.icon_path:
+            model.icon_path = f'/static/img/cups/{model.code.lower()}.svg'
+
+        # Fallback for missing icon
+        from pathlib import Path
+        icon_filename = model.icon_path.split('/')[-1]
+        icon_full_path = Path(__file__).parent.parent / 'static' / 'img' / 'cups' / icon_filename
+        if not icon_full_path.exists():
+            model.icon_path = '/static/img/cups/default.svg'
 
 
 class LeagueModelView(SecureModelView):
