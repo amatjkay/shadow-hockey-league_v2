@@ -141,17 +141,41 @@ class AchievementType(db.Model):
 
 
 class League(db.Model):
-    """Reference table for leagues (1, 2, 3...)."""
+    """Reference table for leagues (1, 2, 2.1, 2.2...).
+
+    parent_code determines which base_points field to use:
+    - parent_code=NULL or '1' → base_points_l1
+    - parent_code='2' → base_points_l2
+    """
 
     __tablename__ = "leagues"
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(10), unique=True, nullable=False, index=True)  # "1", "2", "3"
+    code = db.Column(db.String(10), unique=True, nullable=False, index=True)  # "1", "2", "2.1", "2.2"
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
+    parent_code = db.Column(
+        db.String(10),
+        db.ForeignKey('leagues.code', ondelete='SET NULL'),
+        nullable=True,
+        index=True,
+        comment="Parent league code for subleagues (e.g. '2' for 2.1/2.2)"
+    )
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Self-referential relationship for parent
+    parent = db.relationship(
+        'League', remote_side=[code], backref='subleagues',
+        foreign_keys=[parent_code]
+    )
 
     def __repr__(self) -> str:
         return f"<League {self.code}>"
+
+    @property
+    def base_points_field(self) -> str:
+        """Return which base_points field to use for this league."""
+        root = self.parent_code or self.code
+        return 'base_points_l1' if root == '1' else 'base_points_l2'
 
 
 class Season(db.Model):
