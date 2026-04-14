@@ -983,6 +983,14 @@ class AchievementTypeModelView(SecureModelView):
         if not icon_full_path.exists():
             model.icon_path = '/static/img/cups/default.svg'
 
+    def delete_model(self, model):
+        """V-008: Prevent deletion if achievements exist."""
+        count = Achievement.query.filter_by(type_id=model.id).count()
+        if count > 0:
+            flash(f'Cannot delete "{model.code}": used in {count} achievements. Deactivate instead.', 'error')
+            return False
+        return super().delete_model(model)
+
 
 class LeagueModelView(SecureModelView):
     """Admin view for managing leagues.
@@ -1005,6 +1013,14 @@ class LeagueModelView(SecureModelView):
             'validators': [validators.DataRequired()],
         },
     }
+
+    def delete_model(self, model):
+        """V-008: Prevent deletion if achievements exist."""
+        count = Achievement.query.filter_by(league_id=model.id).count()
+        if count > 0:
+            flash(f'Cannot delete "{model.code}": used in {count} achievements. Deactivate instead.', 'error')
+            return False
+        return super().delete_model(model)
 
 
 class SeasonModelView(SecureModelView):
@@ -1047,6 +1063,14 @@ class SeasonModelView(SecureModelView):
             active_count = Season.query.filter_by(is_active=True).count()
             if active_count <= 1:
                 raise ValueError("Cannot deactivate the last active season. Activate another season first.")
+
+    def delete_model(self, model):
+        """V-008: Prevent deletion if achievements exist."""
+        count = Achievement.query.filter_by(season_id=model.id).count()
+        if count > 0:
+            flash(f'Cannot delete "{model.code}": used in {count} achievements. Deactivate instead.', 'error')
+            return False
+        return super().delete_model(model)
 
 
 class ApiKeyModelView(SecureModelView):
