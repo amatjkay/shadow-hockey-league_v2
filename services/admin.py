@@ -193,7 +193,7 @@ def init_admin(app) -> None:
     # Reference Data
     admin.add_view(CountryModelView(Country, db.session, name='Countries', category='Reference', menu_icon_type='fa', menu_icon_value='fa-flag'))
     # Achievement CRUD moved to Manager edit page — removed from menu
-    # admin.add_view(AchievementModelView(Achievement, db.session, name='Achievements', category='Data', menu_icon_type='fa', menu_icon_value='fa-trophy'))
+    admin.add_view(AchievementModelView(Achievement, db.session, category='Data'))
     admin.add_view(AdminUserModelView(AdminUser, db.session, name='Admin Users', category='Settings', menu_icon_type='fa', menu_icon_value='fa-users'))
 
     # Reference Data
@@ -534,8 +534,8 @@ class ManagerModelView(SecureModelView):
     edit_template = 'admin/manager_edit.html'
     list_template = 'admin/manager_list.html'
 
-    # Добавляем ссылку на создание достижения для менеджера
-    column_list = ('id', 'name', 'country', 'is_active', 'manage_achievements')
+    # Updated column list with flag, stats, and status
+    column_list = ('id', 'flag', 'name', 'country', 'achievement_count', 'total_points', 'is_active', 'manage_achievements')
     column_searchable_list = ('name',)
     column_filters = ('country.name', 'is_active')
     form_columns = ('name', 'country', 'is_active')
@@ -583,24 +583,51 @@ class ManagerModelView(SecureModelView):
         }
     }
 
-    # Форматтер для ссылки на достижения — теперь ведёт на edit страницу менеджера
+    # Formatters
+    def _get_flag(view, context, model, name):
+        if model.country and model.country.flag_display_url:
+            return Markup(f'<img src="{model.country.flag_display_url}" width="24" alt="{model.country.code}">')
+        return '—'
+
+    def _format_name(view, context, model, name):
+        return model.display_name if hasattr(model, 'display_name') else (model.name or str(model.id))
+
+    def _get_country(view, context, model, name):
+        if model.country:
+            return f'{model.country.name} ({model.country.code})'
+        return 'Unknown'
+
+    def _get_achievement_count(view, context, model, name):
+        return len(model.achievements)
+
+    def _get_total_points(view, context, model, name):
+        return round(sum(a.final_points for a in model.achievements), 2)
+
+    def _get_status(view, context, model, name):
+        return Markup('🟢') if model.is_active else Markup('🔴')
+
     def _manage_achievements(view, context, model, name):
         url = url_for('.edit_view', id=model.id)
-        return Markup(f'<a href="{url}">🏆 Achievements ({len(model.achievements)})</a>')
-
-    # Форматтер для имени — убираем <Manager ...>
-    def _format_name(view, context, model, name):
-        return model.name if model.name else str(model.id)
+        return Markup(f'<a href="{url}">🏆 Manage ({len(model.achievements)})</a>')
 
     column_formatters = {
+        'flag': _get_flag,
         'name': _format_name,
-        'country': lambda v, c, m, p: m.country.name if m.country else 'Unknown',
+        'country': _get_country,
+        'achievement_count': _get_achievement_count,
+        'total_points': _get_total_points,
+        'is_active': _get_status,
         'manage_achievements': _manage_achievements
     }
 
     column_labels = {
+        'flag': '',
+        'name': 'Name',
         'country': 'Country',
-        'manage_achievements': 'Achievements'
+        'achievement_count': 'Ach.',
+        'total_points': 'Points',
+        'is_active': 'Status',
+        'manage_achievements': 'Actions'
     }
 
     def create_model(self, form):
@@ -1163,6 +1190,54 @@ class ApiKeyModelView(SecureModelView):
             # При обновлении не трогаем хэш, если он уже есть
             if not model.key_hash.startswith('pbkdf2:sha256:'):
                 model.key_hash = generate_password_hash(model.key_hash)
+
+
+class AchievementModelView(SecureModelView):
+    """Admin view for viewing all achievements with filters.
+
+    Creation is disabled here (use Manager view or Bulk Create).
+    """
+
+    name = 'All Achievements'
+    category = 'Data'
+    menu_icon_type = 'fa'
+    menu_icon_value = 'fa-trophy'
+
+    column_list = ('manager', 'type', 'league', 'season', 'final_points', 'created_at')
+    column_filters = ('manager_id', 'type_id', 'league_id', 'season_id')
+    column_searchable_list = ('manager.name', 'type.code', 'season.code')
+    column_labels = {
+        'manager': 'Manager',
+        'type': 'Type',
+        'league': 'League',
+        'season': 'Season',
+        'final_points': 'Points',
+    }
+
+    column_formatters = {
+        'manager': lambda v, c, m, p: m.manager.name if m.manager else 'Unknown',
+        'type': lambda v, c, m, p: m.type.code if m.type else 'Unknown',
+        'league': lambda v, c, m, p: m.league.code if m.league else 'Unknown',
+        'season': lambda v, c, m, p: m.season.code if m.season else 'Unknown',
+    }
+
+    # Default sort by points descending
+    column_default_sort = ('final_points', True)
+
+    form_args = {
+        'manager': {'query_factory': lambda: db.session.query(Manager).order_by(Manager.name)},
+        'type': {'query_factory': lambda: db.session.query(AchievementType).order_by(AchievementType.code)},
+        'league': {'query_factory': lambda: db.session.query(League).order_by(League.code)},
+        'season': {'query_factory': lambda: db.session.query(Season).order_by(Season.code.desc())},
+    }
+
+    can_create = False
+    can_edit = True
+    can_delete = True
+
+    def delete_model(self, model):
+        """V-008: Confirm before deletion (optional, handled by JS usually)."""
+        return super().delete_model(model)
 
 
 class AuditLogModelView(SecureModelView):
