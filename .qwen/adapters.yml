@@ -1,0 +1,32 @@
+# adapters.yml - Multi-model adapter configuration
+# Defines available LLM providers, models, and credentials
+# Supports: OpenAI GPT, Anthropic Claude, local Qwen agent
+
+models:
+  gpt:
+    provider: openai
+    model_name: gpt-4o
+    api_key: ${OPENAI_API_KEY}
+  claude:
+    provider: anthropic
+    model_name: claude-3-5-sonnet-20241022
+    api_key: ${ANTHROPIC_API_KEY}
+  qwen:
+    provider: qwen
+    version: v2.1.1
+    # No API key needed for local Qwen agent
+
+default_model: gpt
+
+# Optional per-provider settings
+settings:
+  openai:
+    organization: null   # Set if using org-specific keys
+    timeout: 30          # seconds
+    max_retries: 2
+  anthropic:
+    timeout: 30
+    max_retries: 2
+  qwen:
+    # Local agent endpoint or socket path if applicable
+    socket_path: null

@@ -62,7 +62,7 @@ role: Senior Software Engineer (Final Audit)
   - Оцени покрытие критических путей.
   - Проверь наличие тестов на граничные случаи.
   - Убедись, что тесты изолированы и не зависят от внешнего состояния.
-  - Если тесты слабые → `@delegate QA_TESTER Improve test coverage`.
+  - Если тесты слабые → `QA_TESTER: Получить действия Improve test coverage`.
 
 # 📤 OUTPUT FORMAT
 
@@ -70,9 +70,9 @@ role: Senior Software Engineer (Final Audit)
 2. **Список проблем**: Критичность (Critical/Major/Minor), описание, строка кода, рекомендация.
 3. **Оценка тестов** (если предоставлены): Покрытие, качество, рекомендации.
 4. **Авто-действие**:
-   - Критические баги → `@delegate DEVELOPER Fix critical issues`.
-   - Слабые тесты → `@delegate QA_TESTER Improve coverage`.
-   - Архитектурные проблемы → `@delegate ARCHITECT Review design`.
+   - Критические баги → `DEVELOPER: Получить действия Fix critical issues`.
+   - Слабые тесты → `QA_TESTER: Получить действия Improve coverage`.
+   - Архитектурные проблемы → `ARCHITECT: Получить actions Review design`.
    - Всё чисто → Request UAT. Wait for `@approve` → then `@save`.
 
 ---

@@ -104,20 +104,23 @@ def recalc_by_achievement_type(type_id: int) -> dict[str, Any]:
             db.session.commit()
 
             # Audit log (one entry for the whole batch)
-            from services.audit_service import log_action
-            log_action(
-                user_id=_get_user_id(),
-                action='RECALCULATE_POINTS',
-                target_model='AchievementType',
-                target_id=type_id,
-                changes=json.dumps({
-                    'affected_count': affected,
-                    'old_base_points_l1': old_l1,
-                    'new_base_points_l1': ach_type.base_points_l1,
-                    'old_base_points_l2': old_l2,
-                    'new_base_points_l2': ach_type.base_points_l2,
-                })
-            )
+            # Only log if we have a user_id (AuditLog requires it)
+            user_id = _get_user_id()
+            if user_id:
+                from services.audit_service import log_action
+                log_action(
+                    user_id=user_id,
+                    action='RECALCULATE_POINTS',
+                    target_model='AchievementType',
+                    target_id=type_id,
+                    changes=json.dumps({
+                        'affected_count': affected,
+                        'old_base_points_l1': old_l1,
+                        'new_base_points_l1': ach_type.base_points_l1,
+                        'old_base_points_l2': old_l2,
+                        'new_base_points_l2': ach_type.base_points_l2,
+                    })
+                )
 
             # Invalidate cache
             from services.cache_service import invalidate_leaderboard_cache
@@ -164,18 +167,20 @@ def recalc_by_season(season_id: int) -> dict[str, Any]:
             db.session.commit()
 
             # Audit log
-            from services.audit_service import log_action
-            log_action(
-                user_id=_get_user_id(),
-                action='RECALCULATE_POINTS',
-                target_model='Season',
-                target_id=season_id,
-                changes=json.dumps({
-                    'affected_count': affected,
-                    'old_multiplier': old_multiplier,
-                    'new_multiplier': season.multiplier,
-                })
-            )
+            user_id = _get_user_id()
+            if user_id:
+                from services.audit_service import log_action
+                log_action(
+                    user_id=user_id,
+                    action='RECALCULATE_POINTS',
+                    target_model='Season',
+                    target_id=season_id,
+                    changes=json.dumps({
+                        'affected_count': affected,
+                        'old_multiplier': old_multiplier,
+                        'new_multiplier': season.multiplier,
+                    })
+                )
 
             # Invalidate cache
             from services.cache_service import invalidate_leaderboard_cache

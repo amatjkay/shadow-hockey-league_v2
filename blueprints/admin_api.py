@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from flask import Blueprint, request, jsonify
-from flask_login import login_required, current_user
+from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload
 
 from models import (
@@ -19,6 +19,17 @@ from models import (
     League, Season, AdminUser
 )
 from services.admin import invalidate_leaderboard_cache
+
+def admin_required(func):
+    """Ensure the current user has admin privileges."""
+    from functools import wraps
+    from flask import jsonify
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not getattr(current_user, 'is_admin', False):
+            return jsonify({'error': 'Access denied'}), 403
+        return func(*args, **kwargs)
+    return wrapper
 
 admin_api_bp = Blueprint('admin_api', __name__, url_prefix='/admin/api')
 
@@ -47,7 +58,7 @@ def _paginate_query(query, page: int = 1, page_size: int = 20) -> dict[str, Any]
 # ==================== API-001: Countries ====================
 
 @admin_api_bp.route('/countries', methods=['GET'])
-@login_required
+@admin_required
 def get_countries():
     """API-001: Search and list countries for Select2 dropdown.
 
@@ -95,7 +106,7 @@ def get_countries():
 # ==================== API-002: Managers ====================
 
 @admin_api_bp.route('/managers', methods=['GET'])
-@login_required
+@admin_required
 def get_managers():
     """API-002: Search managers for Select2 dropdown.
 
@@ -178,7 +189,7 @@ def get_managers():
 # ==================== API-003: Seasons ====================
 
 @admin_api_bp.route('/seasons', methods=['GET'])
-@login_required
+@admin_required
 def get_seasons():
     """API-003: List seasons filtered by league.
 
@@ -231,7 +242,7 @@ def get_seasons():
 # ==================== API-004: Achievement Type Points ====================
 
 @admin_api_bp.route('/achievement-types/<int:type_id>/points', methods=['GET'])
-@login_required
+@admin_required
 def get_achievement_points(type_id: int):
     """API-004: Get base points for achievement type based on league.
 
@@ -276,7 +287,7 @@ def get_achievement_points(type_id: int):
 # ==================== API-005: Leagues ====================
 
 @admin_api_bp.route('/leagues', methods=['GET'])
-@login_required
+@admin_required
 def get_leagues():
     """API-005: List all active leagues."""
     try:
@@ -301,7 +312,7 @@ def get_leagues():
 # ==================== API-Extra: Achievement Calculator ====================
 
 @admin_api_bp.route('/calculate-points', methods=['GET'])
-@login_required
+@admin_required
 def calculate_points():
     """Calculate final points for achievement type based on league and season.
     
@@ -365,7 +376,7 @@ def calculate_points():
 # ==================== API-Extra: Achievement Types ====================
 
 @admin_api_bp.route('/achievement-types', methods=['GET'])
-@login_required
+@admin_required
 def get_achievement_types():
     """List all active achievement types for Select2 dropdown."""
     try:
@@ -399,7 +410,7 @@ def get_achievement_types():
 # ==================== API-006: Bulk Create ====================
 
 @admin_api_bp.route('/achievements/bulk-create', methods=['POST'])
-@login_required
+@admin_required
 def bulk_create_achievements():
     """API-006: Create achievements for multiple managers.
 
@@ -569,7 +580,7 @@ def bulk_create_achievements():
 
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements', methods=['GET'])
-@login_required
+@admin_required
 def get_manager_achievements(manager_id):
     """Get all achievements for a manager.
 
@@ -637,7 +648,7 @@ def get_manager_achievements(manager_id):
 
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements/bulk-add', methods=['POST'])
-@login_required
+@admin_required
 def bulk_add_achievements(manager_id):
     """API-005: Add multiple achievements to a single manager."""
     try:
@@ -788,7 +799,7 @@ def bulk_add_achievements(manager_id):
 
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements', methods=['POST'])
-@login_required
+@admin_required
 def create_manager_achievement(manager_id):
     """Create a single achievement for a manager.
 
@@ -889,7 +900,7 @@ def create_manager_achievement(manager_id):
 
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements/<int:achievement_id>', methods=['PUT'])
-@login_required
+@admin_required
 def update_manager_achievement(manager_id, achievement_id):
     """Update a single achievement (inline editing).
 
@@ -967,7 +978,7 @@ def update_manager_achievement(manager_id, achievement_id):
 
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements/<int:achievement_id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_manager_achievement(manager_id, achievement_id):
     """Delete a single achievement from a manager."""
     try:

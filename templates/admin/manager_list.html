@@ -563,5 +563,38 @@
     border: 1px solid #ddd;
     border-radius: 4px;
   }
+  
+  /* Delete confirmation styling */
+  .delete-confirm-overlay {
+    z-index: 10000;
+  }
 </style>
+
+<script>
+  $(document).ready(function() {
+    // Intercept delete links to show achievement count warning
+    // This assumes the delete link contains '/manager/delete/'
+    $('a[href*="/manager/delete/"]').each(function() {
+      var originalHref = $(this).attr('href');
+      var $row = $(this).closest('tr');
+      
+      // achievement_count is the 5th column (index 4) based on column_list definition
+      var countText = $row.find('td').eq(4).text().trim();
+      var count = parseInt(countText) || 0;
+      
+      $(this).attr('href', '#').on('click', function(e) {
+        e.preventDefault();
+        
+        var message = "Are you sure you want to delete this manager?";
+        if (count > 0) {
+          message = "⚠️ This manager has " + count + " achievement" + (count > 1 ? "s" : "") + ".\n\nDeleting the manager will also delete all associated achievements and points.\n\nProceed?";
+        }
+        
+        if (confirm(message)) {
+          window.location.href = originalHref;
+        }
+      });
+    });
+  });
+</script>
 {% endblock %}

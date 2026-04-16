@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(winget install:*)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Bash(sed -i 's/@delegate \\\\\\([A-Z_]*\\\\\\)/\\\\1: Получить действия/g' \"$f\")",
+      "Bash(sed -i 's/@role \\\\\\([A-Z_]*\\\\\\):/\\\\1:/g' \"$f\")",
+      "Bash(python -m alembic current)",
+      "Bash(python -m alembic history --verbose)",
+      "Bash(python -m alembic upgrade head)",
+      "Bash(echo \"--- $f ---\")",
+      "Read(//c/dev/shadow/shadow-hockey-league_v2/**)",
+      "Bash(done)",
+      "Bash(xargs grep:*)",
+      "Bash(type \"C:\\\\dev\\\\\\\\shadow\\\\\\\\shadow-hockey-league_v2\\\\\\\\app\\\\\\\\blueprints\\\\\\\\main.py\")",
+      "Bash(python:*)",
+      "Bash(ed -s \"C:\\\\dev\\\\shadow\\\\shadow-hockey-league_v2\\\\blueprints\\\\main.py\")",
+      "Bash(grep -E \"\\\\.md$|README\")",
+      "Bash(grep -r deep-research-report C:devshadowshadow-hockey-league_v2 --include=*.py --include=*.md)",
+      "Bash(grep -r artifacts C:devshadowshadow-hockey-league_v2 --include=*.md)",
+      "Bash(cd:*)",
+      "Bash(grep -r \"\\\\.qwen/agents\\\\|\\\\.qwen/skills\\\\|\\\\.qwen/adapters\" C:devshadowshadow-hockey-league_v2 --include=*.py --include=*.md)",
+      "Bash(find /dev/shadow/shadow-hockey-league_v2/docs -name *.md)",
+      "Bash(find . -name *.md -path ./docs/*)",
+      "Bash(grep -r docs/ /dev/shadow/shadow-hockey-league_v2 --include=*.md)",
+      "Bash(grep:*)",
+      "Bash(while grep:*)",
+      "Bash(do sleep:*)",
+      "Bash(git:*)"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 # 🏛️ Архитектура системы — Shadow Hockey League v2
 
-**Версия:** 2.6.0
-**Дата:** 13 апреля 2026 г.
+**Версия:** 2.6.0  
+**Дата:** 13 апреля 2026 г.  
 **Статус:** ✅ Production
 
 ---
@@ -19,8 +19,8 @@
 
 ```
 ┌─────────────────┐
-│     Client      │
-│   (Web Browser) │
+│    Client       │
+│  (Web Browser)  │
 └────────┬────────┘
          │ HTTPS
          ▼
@@ -41,7 +41,7 @@
                ▼
 ┌─────────────────────────────────┐
 │   Flask Application             │
-│   - Application Factory pattern │
+│   - Application Factory         │
 │   - Blueprints (main, health,   │
 │     admin_api)                  │
 │   - Services (business logic)   │
@@ -134,10 +134,9 @@ shadow-hockey-league_v2/
 
 ---
 
-## 🔌 API Архитетура
+## 🔌 API Архитектура
 
-**Base URL:** `/api/`
-
+**Base URL:** `/api/`  
 **Authentication:** API Key (`X-API-Key` header) с scopes: `read`, `write`, `admin`
 
 | Endpoint | Auth | Описание |
@@ -155,10 +154,8 @@ shadow-hockey-league_v2/
 
 ## 💾 Кэширование
 
-**Стратегия:** Redis → SimpleCache fallback
-
-**TTL:** 5 минут (по умолчанию)
-
+**Стратегия:** Redis → SimpleCache fallback  
+**TTL:** 5 минут (по умолчанию)  
 **Инвалидация:**
 - CREATE/UPDATE/DELETE в админке → leaderboard cache
 - API мутации → leaderboard cache
@@ -183,7 +180,6 @@ shadow-hockey-league_v2/
 ## 📊 Мониторинг
 
 ### Health Check (`/health`)
-
 ```json
 {
   "status": "healthy",
@@ -197,7 +193,6 @@ shadow-hockey-league_v2/
 ```
 
 ### Prometheus Metrics (`/metrics`)
-
 - `http_requests_total`
 - `http_request_duration_seconds`
 - `http_request_size_bytes`
@@ -208,7 +203,6 @@ shadow-hockey-league_v2/
 ## 🚀 Деплой
 
 ### CI/CD Pipeline
-
 ```
 Push to main
     ↓
@@ -229,8 +223,19 @@ systemctl restart shadow-hockey-league
 Health Check → Success / Auto Rollback
 ```
 
-### Backup Strategy
+### Ручной деплой
+```bash
+ssh shleague@server
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+git fetch origin main
+git reset --hard origin/main
+pip install -r requirements.txt
+alembic upgrade head
+systemctl restart shadow-hockey-league
+```
 
+### Backup Strategy
 - **Ежедневно:** 03:00 UTC (cron)
 - **Pre-deploy:** Перед каждым деплоем
 - **Retention:** 10 последних бэкапов
@@ -252,6 +257,13 @@ Health Check → Success / Auto Rollback
 - **Integration:** routes, API CRUD, database constraints, cache invalidation
 - **Admin:** CSRF, auth, CRUD, smoke-тесты
 - **E2E:** полный цикл приложения
+
+**Запуск:**
+```bash
+make test      # Все тесты
+make lint      # Проверка кода
+make format    # Форматирование
+```
 
 ---
 

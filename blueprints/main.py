@@ -9,10 +9,10 @@ import time
 from typing import Any
 
 from flask import Blueprint, redirect, render_template, url_for
-from sqlalchemy.exc import OperationalError
+
 
 from models import db
-from services.rating_service import build_leaderboard
+from services.standings_service import StandingsService
 from services.cache_service import cache
 
 main = Blueprint("main", __name__)
@@ -30,7 +30,7 @@ def index() -> str | tuple[str, int]:
         start_time = time.time()
 
         with db.session.begin():
-            leaderboard_data = build_leaderboard(db.session)
+            leaderboard_data = StandingsService.list_for_season(season_id=1)
 
         elapsed_ms = round((time.time() - start_time) * 1000)
 
@@ -48,20 +48,7 @@ def index() -> str | tuple[str, int]:
             "index.html",
             rating_rows=leaderboard_data,
         )
-    except OperationalError as e:
-        from flask import current_app
-        current_app.logger.error(f"Database operational error: {str(e)}", exc_info=True)
-        return (
-            render_template(
-                "error.html",
-                message="Ошибка базы данных. Попробуйте обновить страницу или обратитесь к администратору.",
-                error_code=500,
-                error_type="DatabaseError",
-                traceback=str(e),
-                show_details=True,
-            ),
-            500,
-        )
+
     except Exception as e:
         import traceback as tb
         from flask import current_app
