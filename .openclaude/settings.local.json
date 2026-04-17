@@ -28,7 +28,25 @@
       "Bash(grep:*)",
       "Bash(while grep:*)",
       "Bash(do sleep:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(python3:*)",
+      "Bash(cp .cursorrules .cursorrules.backup)",
+      "Bash(cp AI_POLICY_CURSOR.md AI_POLICY_CURSOR.md.backup)",
+      "Bash(cp .qwen/agents/cursor_adapters.md .qwen/agents/cursor_adapters.md.backup)",
+      "Bash(cp test_cursor_rules.py test_cursor_rules.py.backup)",
+      "Bash(cp CURSOR_IMPLEMENTATION_SUMMARY.md CURSOR_IMPLEMENTATION_SUMMARY.md.backup)",
+      "Bash(npx -y @modelcontextprotocol/server-sequential-thinking --help)",
+      "Bash(find C:/dev -type f -name *.js -path */examples/* -o -name *.js -path */templates/*)",
+      "Bash(node:*)",
+      "Bash(find C:/dev/home_test -name *.js -type f)",
+      "Bash(find C:/dev/shadow -type f -name *.js -o -name *.ts -o -name *.json)",
+      "Bash(find C:/dev/shadow/shadow-hockey-league_v2 -name *.js -not -path */node_modules/* -not -path */.venv/* -not -path */.cursor/* -not -path */.qwen/*)",
+      "Bash(npm install:*)",
+      "Skill(update-config)",
+      "Bash(claude tools:*)",
+      "Bash(claude slash-commands:*)",
+      "mcp__sequential__sequential_thinking"
     ]
-  }
+  },
+  "spinnerTipsEnabled": true
 }
