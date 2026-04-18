@@ -1,6 +1,6 @@
 """Base adapter class and configuration model."""
-from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
+
 from pydantic import BaseModel, Field
 
 class LLMConfig(BaseModel):
@@ -9,7 +9,7 @@ class LLMConfig(BaseModel):
     api_key: Optional[str] = None
     timeout: int = 30
     max_retries: int = 2
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: Dict[str, Any] = Field(default_factory=dict)
 
 class LLMAdapter:
     """Base adapter for LLM providers."""
