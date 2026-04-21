@@ -266,6 +266,14 @@ def _log_model_change(session: Session, user_id: int, action: str, obj) -> None:
                             'new': new_value
                         }
         
+        elif action == 'DELETE':
+            # Capture full snapshot for DELETE operations
+            changes = {}
+            state = db.inspect(obj)
+            for attr in state.mapper.column_attrs:
+                # Capture all column values as they currently stand
+                changes[attr.key] = getattr(obj, attr.key)
+        
         # Create audit log entry
         audit_entry = AuditLog(
             user_id=user_id,
