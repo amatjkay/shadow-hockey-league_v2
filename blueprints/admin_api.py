@@ -26,6 +26,8 @@ def admin_required(func):
     from flask import jsonify
     @wraps(func)
     def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'Authentication required'}), 401
         if not getattr(current_user, 'is_admin', False):
             return jsonify({'error': 'Access denied'}), 403
         return func(*args, **kwargs)

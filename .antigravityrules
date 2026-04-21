@@ -1,0 +1,72 @@
+# Antigravity Rules for Shadow Hockey League v2
+# Single source of truth for all AI agents working on this project.
+
+## 1. Project Architecture & Stack
+- **Framework**: Flask 3.1+ (Application Factory Pattern via `create_app` in `app.py`)
+- **Python**: 3.10+
+- **Database**: SQLAlchemy 2.0+ ORM + SQLite (prod: file-based, tests: temp files)
+- **Migrations**: Alembic (`alembic revision --autogenerate -m "..."`)
+- **Caching**: Redis via flask-caching (fallback: SimpleCache)
+- **Frontend**: Jinja2 Templates + Vanilla CSS/JS
+- **Metrics**: Prometheus
+- **Deployment**: Gunicorn (4 workers) + Nginx + Ubuntu, CI via GitHub Actions
+
+## 2. Coding Standards
+- **Typing**: Use strict Python type hints for all functions and methods.
+- **Docstrings**: Google-style docstrings for modules, classes, and complex functions.
+- **Code Style**: Black for formatting, Flake8 for linting, isort for imports.
+- **Dependencies**: Do not add new packages to `requirements.txt` unless explicitly requested.
+- **Language**: Code, commits, variables and documentation in English. Chat/analysis in Russian.
+
+## 3. Database & Models
+- All schema changes must have an Alembic migration. Provide the command to the user, do not run automatically.
+- Use `db.session` carefully; ensure commits and rollbacks in `try...except` blocks.
+- Respect FK constraints and `ondelete` cascades (`CASCADE`, `RESTRICT`).
+- Never use `db.session.get()` without checking for `None`.
+
+## 4. Key Services
+- **`services/rating_service.py`** — THE canonical service for leaderboard/rating calculations. Uses `build_leaderboard(session)`.
+- **`services/cache_service.py`** — Cache layer (Redis). Invalidate explicitly on any CREATE/UPDATE/DELETE.
+- **`services/audit_service.py`** — Audit logging. All admin actions MUST be logged to `AuditLog`.
+- **`services/recalc_service.py`** — Rating recalculation triggers.
+- **DELETED**: `standings_service.py`, `match_service.py` — these were obsolete and referenced non-existent model fields.
+
+## 5. API & Routing
+- New API endpoints go into `blueprints/` or `services/api.py`.
+- Apply `@csrf.exempt` for REST APIs using API Keys; enforce CSRF for web routes and Admin Panel.
+- CSRF is automatically disabled when `app.config['TESTING'] == True`.
+- Maintain JSON response structure as defined in `docs/API.md`.
+
+## 6. Caching & Performance
+- Invalidate cache explicitly when modifying related data.
+- Avoid N+1 queries. Use `joinedload` or `lazy="selectin"` for related models fetched in loops.
+- Standard cache TTL: 5 minutes.
+
+## 7. Testing Rules
+- **Test runner**: pytest (config in `pyproject.toml`).
+- **Redis in tests**: All tests use `_FakeRedis` (stateful in-memory mock) defined in `tests/conftest.py`. Never connect to real Redis.
+- **Database in tests**: Each test class creates its own temp SQLite file via `tempfile.mkstemp()`. Clean up in `tearDown`.
+- **CSRF**: Automatically skipped in testing mode.
+- **Concurrency**: SQLite does not support true concurrent writes. Concurrent tests use Flask's `test_client` in threads but expect graceful error handling.
+- **Running tests**: `python -m pytest` from project root.
+
+## 8. Business Logic
+- Rating = (base achievement points) × (seasonal decay multiplier, -5% per past season).
+- A manager is a "Tandem" if their name contains `,` or has `Tandem:` prefix. Logic is in `Manager` model.
+
+## 9. Sub-Agents Guidelines
+- **Frontend Agent**: Focus on `templates/` and `static/`. Do not touch business logic. Ensure responsive design.
+- **Backend Agent**: Focus on `services/`, `models.py`, `app.py`. Ensure high test coverage for new logic.
+- **DBA Agent**: Focus on migrations, query optimization, and index management.
+
+## 10. Audit & Security
+- Any admin action (CRUD on managers, countries, achievements, cache reset, auth) MUST be logged via `AuditLog`.
+- UPDATE operations must log both `old_values` and `new_values` as JSON.
+
+## 11. AI Task Planning
+- You MUST use `docs/AI_WORKFLOW.md` for task formulation and decomposition when solving complex tasks.
+
+## 12. GitHub Integration
+- Use `gh` CLI via `run_command` for all GitHub interactions (PRs, issues, workflow logs).
+- Refer to `docs/GITHUB_CLI.md` for the most essential command patterns.
+- Do not install additional GitHub MCP servers unless requested.

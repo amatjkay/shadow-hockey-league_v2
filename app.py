@@ -121,10 +121,17 @@ def register_extensions(app: Flask) -> None:
     db.init_app(app)
 
     # Initialize CSRF protection (Этап 3.1)
-    from flask_wtf.csrf import CSRFProtect
-    csrf = CSRFProtect()
-    csrf.init_app(app)
-    app.logger.info("CSRF protection initialized")
+    if not app.config.get("TESTING"):
+        from flask_wtf.csrf import CSRFProtect
+        csrf = CSRFProtect()
+        csrf.init_app(app)
+        app.logger.info("CSRF protection initialized")
+    else:
+        app.logger.info("CSRF protection skipped (TESTING mode)")
+        # Add dummy csrf_token for Jinja templates to prevent UndefinedError
+        @app.context_processor
+        def dummy_csrf_token():
+            return dict(csrf_token=lambda: 'dummy-token-for-tests')
 
     # Initialize Rate Limiting (Этап 5)
     # Disable rate limiting in testing mode to speed up CI/CD and tests

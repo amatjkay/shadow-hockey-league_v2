@@ -8,6 +8,87 @@ import os
 import tempfile
 
 import pytest
+from unittest.mock import patch
+
+# Global mock for Redis to prevent any network activity during tests
+class _FakeRedis:
+    """Minimal in-memory Redis mock that supports get/set/delete/ping/info."""
+
+    def __init__(self):
+        self._store: dict = {}
+
+    def get(self, key=None, name=None):
+        k = name if key is None else key
+        return self._store.get(k)
+
+    def set(self, key=None, value=None, ex=None, px=None, nx=False, xx=False, keepttl=False, name=None):
+        k = name if key is None else key
+        self._store[k] = value
+        return True
+
+    def setex(self, name=None, time=None, value=None, key=None, timeout=None):
+        k = name if key is None else key
+        self._store[k] = value
+        return True
+
+    def getset(self, key, value):
+        old = self._store.get(key)
+        self._store[key] = value
+        return old
+
+    def delete(self, *keys):
+        for k in keys:
+            self._store.pop(k, None)
+        return len(keys)
+
+    def mget(self, *keys):
+        return [self._store.get(k) for k in keys]
+
+    def keys(self, pattern="*"):
+        return list(self._store.keys())
+
+    def ping(self):
+        return True
+
+    def info(self, section=None):
+        return {
+            "used_memory": 1024 * 1024,
+            "used_memory_human": "1M",
+            "connected_clients": 1,
+            "mem_fragmentation_ratio": 1.5,
+        }
+
+    def expire(self, key, time):
+        return True
+
+    def ttl(self, key):
+        return -1
+
+    def exists(self, *keys):
+        return sum(1 for k in keys if k in self._store)
+
+    def flushdb(self):
+        self._store.clear()
+        return True
+
+    def pipeline(self, transaction=True):
+        return self
+
+    def execute(self):
+        return []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_redis():
+    fake = _FakeRedis()
+    with patch("redis.Redis", return_value=fake), patch("redis.from_url", return_value=fake):
+        yield fake
 
 from app import create_app
 # Explicitly import ALL models so SQLAlchemy metadata knows about all tables

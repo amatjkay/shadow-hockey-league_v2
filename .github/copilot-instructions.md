@@ -1,1 +1,1 @@
-Follow AI_POLICY.md. Do not duplicate rules. Read .qwen/context/state_summary.md before acting.
+Follow `.antigravityrules` in the project root. It is the single source of truth for all AI agents.

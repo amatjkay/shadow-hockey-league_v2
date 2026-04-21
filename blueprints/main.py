@@ -12,7 +12,7 @@ from flask import Blueprint, redirect, render_template, url_for
 
 
 from models import db
-from services.standings_service import StandingsService
+from services.rating_service import build_leaderboard
 from services.cache_service import cache
 
 main = Blueprint("main", __name__)
@@ -29,8 +29,7 @@ def index() -> str | tuple[str, int]:
     try:
         start_time = time.time()
 
-        with db.session.begin():
-            leaderboard_data = StandingsService.list_for_season(season_id=1)
+        leaderboard_data = build_leaderboard(db.session)
 
         elapsed_ms = round((time.time() - start_time) * 1000)
 

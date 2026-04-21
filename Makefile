@@ -18,7 +18,7 @@ dev: install
 
 # Run tests
 test:
-	python -m unittest discover -v
+	python -m pytest tests -v -n auto
 
 # Run tests with coverage
 coverage:

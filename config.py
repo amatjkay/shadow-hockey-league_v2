@@ -92,6 +92,10 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
     ENABLE_API = True  # Enable API for tests
+    SESSION_TYPE = "filesystem"
+    
+    # Faster caching for tests
+    CACHE_TYPE = "SimpleCache"
     
     # Enable foreign key constraints in SQLite for testing
     @classmethod

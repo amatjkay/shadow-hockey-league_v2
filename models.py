@@ -56,6 +56,11 @@ class AdminUser(db.Model, UserMixin):
         }
         return permission in hierarchy.get(self.role, [])
 
+    @property
+    def is_admin(self) -> bool:
+        """Check if user has any administrative privileges (admin or moderator)."""
+        return self.role in (self.ROLE_SUPER_ADMIN, self.ROLE_ADMIN, self.ROLE_MODERATOR)
+
     def set_password(self, password: str) -> None:
         """Hash and set the password."""
         self.password_hash = generate_password_hash(password)

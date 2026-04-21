@@ -65,12 +65,12 @@ points = base_points(league, achievement_type) × season_multiplier
 
 ### Множители сезонов
 
-| Сезон  | Множитель       |
-| ------ | --------------- |
-| 24/25  | ×1.00 (базовый) |
-| 23/24  | ×0.95 (−5%)     |
-| 22/23  | ×0.90 (−10%)    |
-| 21/22  | ×0.85 (−15%)    |
+| Сезон | Множитель       |
+| ----- | --------------- |
+| 24/25 | ×1.00 (базовый) |
+| 23/24 | ×0.95 (−5%)     |
+| 22/23 | ×0.90 (−10%)    |
+| 21/22 | ×0.85 (−15%)    |
 
 ---
 
@@ -115,14 +115,14 @@ shadow-hockey-league_v2/
 
 ## 🔧 Команды Makefile
 
-| Команда         | Описание                                    |
-| --------------- | ------------------------------------------- |
-| `make setup`    | Установка зависимостей + инициализация БД   |
-| `make run`      | Запуск сервера разработки                   |
-| `make test`     | Запуск тестов (296 тестов)                  |
-| `make lint`     | Проверка кода (flake8)                      |
-| `make format`   | Форматирование (black + isort)              |
-| `make clean`    | Очистка временных файлов                    |
+| Команда       | Описание                                  |
+| ------------- | ----------------------------------------- |
+| `make setup`  | Установка зависимостей + инициализация БД |
+| `make run`    | Запуск сервера разработки                 |
+| `make test`   | Запуск тестов (296 тестов)                |
+| `make lint`   | Проверка кода (flake8)                    |
+| `make format` | Форматирование (black + isort)            |
+| `make clean`  | Очистка временных файлов                  |
 
 ---
 
@@ -167,12 +167,12 @@ python scripts/create_admin.py
 
 **Base URL:** `/api/`
 
-| Endpoint | Auth | Scope | Описание |
-|----------|------|-------|----------|
-| `GET /api/countries` | ❌ | — | Все страны |
-| `GET /api/managers` | ✅ | read | Менеджеры (пагинация) |
-| `GET /api/achievements` | ✅ | read | Достижения (пагинация) |
-| `POST/PUT/DELETE` | ✅ | write/admin | CRUD операции |
+| Endpoint                | Auth | Scope       | Описание               |
+| ----------------------- | ---- | ----------- | ---------------------- |
+| `GET /api/countries`    | ❌   | —           | Все страны             |
+| `GET /api/managers`     | ✅   | read        | Менеджеры (пагинация)  |
+| `GET /api/achievements` | ✅   | read        | Достижения (пагинация) |
+| `POST/PUT/DELETE`       | ✅   | write/admin | CRUD операции          |
 
 API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, `write`, `admin`.
 
@@ -201,49 +201,50 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 
 ## 🔐 Переменные окружения
 
-| Переменная            | Описание                      | По умолчанию       |
-| --------------------- | ----------------------------- | ------------------ |
-| `FLASK_ENV`           | Режим работы                  | `development`      |
-| `DATABASE_URL`        | URL базы данных               | `sqlite:///dev.db` |
-| `SECRET_KEY`          | Ключ сессий                   | Автогенерация      |
-| `ENABLE_API`          | Включение REST API            | `True`             |
-| `API_KEY_SECRET`      | Секрет для API ключей         | —                  |
-| `WTF_CSRF_SECRET_KEY` | CSRF защита                   | —                  |
-| `REDIS_URL`           | Redis URL                     | `redis://localhost`|
+| Переменная            | Описание              | По умолчанию        |
+| --------------------- | --------------------- | ------------------- |
+| `FLASK_ENV`           | Режим работы          | `development`       |
+| `DATABASE_URL`        | URL базы данных       | `sqlite:///dev.db`  |
+| `SECRET_KEY`          | Ключ сессий           | Автогенерация       |
+| `ENABLE_API`          | Включение REST API    | `True`              |
+| `API_KEY_SECRET`      | Секрет для API ключей | —                   |
+| `WTF_CSRF_SECRET_KEY` | CSRF защита           | —                   |
+| `REDIS_URL`           | Redis URL             | `redis://localhost` |
 
 ---
 
 ## 📚 Документация
 
-| Файл | Описание |
-|------|----------|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Архитектура системы |
-| [`docs/API.md`](docs/API.md) | REST API документация |
-| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Руководство разработчика |
-| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Эксплуатация и безопасность |
-| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок |
-| [`docs/MCP.md`](docs/MCP.md) | MCP конфигурация |
-| [`CHANGELOG.md`](CHANGELOG.md) | История изменений |
+| Файл                                                 | Описание                       |
+| ---------------------------------------------------- | ------------------------------ |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)       | Архитектура системы            |
+| [`docs/API.md`](docs/API.md)                         | REST API документация          |
+| [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md)           | Заметки по изменениям схемы БД |
+| [`docs/ADMIN_RECALC.md`](docs/ADMIN_RECALC.md)       | Админка и логика перерасчета   |
+| [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md)         | Постановка задач для ИИ        |
+| [`docs/GITHUB_CLI.md`](docs/GITHUB_CLI.md)           | Работа с GitHub через CLI      |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок           |
+| [`CHANGELOG.md`](CHANGELOG.md)                       | История изменений              |
 
 ---
 
 ## 📊 Статус проекта
 
-| Этап | Название | Статус | Версия |
-|------|----------|--------|--------|
-| 0 | Базовая архитектура | ✅ | v2.0.0 |
-| 1 | Кэширование (Redis + SimpleCache) | ✅ | v2.1.0 |
-| 2 | Метрики (Prometheus) | ✅ | v2.1.0 |
-| 3 | Админ-панель + CSRF | ✅ | v2.2.0 |
-| 4 | Формула рейтинга из БД | ✅ | v2.3.0 |
-| 5 | REST API с API Key auth | ✅ | v2.0.0 |
-| 6 | Тестовый контур | ✅ | v2.2.0 |
-| 7 | Деплой на VPS + CI/CD | ✅ | v2.4.0 |
-| 8 | Data sync (seed/export) | ✅ | v2.3.0 |
-| 9 | Надёжный деплой (backup/rollback) | ✅ | v2.4.0 |
-| 10 | Расширение админки | ✅ | v2.5.0 |
-| 11 | Стабилизация админки | ✅ | v2.5.0 |
-| 12 | AI Policy Stabilization | ✅ | v2.6.0 |
+| Этап | Название                          | Статус | Версия |
+| ---- | --------------------------------- | ------ | ------ |
+| 0    | Базовая архитектура               | ✅     | v2.0.0 |
+| 1    | Кэширование (Redis + SimpleCache) | ✅     | v2.1.0 |
+| 2    | Метрики (Prometheus)              | ✅     | v2.1.0 |
+| 3    | Админ-панель + CSRF               | ✅     | v2.2.0 |
+| 4    | Формула рейтинга из БД            | ✅     | v2.3.0 |
+| 5    | REST API с API Key auth           | ✅     | v2.0.0 |
+| 6    | Тестовый контур                   | ✅     | v2.2.0 |
+| 7    | Деплой на VPS + CI/CD             | ✅     | v2.4.0 |
+| 8    | Data sync (seed/export)           | ✅     | v2.3.0 |
+| 9    | Надёжный деплой (backup/rollback) | ✅     | v2.4.0 |
+| 10   | Расширение админки                | ✅     | v2.5.0 |
+| 11   | Стабилизация админки              | ✅     | v2.5.0 |
+| 12   | AI Policy Stabilization           | ✅     | v2.6.0 |
 
 ---
 
@@ -253,25 +254,25 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 
 **URL:** https://shadow-hockey-league.ru/
 
-| Компонент | Значение |
-|-----------|----------|
-| ОС | Ubuntu 22.04 LTS |
-| Веб-сервер | Nginx + SSL (Let's Encrypt) |
-| WSGI | Gunicorn (4 workers) |
-| Python | 3.10+ |
-| БД | SQLite + Alembic |
-| Кэш | Redis (localhost:6379) |
-| CI/CD | GitHub Actions → SSH deploy |
-| Бэкапы | Ежедневно 03:00 UTC + pre-deploy |
+| Компонент  | Значение                         |
+| ---------- | -------------------------------- |
+| ОС         | Ubuntu 22.04 LTS                 |
+| Веб-сервер | Nginx + SSL (Let's Encrypt)      |
+| WSGI       | Gunicorn (4 workers)             |
+| Python     | 3.10+                            |
+| БД         | SQLite + Alembic                 |
+| Кэш        | Redis (localhost:6379)           |
+| CI/CD      | GitHub Actions → SSH deploy      |
+| Бэкапы     | Ежедневно 03:00 UTC + pre-deploy |
 
 ---
 
 ## 🛠 Устранение неполадок
 
-| Проблема | Решение |
-|----------|---------|
-| `no such table` | `alembic upgrade head` |
-| Health `degraded` | Проверить Redis: `sudo systemctl restart redis-server` |
-| 502 Bad Gateway | `systemctl restart shadow-hockey-league && systemctl restart nginx` |
+| Проблема          | Решение                                                             |
+| ----------------- | ------------------------------------------------------------------- |
+| `no such table`   | `alembic upgrade head`                                              |
+| Health `degraded` | Проверить Redis: `sudo systemctl restart redis-server`              |
+| 502 Bad Gateway   | `systemctl restart shadow-hockey-league && systemctl restart nginx` |
 
 📖 **Полный гайд:** [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
