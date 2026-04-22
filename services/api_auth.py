@@ -10,7 +10,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any
+from typing import Any, Callable
 
 from flask import jsonify, request
 
@@ -38,7 +38,7 @@ def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-def authenticate_api_key(required_scope: str = "read"):
+def authenticate_api_key(required_scope: str = "read") -> Callable:
     """Decorator to authenticate API requests using API key.
 
     Checks:
@@ -53,9 +53,9 @@ def authenticate_api_key(required_scope: str = "read"):
     Returns:
         Decorated function or error response
     """
-    def decorator(f):
+    def decorator(f: Callable) -> Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args: Any, **kwargs: Any) -> Any:
             api_key_header = request.headers.get("X-API-Key")
 
             if not api_key_header:

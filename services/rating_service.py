@@ -260,7 +260,7 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
 # ==================== Auto-Recalculation Triggers (FR-005) ====================
 
 
-def setup_rating_triggers():
+def setup_rating_triggers() -> None:
     """Setup SQLAlchemy event listeners for automatic rating recalculation.
 
     Triggers:
@@ -273,7 +273,7 @@ def setup_rating_triggers():
     from sqlalchemy import event
     from sqlalchemy.orm import object_session
 
-    def _recalculate_points(target):
+    def _recalculate_points(target: Achievement) -> None:
         """Helper to recalculate points on an achievement."""
         # Try to use relationships first
         ach_type = target.type
@@ -305,17 +305,17 @@ def setup_rating_triggers():
             target.final_points = round(target.base_points * target.multiplier, 2)
 
     @event.listens_for(Achievement, 'before_insert')
-    def achievement_before_insert(mapper, connection, target):
+    def achievement_before_insert(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before insert."""
         _recalculate_points(target)
 
     @event.listens_for(Achievement, 'before_update')
-    def achievement_before_update(mapper, connection, target):
+    def achievement_before_update(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before update if relevant fields changed."""
         _recalculate_points(target)
 
     @event.listens_for(Achievement, 'after_delete')
-    def achievement_after_delete(mapper, connection, target):
+    def achievement_after_delete(mapper: Any, connection: Any, target: Achievement) -> None:
         """Invalidate leaderboard cache after achievement deletion."""
         from services.cache_service import invalidate_leaderboard_cache
         invalidate_leaderboard_cache()

@@ -130,7 +130,7 @@ def register_extensions(app: Flask) -> None:
         app.logger.info("CSRF protection skipped (TESTING mode)")
         # Add dummy csrf_token for Jinja templates to prevent UndefinedError
         @app.context_processor
-        def dummy_csrf_token():
+        def dummy_csrf_token() -> dict[str, Any]:
             return dict(csrf_token=lambda: 'dummy-token-for-tests')
 
     # Initialize Rate Limiting (Этап 5)

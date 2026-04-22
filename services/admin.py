@@ -17,12 +17,13 @@ from flask_admin.form import Select2Widget
 from wtforms import SelectField, Form, StringField, validators
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from typing import Any, Callable
 
 # Monkey-patch Flask-Admin 2.0.2 BaseView._run_view to not pass 'cls' parameter
 # Flask-Admin 2.0.2 passes cls=self to view functions but they don't accept it
 import flask_admin.base
 
-def patched_run_view(self, f, *args, **kwargs):
+def patched_run_view(self: Any, f: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     """Remove cls parameter from _run_view for compatibility."""
     # Call the function with self as positional argument instead of cls keyword
     return f(self, *args, **kwargs)
@@ -34,7 +35,7 @@ flask_admin.base.BaseView._run_view = patched_run_view
 from wtforms.fields.core import Field
 original_field_init = Field.__init__
 
-def patched_field_init(self, *args, **kwargs):
+def patched_field_init(self: Any, *args: Any, **kwargs: Any) -> None:
     """Remove allow_blank from field options for WTForms 3.x compatibility."""
     # Remove allow_blank if present (Flask-Admin passes it but WTForms 3.x doesn't accept it)
     if 'allow_blank' in kwargs:
@@ -62,7 +63,7 @@ from flask_admin.contrib.sqla.fields import QuerySelectField
 from flask_admin.form.upload import ImageUploadField
 from flask import current_app
 
-def get_flag_choices():
+def get_flag_choices() -> list[tuple[str, str]]:
     """Dynamically get flag choices from static folder."""
     flags_dir = os.path.join(current_app.root_path, 'static', 'img', 'flags')
     choices = [('', '-- Select Flag --')]
@@ -76,7 +77,7 @@ def get_flag_choices():
     return choices
 
 
-def get_achievement_icon_choices():
+def get_achievement_icon_choices() -> list[tuple[str, str]]:
     """Dynamically get achievement icon choices from static folder."""
     icons_dir = os.path.join(current_app.root_path, 'static', 'img', 'cups')
     choices = [('', '-- Select Icon --')]
@@ -313,7 +314,7 @@ $(document).ready(function() {
 """
 
 # Helper function to get (code, name) tuples for reference tables
-def _get_ref_data_choices(model):
+def _get_ref_data_choices(model: Any) -> list[tuple[str, str]]:
     """Returns list of tuples (code, name) for reference tables."""
     try:
         items = db.session.query(model.code, model.name).order_by(model.code).all()
@@ -322,7 +323,7 @@ def _get_ref_data_choices(model):
         return [('', '-- Error loading --')]
 
 # Helper function to get (id, name) tuples for FK relationships
-def _get_choice_tuples(model):
+def _get_choice_tuples(model: Any) -> list[tuple[str, str]]:
     """Returns list of tuples (id, name) for reference tables."""
     try:
         items = db.session.query(model.id, model.name).order_by(model.code).all()
@@ -1333,7 +1334,7 @@ class ServerControlView(BaseView):
 
 _login_attempts = {}  # {ip: [(timestamp, ...)]}
 
-def _check_login_rate_limit(max_attempts=10, window_seconds=60):
+def _check_login_rate_limit(max_attempts: int = 10, window_seconds: int = 60) -> bool:
     """Check if IP has exceeded login attempt limit. Returns True if allowed."""
     import time
     from flask import request

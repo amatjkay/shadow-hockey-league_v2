@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_required
@@ -20,7 +20,7 @@ from models import (
 )
 from services.admin import invalidate_leaderboard_cache
 
-def admin_required(func):
+def admin_required(func: Callable[..., Any]) -> Callable[..., Any]:
     """Ensure the current user has admin privileges."""
     from functools import wraps
     from flask import jsonify
@@ -61,7 +61,7 @@ def _paginate_query(query, page: int = 1, page_size: int = 20) -> dict[str, Any]
 
 @admin_api_bp.route('/countries', methods=['GET'])
 @admin_required
-def get_countries():
+def get_countries() -> Any:
     """API-001: Search and list countries for Select2 dropdown.
 
     Query params:
@@ -109,7 +109,7 @@ def get_countries():
 
 @admin_api_bp.route('/managers', methods=['GET'])
 @admin_required
-def get_managers():
+def get_managers() -> Any:
     """API-002: Search managers for Select2 dropdown.
 
     Query params:
@@ -131,7 +131,9 @@ def get_managers():
                 if not ids:
                     return jsonify({'items': [], 'pagination': {'total': 0}})
 
-                managers = db.session.query(Manager).filter(
+                managers = db.session.query(Manager).options(
+                    joinedload(Manager.country)
+                ).filter(
                     Manager.id.in_(ids),
                     Manager.is_active == True
                 ).all()
@@ -160,7 +162,7 @@ def get_managers():
                 return jsonify({'error': 'Invalid IDs format'}), 400
 
         # Standard paginated search
-        query = db.session.query(Manager).filter_by(is_active=True)
+        query = db.session.query(Manager).options(joinedload(Manager.country)).filter_by(is_active=True)
 
         if q:
             query = query.filter(Manager.name.ilike(f'%{q}%'))
@@ -192,7 +194,7 @@ def get_managers():
 
 @admin_api_bp.route('/seasons', methods=['GET'])
 @admin_required
-def get_seasons():
+def get_seasons() -> Any:
     """API-003: List seasons filtered by league.
 
     Query params:
@@ -245,7 +247,7 @@ def get_seasons():
 
 @admin_api_bp.route('/achievement-types/<int:type_id>/points', methods=['GET'])
 @admin_required
-def get_achievement_points(type_id: int):
+def get_achievement_points(type_id: int) -> Any:
     """API-004: Get base points for achievement type based on league.
 
     Query params:
@@ -290,7 +292,7 @@ def get_achievement_points(type_id: int):
 
 @admin_api_bp.route('/leagues', methods=['GET'])
 @admin_required
-def get_leagues():
+def get_leagues() -> Any:
     """API-005: List all active leagues."""
     try:
         leagues = db.session.query(League).filter_by(is_active=True).order_by(League.code).all()
@@ -315,7 +317,7 @@ def get_leagues():
 
 @admin_api_bp.route('/calculate-points', methods=['GET'])
 @admin_required
-def calculate_points():
+def calculate_points() -> Any:
     """Calculate final points for achievement type based on league and season.
     
     Query params:
@@ -379,7 +381,7 @@ def calculate_points():
 
 @admin_api_bp.route('/achievement-types', methods=['GET'])
 @admin_required
-def get_achievement_types():
+def get_achievement_types() -> Any:
     """List all active achievement types for Select2 dropdown."""
     try:
         q = request.args.get('q', '').strip()
@@ -413,7 +415,7 @@ def get_achievement_types():
 
 @admin_api_bp.route('/achievements/bulk-create', methods=['POST'])
 @admin_required
-def bulk_create_achievements():
+def bulk_create_achievements() -> Any:
     """API-006: Create achievements for multiple managers.
 
     Request body:
@@ -583,7 +585,7 @@ def bulk_create_achievements():
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements', methods=['GET'])
 @admin_required
-def get_manager_achievements(manager_id):
+def get_manager_achievements(manager_id: int) -> Any:
     """Get all achievements for a manager.
 
     Uses joinedload to avoid N+1 queries on type/league/season relationships.
@@ -651,7 +653,7 @@ def get_manager_achievements(manager_id):
 
 @admin_api_bp.route('/managers/<int:manager_id>/achievements/bulk-add', methods=['POST'])
 @admin_required
-def bulk_add_achievements(manager_id):
+def bulk_add_achievements(manager_id: int) -> Any:
     """API-005: Add multiple achievements to a single manager."""
     try:
         if not current_user.has_permission('create'):
