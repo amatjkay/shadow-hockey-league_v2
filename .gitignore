@@ -1,4 +1,3 @@
-```
 # Python
 __pycache__/
 *.pyc
@@ -49,10 +48,23 @@ pa_deploy_key*
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# MCP Servers
+mcp-servers/
+
+# Temporary files and exports
+data/export/*.json
+*.bak
+*.tmp
+*.temp
+instance/
 
 # AI/LLM Context (ignore session state, track config and roles)
 .qwen/context/
@@ -60,4 +72,3 @@ Thumbs.db
 .qwen/migrations/
 !.qwen/config.json
 !.qwen/agents/
-```

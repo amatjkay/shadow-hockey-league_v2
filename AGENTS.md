@@ -53,6 +53,17 @@ All agents **MUST** follow this protocol at the start and end of every task:
 | `coder`     | Implementation, refactoring, features  | `filesystem`, `github`, `context7`, `duckduckgo` |
 | `reviewer`  | QA, security audit, code review        | `filesystem`, `github`                           |
 
+### Role Constraints (NOT-DO)
+- **architect**: 
+    - **NEVER** write to source code files (except `implementation_plan.md` and `task.md`).
+    - **NEVER** run `pip install` or `alembic upgrade`.
+- **coder**:
+    - **NEVER** change the database schema without an approved plan from `architect`.
+    - **NEVER** skip unit test creation for new features.
+- **reviewer**:
+    - **NEVER** approve a PR that decreases test coverage below 87%.
+    - **NEVER** ignore `mypy` or `flake8` errors.
+
 ### Handoff Protocol
 - When `architect` finishes a plan, it writes to `docs/activeContext.md` with a
   `## Next: Implementation` section for `coder` to pick up.
