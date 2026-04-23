@@ -139,4 +139,4 @@ make benchmark  # Performance latency check
 
 ---
 
-Last updated: 2026-04-23 (Post-Optimization Build)
+Last updated: 23 апреля 2026 г. (Post-Optimization Build)
