@@ -24,6 +24,14 @@
 
 - [/] Troubleshooting network/DNS connectivity issue (Blocking Git operations)
 
+## 2026-04-23: Documentation & Linting Audit
+
+### Completed
+
+- [x] Fixed all `markdownlint` issues across documentation (trailing spaces, block spacing)
+- [x] Initialized `.agents/` directory with role definitions and skills
+- [x] Pushed all infrastructure and governance docs to GitHub via API
+
 ### Blockers
 
 - [!] **DNS Resolution Failure**: `github.com` is unreachable from the current environment via standard `git`.
