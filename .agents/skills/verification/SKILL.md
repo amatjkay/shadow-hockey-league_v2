@@ -1,13 +1,23 @@
-# Skill: System Stability Verification
+# Skill: Stability Verification
 
-## Description
-One-command check to ensure the system is stable, performant, and consistent.
+## Goal
 
-## Steps
-1. **Linting**: Run `make lint` (isort, black, flake8, mypy).
-2. **Testing**: Run `make test` (pytest).
-3. **Audit**: Run `make audit` (data integrity).
-4. **Performance**: Run `make benchmark` (latency check).
+Automate verification of system stability, performance, and data integrity.
 
-## Output
-A summary report confirming all checks passed or identifying specific failures.
+## Workflow
+
+1. **Linting**:
+   - Run `make lint` (Flake8).
+   - Run `mypy .` (Type checking).
+
+2. **Testing**:
+   - Run `make test` (Pytest).
+   - Verify coverage: `pytest --cov`.
+
+3. **Performance Audit**:
+   - Run `make benchmark` (`scripts/benchmark.py`).
+   - Targets: Leaderboard generation < 1ms.
+
+4. **Data Integrity**:
+   - Run `make audit` (`scripts/audit_data.py`).
+   - Targets: 100% formula consistency.

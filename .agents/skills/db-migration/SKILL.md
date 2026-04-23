@@ -1,15 +1,22 @@
-# Skill: Database Migration (Alembic-First)
+# Skill: Database Migration
 
-## Description
-Safe and structured database schema management using Alembic.
+## Goal
 
-## Steps
-1. **Schema Check**: Run `sqlite` MCP to inspect current tables.
-2. **Backup**: Ensure `dev.db` is backed up before structural changes.
-3. **Generate**: Run `alembic revision --autogenerate -m "description"`.
-4. **Verify**: Review the generated script in `migrations/versions/`.
-5. **Apply**: Provide the `alembic upgrade head` command to the user.
+Ensure safe and reversible database schema changes using Alembic.
 
-## Constraints
-- **NEVER** modify `dev.db` directly for structural changes.
-- **NEVER** run `upgrade head` automatically.
+## Workflow
+
+1. **Schema Check**:
+   - Run `sqlite.describe_table` to see current schema.
+   - Run `alembic current` to see current migration state.
+
+2. **Generate Migration**:
+   - Run `alembic revision --autogenerate -m "description"`.
+   - **Review** the generated file in `migrations/versions/`.
+
+3. **Validation**:
+   - Provide the migration command to the user: `alembic upgrade head`.
+   - **DO NOT** run it yourself unless the user explicitly asks.
+
+4. **Rollback Plan**:
+   - Always prepare `alembic downgrade -1` in case of failure.
