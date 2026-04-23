@@ -115,15 +115,18 @@ def get_achievement_kind(achievement: Achievement) -> str:
     Returns:
         Normalized kind string (TOP1, TOP2, BEST, R3, R1)
     """
-    if achievement.achievement_type.startswith("TOP"):
-        return achievement.achievement_type
+    # Use the relationship to get the type code
+    type_code = achievement.type.code if achievement.type else achievement.title.split()[0]
+    
+    if type_code.startswith("TOP"):
+        return type_code
     if "Best regular" in achievement.title:
         return "BEST"
     if "Round 3" in achievement.title:
         return "R3"
     if "Round 1" in achievement.title:
         return "R1"
-    return achievement.achievement_type
+    return type_code
 
 
 def calculate_achievement_points(
@@ -147,9 +150,13 @@ def calculate_achievement_points(
     bp = base_points if base_points is not None else BASE_POINTS
     sm = season_multiplier if season_multiplier is not None else SEASON_MULTIPLIER
 
+    # Get codes from relationships
+    league_code = achievement.league.code if achievement.league else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
+    season_code = achievement.season.code if achievement.season else "24/25"
+
     # Calculate points: base × multiplier
-    base = bp.get((achievement.league, kind), 0)
-    mul = sm.get(achievement.season, 1.0)
+    base = bp.get((league_code, kind), 0)
+    mul = sm.get(season_code, 1.0)
     points = round(base * mul)
     label = LABEL_RU.get(kind, kind)
     mul_display = f"{mul:.2f}".replace(".", ",")
@@ -159,10 +166,10 @@ def calculate_achievement_points(
         "base": base,
         "mul": mul,
         "mul_display": mul_display,
-        "season": achievement.season,
-        "league": achievement.league,
+        "season": season_code,
+        "league": league_code,
         "kind": kind,
-        "label": f"Л{achievement.league} · {label} · s{achievement.season}",
+        "label": f"Л{league_code} · {label} · s{season_code}",
         "html": achievement.to_html(),
     }
 
@@ -185,11 +192,16 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
     base_points = _get_base_points_from_db(session)
     season_mult = _get_season_multiplier_from_db(session)
 
-    # Query all managers with their achievements and country using eager loading
-    # This generates a single SQL query with JOINs instead of N+1 queries
+    # Query all managers with their achievements and country using eager loading.
+    # Also eager load the achievement relationships (type, league, season) to avoid N+1.
     managers = (
         session.query(Manager)
-        .options(joinedload(Manager.achievements), joinedload(Manager.country))
+        .options(
+            joinedload(Manager.achievements).joinedload(Achievement.type),
+            joinedload(Manager.achievements).joinedload(Achievement.league),
+            joinedload(Manager.achievements).joinedload(Achievement.season),
+            joinedload(Manager.country)
+        )
         .order_by(Manager.name)
         .all()
     )
@@ -243,3 +255,68 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
         )
 
     return result
+
+
+# ==================== Auto-Recalculation Triggers (FR-005) ====================
+
+
+def setup_rating_triggers() -> None:
+    """Setup SQLAlchemy event listeners for automatic rating recalculation.
+
+    Triggers:
+    - Achievement created → auto-calculate points
+    - Achievement updated (type_id, league_id, season_id changed) → auto-calculate points
+    - Achievement deleted → invalidate cache
+    - Season multiplier changed → recalculate all achievements in that season
+    - AchievementType points changed → recalculate all achievements of that type
+    """
+    from sqlalchemy import event
+    from sqlalchemy.orm import object_session
+
+    def _recalculate_points(target: Achievement) -> None:
+        """Helper to recalculate points on an achievement."""
+        # Try to use relationships first
+        ach_type = target.type
+        league = target.league
+        season = target.season
+
+        # If relationships not loaded, look them up by ID using session.get()
+        if ach_type is None and target.type_id is not None:
+            session = object_session(target)
+            if session:
+                ach_type = session.get(AchievementType, target.type_id)
+
+        if league is None and target.league_id is not None:
+            session = object_session(target)
+            if session:
+                league = session.get(League, target.league_id)
+
+        if season is None and target.season_id is not None:
+            session = object_session(target)
+            if session:
+                season = session.get(Season, target.season_id)
+
+        if ach_type and league and season:
+            target.base_points = float(
+                ach_type.base_points_l1 if league.code == '1'
+                else ach_type.base_points_l2
+            )
+            target.multiplier = float(season.multiplier)
+            target.final_points = round(target.base_points * target.multiplier, 2)
+
+    @event.listens_for(Achievement, 'before_insert')
+    def achievement_before_insert(mapper: Any, connection: Any, target: Achievement) -> None:
+        """Auto-calculate points before insert."""
+        _recalculate_points(target)
+
+    @event.listens_for(Achievement, 'before_update')
+    def achievement_before_update(mapper: Any, connection: Any, target: Achievement) -> None:
+        """Auto-calculate points before update if relevant fields changed."""
+        _recalculate_points(target)
+
+    @event.listens_for(Achievement, 'after_delete')
+    def achievement_after_delete(mapper: Any, connection: Any, target: Achievement) -> None:
+        """Invalidate leaderboard cache after achievement deletion."""
+        from services.cache_service import invalidate_leaderboard_cache
+        invalidate_leaderboard_cache()
+

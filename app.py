@@ -121,10 +121,17 @@ def register_extensions(app: Flask) -> None:
     db.init_app(app)
 
     # Initialize CSRF protection (Этап 3.1)
-    from flask_wtf.csrf import CSRFProtect
-    csrf = CSRFProtect()
-    csrf.init_app(app)
-    app.logger.info("CSRF protection initialized")
+    if not app.config.get("TESTING"):
+        from flask_wtf.csrf import CSRFProtect
+        csrf = CSRFProtect()
+        csrf.init_app(app)
+        app.logger.info("CSRF protection initialized")
+    else:
+        app.logger.info("CSRF protection skipped (TESTING mode)")
+        # Add dummy csrf_token for Jinja templates to prevent UndefinedError
+        @app.context_processor
+        def dummy_csrf_token() -> dict[str, Any]:
+            return dict(csrf_token=lambda: 'dummy-token-for-tests')
 
     # Initialize Rate Limiting (Этап 5)
     # Disable rate limiting in testing mode to speed up CI/CD and tests
@@ -184,6 +191,11 @@ def register_extensions(app: Flask) -> None:
             setup_audit_events()
             app.logger.info("Audit event listeners initialized")
 
+            # Initialize rating recalculation triggers
+            from services.rating_service import setup_rating_triggers
+            setup_rating_triggers()
+            app.logger.info("Rating recalculation triggers initialized")
+
         except Exception as e:
             app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
 
@@ -209,6 +221,13 @@ def register_blueprints(app: Flask) -> None:
     # Health check blueprint
     from blueprints.health import health
     app.register_blueprint(health)
+
+    # Admin API blueprint (for Select2 dropdowns and bulk operations)
+    from blueprints.admin_api import admin_api_bp
+    app.register_blueprint(admin_api_bp)
+    # Exempt admin API from CSRF (uses Flask-Login auth)
+    if 'csrf' in app.extensions:
+        app.extensions['csrf'].exempt(admin_api_bp)
 
     # API blueprint (if enabled)
     if app.config.get("ENABLE_API"):

@@ -105,9 +105,9 @@ class ExportService:
             manager = self.session.get(Manager, a.manager_id)
             achievements.append({
                 "manager_name": manager.name if manager else "???",
-                "type": a.achievement_type,
-                "league": a.league,
-                "season": a.season,
+                "type": a.type.code if a.type else "",
+                "league": a.league.code if a.league else "",
+                "season": a.season.code if a.season else "",
                 "title": a.title,
                 "icon_filename": a.icon_path.split("/")[-1],
             })

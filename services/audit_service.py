@@ -175,10 +175,11 @@ def cleanup_old_audit_logs(days_to_keep: int = 90) -> int:
     Returns:
         Number of entries deleted
     """
-    from datetime import datetime, timedelta
-    
+    from datetime import datetime, timedelta, timezone
+
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
+        # Use naive UTC datetime to match database (which stores naive datetimes)
+        cutoff_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_to_keep)
         
         deleted_count = AuditLog.query.filter(
             AuditLog.timestamp < cutoff_date
@@ -232,7 +233,7 @@ def setup_audit_events():
             logger.error(f"Error in audit event listener: {e}")
 
 
-def _log_model_change(session: Session, user_id: int, action: str, obj) -> None:
+def _log_model_change(session: Session, user_id: int, action: str, obj: Any) -> None:
     """Log a model change to audit trail."""
     try:
         # Skip audit log entries themselves to avoid infinite loops
@@ -264,6 +265,14 @@ def _log_model_change(session: Session, user_id: int, action: str, obj) -> None:
                             'old': old_value,
                             'new': new_value
                         }
+        
+        elif action == 'DELETE':
+            # Capture full snapshot for DELETE operations
+            changes = {}
+            state = db.inspect(obj)
+            for attr in state.mapper.column_attrs:
+                # Capture all column values as they currently stand
+                changes[attr.key] = getattr(obj, attr.key)
         
         # Create audit log entry
         audit_entry = AuditLog(

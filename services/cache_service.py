@@ -4,10 +4,17 @@ This module provides functions to invalidate the leaderboard cache
 when managers, achievements, or countries are modified.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from flask_caching import Cache
 
+if TYPE_CHECKING:
+    from typing import Any
+
 # Cache instance - to be initialized in create_app
-cache = Cache()
+cache: Cache = Cache()
 
 
 def invalidate_leaderboard_cache() -> bool:

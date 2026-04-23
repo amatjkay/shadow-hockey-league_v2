@@ -9,7 +9,36 @@ Tests cover:
 import unittest
 
 from app import create_app
-from models import Achievement, Country, Manager, db
+from models import Achievement, AchievementType, Country, League, Manager, Season, db
+
+
+def _seed_reference_data():
+    """Seed reference tables. Returns (league_ids, season_ids, type_map)."""
+    leagues = {}
+    for code in ["1", "2"]:
+        lg = League(code=code, name=f"League {code}")
+        db.session.add(lg)
+        leagues[code] = lg
+
+    seasons = {}
+    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
+        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        db.session.add(s)
+        seasons[code] = s
+
+    type_points = {
+        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
+        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+    }
+    types = {}
+    for code, (bp_l1, bp_l2) in type_points.items():
+        at = AchievementType(code=code, name=code, base_points_l1=bp_l1, base_points_l2=bp_l2)
+        db.session.add(at)
+        types[code] = at
+
+    db.session.flush()
+    return {c: lg.id for c, lg in leagues.items()}, {c: s.id for c, s in seasons.items()}, types
 
 
 class TestHealthBlueprint(unittest.TestCase):
@@ -21,6 +50,8 @@ class TestHealthBlueprint(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
+            league_ids, season_ids, type_map = _seed_reference_data()
+
             # Seed some data
             country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
             db.session.add(country)
@@ -31,9 +62,9 @@ class TestHealthBlueprint(unittest.TestCase):
             db.session.flush()
 
             achievement = Achievement(
-                achievement_type="TOP1",
-                league="1",
-                season="24/25",
+                type_id=type_map["TOP1"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["24/25"],
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager.id,

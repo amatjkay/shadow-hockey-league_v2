@@ -4,13 +4,16 @@
 # INSTALLATION
 # ==============================================================================
 
+# Use venv binaries if available
+VENV_BIN = venv/bin/
+
 # Install dependencies
 install:
-	pip install -r requirements.txt
+	$(VENV_BIN)pip install -r requirements.txt
 
 # Install development dependencies
 dev: install
-	pip install flake8 black isort pytest pytest-cov
+	$(VENV_BIN)pip install -r requirements-dev.txt
 
 # ==============================================================================
 # TESTING
@@ -18,11 +21,11 @@ dev: install
 
 # Run tests
 test:
-	python -m unittest discover -v
+	$(VENV_BIN)pytest tests -v -n auto
 
 # Run tests with coverage
 coverage:
-	python -m unittest discover --coverage
+	$(VENV_BIN)pytest --cov=services --cov=blueprints --cov=app --cov=models tests/
 
 # ==============================================================================
 # CODE QUALITY
@@ -30,12 +33,27 @@ coverage:
 
 # Lint code
 lint:
-	flake8 . --count --show-source --statistics
+	$(VENV_BIN)flake8 . --count --show-source --statistics
 
 # Format code
 format:
-	black .
-	isort .
+	$(VENV_BIN)black .
+	$(VENV_BIN)isort .
+
+# Run all quality checks
+check:
+	$(VENV_BIN)black --check .
+	$(VENV_BIN)isort --check-only .
+	$(VENV_BIN)flake8 . --count --show-source --statistics
+	$(VENV_BIN)mypy .
+
+# Performance benchmark
+benchmark:
+	PYTHONPATH=. $(VENV_BIN)python scripts/benchmark.py
+
+# Data integrity audit
+audit:
+	PYTHONPATH=. $(VENV_BIN)python scripts/audit_data.py
 
 # ==============================================================================
 # DATABASE

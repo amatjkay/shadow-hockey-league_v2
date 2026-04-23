@@ -1,6 +1,4 @@
-{% extends 'admin/master.html' %}
-
-{% block body %}
+{% extends 'admin/master.html' %} {% block body %}
 <div class="container">
   <div class="row">
     <div class="col-md-12">
@@ -8,10 +6,20 @@
         <h1>Shadow Hockey League Admin</h1>
         <div>
           {% if current_user.is_authenticated %}
-            <span class="text-muted me-2">Logged in as <strong>{{ current_user.username }}</strong></span>
-            <a href="{{ url_for('admin_logout.index') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+          <span class="text-muted me-2"
+            >Logged in as <strong>{{ current_user.username }}</strong></span
+          >
+          <a
+            href="{{ url_for('admin_logout.index') }}"
+            class="btn btn-outline-secondary btn-sm"
+            >Logout</a
+          >
           {% else %}
-            <a href="{{ url_for('admin_login.index') }}" class="btn btn-primary btn-sm">Login</a>
+          <a
+            href="{{ url_for('admin_login.index') }}"
+            class="btn btn-primary btn-sm"
+            >Login</a
+          >
           {% endif %}
         </div>
       </div>
@@ -54,16 +62,39 @@
       </div>
 
       <div class="alert alert-success">
-        <strong>Добро пожаловать!</strong> Используйте меню выше для управления данными лиги.
-        <br><small class="text-muted">Кэш leaderboard автоматически инвалидируется при изменении данных.</small>
+        <strong>Добро пожаловать!</strong> Используйте меню выше для управления
+        данными лиги. <br /><small class="text-muted"
+          >Кэш leaderboard автоматически инвалидируется при изменении
+          данных.</small
+        >
       </div>
 
       <h5>Быстрые действия:</h5>
       <ul>
-        <li><a href="{{ url_for('country.index_view') }}"><strong>Страны</strong></a> — управление флагами и кодами стран</li>
-        <li><a href="{{ url_for('manager.index_view') }}"><strong>Менеджеры</strong></a> — управление участниками лиги</li>
-        <li><a href="{{ url_for('achievement.index_view') }}"><strong>Достижения</strong></a> — управление наградами (с inline редактированием в менеджерах)</li>
-        <li><a href="{{ url_for('adminuser.index_view') }}"><strong>Администраторы</strong></a> — управление пользователями админки</li>
+        <li>
+          <a href="{{ url_for('country.index_view') }}"
+            ><strong>Страны</strong></a
+          >
+          — управление флагами и кодами стран
+        </li>
+        <li>
+          <a href="{{ url_for('manager.index_view') }}"
+            ><strong>Менеджеры</strong></a
+          >
+          — управление участниками и их достижениями (inline редактирование)
+        </li>
+        <li>
+          <a href="{{ url_for('adminuser.index_view') }}"
+            ><strong>Администраторы</strong></a
+          >
+          — управление пользователями админки
+        </li>
+        <li>
+          <a href="{{ url_for('auditlog.index_view') }}"
+            ><strong>📋 Audit Log</strong></a
+          >
+          — полный журнал действий администраторов
+        </li>
       </ul>
 
       <!-- Cache Control -->
@@ -72,9 +103,23 @@
           <strong>⚙️ Управление кэшем</strong>
         </div>
         <div class="card-body">
-          <p class="card-text">Сбросить кэш leaderboard для обновления данных на главной странице.</p>
-          <form method="POST" action="{{ url_for('admin.flush_cache') }}" class="d-inline">
-            <button type="submit" class="btn btn-warning" onclick="return confirm('Вы уверены, что хотите сбросить кэш leaderboard?')">
+          <p class="card-text">
+            Сбросить кэш leaderboard для обновления данных на главной странице.
+          </p>
+          <form
+            method="POST"
+            action="{{ url_for('admin.flush_cache') }}"
+            class="d-inline"
+          >
+            <button
+              type="submit"
+              class="btn btn-warning"
+              onclick="
+                return confirm(
+                  'Вы уверены, что хотите сбросить кэш leaderboard?',
+                );
+              "
+            >
               🗑️ Flush Cache
             </button>
           </form>
@@ -83,7 +128,8 @@
 
       {% else %}
       <div class="alert alert-info">
-        Пожалуйста, <a href="{{ url_for('admin_login.index') }}">войдите</a> для доступа к админ-панели.
+        Пожалуйста, <a href="{{ url_for('admin_login.index') }}">войдите</a> для
+        доступа к админ-панели.
       </div>
       {% endif %}
     </div>

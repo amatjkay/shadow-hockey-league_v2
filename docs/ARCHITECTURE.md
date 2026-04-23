@@ -1,16 +1,17 @@
-# 🏛️ Архитектура системы - Shadow Hockey League v2
+# 🏛️ Архитектура системы — Shadow Hockey League v2
 
-**Версия:** 1.0
-**Дата:** 7 апреля 2026 г.
-**Статус:** ✅ Production (v2.4.0)
+**Версия:** 2.6.0  
+**Дата:** 13 апреля 2026 г.  
+**Статус:** ✅ Production
 
 ---
 
-## 📋 Обзор
+## 🎯 Бизнес-цели
 
-Этот документ описывает **текущую архитекцию** системы Shadow Hockey League v2.
-
-**Production:** https://shadow-hockey-league.ru/
+- **BG-01**: Централизованное управление лигами, сезонами и достижениями
+- **BG-02**: Безопасная админ-панель с RBAC и audit log
+- **BG-03**: Мониторинг health/metrics для production
+- **BG-04**: Автоматизация тестов критических путей (381 тестов)
 
 ---
 
@@ -18,8 +19,8 @@
 
 ```
 ┌─────────────────┐
-│     Client      │
-│   (Web Browser) │
+│    Client       │
+│  (Web Browser)  │
 └────────┬────────┘
          │ HTTPS
          ▼
@@ -40,9 +41,10 @@
                ▼
 ┌─────────────────────────────────┐
 │   Flask Application             │
-│   - Application Factory pattern │
-│   - Blueprints для маршрутов    │
-│   - Services для бизнес-логики  │
+│   - Application Factory         │
+│   - Blueprints (main, health,   │
+│     admin_api)                  │
+│   - Services (business logic)   │
 └───┬─────────┬─────────┬─────────┘
     │         │         │
     ▼         ▼         ▼
@@ -56,201 +58,141 @@
 
 ## 📦 Технологический стек
 
-### Backend
-
-| Технология | Версия | Назначение |
-|-----------|--------|------------|
-| Python | 3.10+ | Язык разработки |
-| Flask | 3.1+ | Web framework |
-| SQLAlchemy | 2.0+ | ORM |
-| Alembic | 1.14+ | Миграции БД |
-| Gunicorn | 20.1+ | WSGI server |
-
-### Infrastructure
-
-| Технология | Версия | Назначение |
-|-----------|--------|------------|
-| Ubuntu Server | 22.04 LTS | ОС |
-| Nginx | 1.18+ | Reverse proxy, SSL |
-| Redis | 6.0+ | Кэширование |
-| SQLite | 3.x | База данных |
-| Let's Encrypt | - | SSL сертификаты |
-
-### Flask Extensions
-
-- **Flask-Admin** - админ-панель
-- **Flask-Login** - аутентификация
-- **Flask-WTF** - CSRF защита
-- **Flask-Caching** - кэширование
-- **Flask-Limiter** - rate limiting
-- **Prometheus Flask** - метрики
+| Уровень | Технология | Назначение |
+|---------|-----------|------------|
+| **Backend** | Python 3.10+, Flask 3.1+ | Web-фреймворк |
+| **ORM** | SQLAlchemy 2.0+, Alembic | БД и миграции |
+| **Caching** | Redis 6.0+ | Кэширование |
+| **Admin** | Flask-Admin 2.0+ | Панель управления |
+| **Auth** | Flask-Login, Flask-WTF CSRF | Аутентификация |
+| **Rate Limit** | Flask-Limiter | Защита API |
+| **Metrics** | Prometheus Flask | Мониторинг |
+| **Infrastructure** | Nginx, Gunicorn, Ubuntu 22.04 | Хостинг |
 
 ---
 
-## 🗂️ Структура проекта
+## 📁 Структура проекта
 
 ```
 shadow-hockey-league_v2/
 ├── app.py                      # Application Factory
 ├── models.py                   # SQLAlchemy модели
-├── config.py                   # Конфигурация
-│
-├── blueprints/                 # Маршруты
+├── config.py                   # Dev/Prod/Test конфиг
+├── wsgi.py                     # WSGI entry point
+├── blueprints/                 # Flask blueprints
 │   ├── main.py                 #   Главная страница
-│   └── health.py               #   Health check
-│
+│   ├── health.py               #   Health check
+│   └── admin_api.py            #   Admin API
 ├── services/                   # Бизнес-логика
 │   ├── rating_service.py       #   Расчёт рейтинга
 │   ├── cache_service.py        #   Кэширование
 │   ├── api.py                  #   REST API
 │   ├── admin.py                #   Flask-Admin
-│   ├── metrics_service.py      #   Метрики
+│   ├── api_auth.py             #   API Key auth
+│   ├── audit_service.py        #   Audit Log
 │   ├── validation_service.py   #   Валидация
-│   └── audit_service.py        #   Audit Log
-│
-├── data/                       # Данные
+│   ├── seed_service.py         #   JSON Seed
+│   └── export_service.py       #   Экспорт
+├── data/                       # Справочные данные
 │   ├── seed/                   #   Исходные данные
 │   ├── export/                 #   Экспорт из БД
 │   └── schemas.py              #   Валидация JSON
-│
-├── tests/                      # Тесты (239 тестов)
-├── migrations/                 # Alembic миграции
-├── templates/                  # Jinja2 шаблоны
-├── static/                     # CSS, JS, изображения
-└── scripts/                    # Утилиты
+├── tests/                      # 381 тестов
+│   ├── integration/            #   Интеграционные
+│   └── e2e/                    #   E2E
+├── docs/                       # Документация
+├── scripts/                    # Утилиты
+├── .antigravityrules            # AI Agent rules
+├── requirements.txt
+├── Makefile
+└── alembic.ini
 ```
 
 ---
 
-## 🗄️ Модель данных
+## 🗃️ Модель данных
 
 ### Основные таблицы
 
-| Таблица | Описание | Ключевые поля |
-|---------|----------|---------------|
-| **countries** | Справочник стран | id, code, name, flag_path |
-| **managers** | Участники лиги | id, name, country_id |
-| **achievements** | Достижения | id, type, league, season, manager_id |
-| **achievement_types** | Типы достижений (формула) | id, name, base_points_l1/l2 |
-| **seasons** | Сезоны с множителями | id, name, multiplier |
-| **admin_users** | Пользователи админки | id, username, password_hash |
-| **api_keys** | API ключи | id, key_hash, scope |
-| **audit_logs** | Лог действий | id, user_id, action, timestamp |
+| Таблица | Описание |
+|---------|----------|
+| `countries` | Справочник стран (code, name, flag_path) |
+| `leagues` | Лиги (1, 2.1, 2.2) |
+| `seasons` | Сезоны с множителями |
+| `achievement_types` | Типы достижений (TOP1, TOP2, ...) с базовыми очками |
+| `managers` | Участники лиги (соло + тандемы) |
+| `achievements` | Достижения менеджеров |
+| `admin_users` | Пользователи админки (Flask-Login) |
+| `api_keys` | API ключи (SHA-256 хеш, scopes) |
+| `audit_logs` | Лог действий администраторов |
 
-### Уникальные ограничения
+### Индексы
 
-- `achievements(manager_id, league, season, achievement_type)` - UNIQUE
-- `managers.name` - UNIQUE
-- `countries.code` - UNIQUE
-
----
-
-## 🔌 API
-
-### REST API
-
-**Base URL:** `/api/`
-
-**Authentication:** API Key с scopes:
-- `read` - GET запросы
-- `write` - POST/PUT/DELETE
-- `admin` - все операции
-
-**Endpoints:**
-- `GET /api/countries` - Список стран
-- `GET /api/managers` - Список менеджеров
-- `GET /api/achievements` - Список достижений
-
-**Features:**
-- Pagination (`page`/`per_page`, max 100)
-- Rate limiting (100 req/min)
-- Cache invalidation при мутациях
-- Audit logging всех мутаций
+- `achievements(manager_id, league, season, achievement_type)` — UNIQUE
+- `audit_logs(timestamp)`, `audit_logs(user_id, timestamp)` — для быстрого поиска
+- `managers(country_id)` — FK индекс
 
 ---
 
-## ⚡ Кэширование
+## 🔌 API Архитектура
 
-### Архитектура
+**Base URL:** `/api/`  
+**Authentication:** API Key (`X-API-Key` header) с scopes: `read`, `write`, `admin`
 
-```
-Request → Cache Check → Hit → Return
-                  ↓
-                 Miss → Database Query → Cache Set → Return
-```
+| Endpoint | Auth | Описание |
+|----------|------|----------|
+| `GET /api/countries` | ❌ | Все страны |
+| `GET /api/managers` | ✅ | Менеджеры (пагинация) |
+| `GET /api/achievements` | ✅ | Достижения (пагинация) |
+| `POST/PUT/DELETE` | ✅ | CRUD операции |
 
-### Стратегия
+**Features:** Pagination, Rate limiting (100 req/min), Cache invalidation, Audit logging
 
-- **Backend:** Redis с fallback на SimpleCache
-- **TTL:** 5 минут
-- **Инвалидация:** При CREATE/UPDATE/DELETE в админке или API
-- **Manual Flush:** Кнопка в админ-панели
+📖 **Полная документация:** [`API.md`](./API.md)
+
+---
+
+## 💾 Кэширование
+
+**Стратегия:** Redis → SimpleCache fallback  
+**TTL:** 5 минут (по умолчанию)  
+**Инвалидация:**
+- CREATE/UPDATE/DELETE в админке → leaderboard cache
+- API мутации → leaderboard cache
+- Flush Cache через UI → полная очистка
 
 ---
 
 ## 🔒 Безопасность
 
-### Аутентификация
-
-- **Admin Panel:** Flask-Login (session-based)
-- **API:** API Key (hash в БД)
-
-### Защита
-
-- **CSRF:** Flask-WTF для всех форм
-- **Rate Limiting:** 100 req/min на API ключ
-- **Passwords:** Werkzeug hash
-- **Secrets:** Только в `.env`
-- **SSL:** Let's Encrypt с автообновлением
-
----
-
-## 🚀 Деплой
-
-### CI/CD Pipeline
-
-```
-Push to main → GitHub Actions → SSH to VPS → Auto Backup → git reset --hard → pip install → alembic upgrade → restart → Health Check → Success/Rollback
-```
-
-### Backup Strategy
-
-- **Ежедневно:** 3:00 UTC (cron)
-- **Pre-deploy:** Перед каждым деплоем
-- **Retention:** 10 бэкапов
-- **Format:** gzip
-
-### Rollback
-
-- **GitHub Actions:** Workflow Dispatch
-- **Manual:** Через SSH
-- **Auto:** При failed health check
+| Механизм | Реализация |
+|----------|-----------|
+| **Admin Auth** | Flask-Login (session-based) |
+| **API Auth** | API Key (SHA-256 hash в БД) |
+| **CSRF** | Flask-WTF для всех форм |
+| **Rate Limiting** | 100 req/min на API ключ |
+| **Пароли** | PBKDF2-SHA256 хеш |
+| **SSL** | Let's Encrypt (автообновление) |
+| **Audit** | Полный лог действий админов |
 
 ---
 
 ## 📊 Мониторинг
 
-### Health Check
-
-**Endpoint:** `/health`
-
-**Returns:**
+### Health Check (`/health`)
 ```json
 {
   "status": "healthy",
   "managers_count": 50,
   "achievements_count": 200,
+  "countries_count": 8,
   "response_time_ms": 15,
   "redis_status": "connected",
   "database_status": "connected"
 }
 ```
 
-### Prometheus Metrics
-
-**Endpoint:** `/metrics`
-
-**Metrics:**
+### Prometheus Metrics (`/metrics`)
 - `http_requests_total`
 - `http_request_duration_seconds`
 - `http_request_size_bytes`
@@ -258,44 +200,87 @@ Push to main → GitHub Actions → SSH to VPS → Auto Backup → git reset --h
 
 ---
 
-## 🧪 Тестирование
+## 🚀 Деплой
 
-### Статистика
+### CI/CD Pipeline
+```
+Push to main
+    ↓
+GitHub Actions
+    ↓
+SSH to VPS
+    ↓
+Auto Backup БД
+    ↓
+git reset --hard origin/main
+    ↓
+pip install -r requirements.txt
+    ↓
+alembic upgrade head
+    ↓
+systemctl restart shadow-hockey-league
+    ↓
+Health Check → Success / Auto Rollback
+```
+
+### Ручной деплой
+```bash
+ssh shleague@server
+cd /home/shleague/shadow-hockey-league_v2
+source venv/bin/activate
+git fetch origin main
+git reset --hard origin/main
+pip install -r requirements.txt
+alembic upgrade head
+systemctl restart shadow-hockey-league
+```
+
+### Backup Strategy
+- **Ежедневно:** 03:00 UTC (cron)
+- **Pre-deploy:** Перед каждым деплоем
+- **Retention:** 10 последних бэкапов
+
+---
+
+## 🧪 Тестирование
 
 | Метрика | Значение |
 |---------|----------|
-| Всего тестов | 239 |
-| Unit + Integration | 224 |
-| E2E | 15 |
-| Покрытие | ~87% |
+| **Всего тестов** | 381 |
+| **E2E** | 15 тестов |
+| **Admin smoke** | 6 тестов |
+| **API** | 28 тестов |
 
-### Типы тестов
+**Типы тестов:**
+- **Unit:** rating service, validation, models, cache, API auth
+- **Integration:** routes, API CRUD, database constraints, cache invalidation
+- **Admin:** CSRF, auth, CRUD, smoke-тесты
+- **E2E:** полный цикл приложения
 
-- **Unit:** Rating service, validation, models
-- **Integration:** Routes, API, database
-- **E2E:** Полный цикл приложения
-- **Admin:** CSRF, auth, CRUD
-
----
-
-## 🔮 Будущие улучшения
-
-### Planned
-
-- [ ] Система уведомлений (Email + In-App)
-- [ ] Миграция на PostgreSQL
-- [ ] WebSocket real-time обновления
-- [ ] Docker контейнеризация
-
-### Considered
-
-- [ ] GraphQL API
-- [ ] Celery для фоновых задач
-- [ ] Sentry для error tracking
-- [ ] Grafana дашборды
+**Запуск:**
+```bash
+make test      # Все тесты
+make lint      # Проверка кода
+make format    # Форматирование
+```
 
 ---
 
-**Последнее обновление:** 7 апреля 2026 г.
-**Версия:** 2.4.0
-**Статус:** ✅ Production
+## 📋 Формула расчёта очков
+
+```
+points = base_points(league, achievement_type) × season_multiplier
+```
+
+### Множители сезонов
+
+| Сезон | Множитель |
+|-------|-----------|
+| 24/25 | ×1.00 |
+| 23/24 | ×0.95 |
+| 22/23 | ×0.90 |
+| 21/22 | ×0.85 |
+
+---
+
+*Последнее обновление: 20 апреля 2026 г.*

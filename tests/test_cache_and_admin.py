@@ -120,22 +120,36 @@ class TestCacheInvalidationOnModelChange(unittest.TestCase):
 
     def test_cache_invalidated_after_achievement_create(self) -> None:
         """Test cache is invalidated after creating an achievement."""
-        # Create manager first
+        from models import AchievementType, League, Season
+
+        # Create manager
         manager = Manager(name="Test Manager", country_id=self.country_id)
         db.session.add(manager)
+        db.session.commit()
+
+        # Create reference data for achievement
+        ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=5.0)
+        db.session.add(ach_type)
+        league = League(code="1", name="League 1")
+        db.session.add(league)
+        season = Season(code="25/26", name="Season 25/26", multiplier=1.0, is_active=True)
+        db.session.add(season)
         db.session.commit()
 
         # Set cache
         cache.set("leaderboard", "cached_value")
 
-        # Create achievement
+        # Create achievement with correct FK fields
         achievement = Achievement(
-            achievement_type="TOP1",
-            league="1",
-            season="25/26",
+            type_id=ach_type.id,
+            league_id=league.id,
+            season_id=season.id,
             title="TOP1",
             icon_path="/static/img/cups/top1.svg",
             manager_id=manager.id,
+            base_points=10.0,
+            multiplier=1.0,
+            final_points=10.0,
         )
         db.session.add(achievement)
         db.session.commit()

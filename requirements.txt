@@ -2,18 +2,19 @@
 # For PythonAnywhere deployment
 
 # Core Flask dependencies
-Flask>=3.1.0,<4
-Flask-SQLAlchemy==3.1.1
+Flask>=3.1.0
+Flask-SQLAlchemy>=3.1.0
 python-dotenv>=1.0.0
+SQLAlchemy>=2.0.0
 
 # Database migrations
-alembic==1.14.0
+alembic>=1.14.0
 
-# Production server (PythonAnywhere uses gunicorn)
-gunicorn==20.1.0
+# Production server
+gunicorn>=23.0.0
 
 # Utilities
-blinker==1.9.0
+blinker>=1.9.0
 
 # Caching ( Этап 1: Redis caching )
 Flask-Caching>=2.0.0
@@ -23,9 +24,10 @@ redis>=5.0.0
 prometheus-flask-exporter>=0.23.0
 
 # Admin Panel ( Этап 3: Flask-Admin )
-Flask-Admin>=1.6.0
+Flask-Admin>=2.0.2
 Flask-Login>=0.6.0
 Flask-WTF>=1.2.0
+WTForms>=3.0.0
 
 # API Authentication & Rate Limiting ( Этап 5 )
 Flask-Limiter>=3.5.0
@@ -33,3 +35,4 @@ Flask-Limiter>=3.5.0
 # Testing ( Этап 6: Pytest for CI/CD )
 pytest>=7.0.0
 pytest-cov>=4.0.0
+pytest-xdist>=3.0.0

@@ -8,8 +8,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from flask import Blueprint, redirect, render_template, url_for
-from sqlalchemy.exc import OperationalError
+from flask import Blueprint, Response, redirect, render_template, url_for
+
 
 from models import db
 from services.rating_service import build_leaderboard
@@ -29,8 +29,7 @@ def index() -> str | tuple[str, int]:
     try:
         start_time = time.time()
 
-        with db.session.begin():
-            leaderboard_data = build_leaderboard(db.session)
+        leaderboard_data = build_leaderboard(db.session)
 
         elapsed_ms = round((time.time() - start_time) * 1000)
 
@@ -48,20 +47,7 @@ def index() -> str | tuple[str, int]:
             "index.html",
             rating_rows=leaderboard_data,
         )
-    except OperationalError as e:
-        from flask import current_app
-        current_app.logger.error(f"Database operational error: {str(e)}", exc_info=True)
-        return (
-            render_template(
-                "error.html",
-                message="Ошибка базы данных. Попробуйте обновить страницу или обратитесь к администратору.",
-                error_code=500,
-                error_type="DatabaseError",
-                traceback=str(e),
-                show_details=True,
-            ),
-            500,
-        )
+
     except Exception as e:
         import traceback as tb
         from flask import current_app
@@ -82,6 +68,6 @@ def index() -> str | tuple[str, int]:
 
 
 @main.route("/rating")
-def rating() -> Any:
+def rating() -> Response:
     """Redirect old /rating URL to main page with anchor."""
     return redirect(url_for("main.index") + "#rating", code=308)

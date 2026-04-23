@@ -49,10 +49,15 @@ pa_deploy_key*
 .idea/
 *.swp
 *.swo
-*.tmp
-.qwen/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# AI/LLM Context (ignore session state, track config and roles)
+.qwen/context/
+.qwen/BACKUP*
+.qwen/migrations/
+!.qwen/config.json
+!.qwen/agents/
 ```

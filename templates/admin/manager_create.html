@@ -1,0 +1,67 @@
+{% extends 'admin/model/create.html' %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        // Simple Select2 for country dropdown (SelectField compatible)
+        $('#country').select2({
+            width: '100%',
+            placeholder: 'Select country...'
+        });
+
+        // Auto-fill country code and flag preview on selection
+        $('#country').on('select2:select', function(e) {
+            var data = e.params.data;
+            if (data) {
+                var match = data.text.match(/\(([^)]+)\)/);
+                var code = match ? match[1] : '';
+                $('#country_code_display').val(code).trigger('change');
+            }
+        });
+
+        // Style readonly fields
+        $('#country_code_display, #flag_path_display').addClass('readonly-field').prop('readonly', true);
+
+        // Tandem detection warning
+        $('#name').on('input', function() {
+            if (this.value.includes(',')) {
+                if (!$('#tandem-warning').length) {
+                    $(this).closest('.form-group').after(
+                        '<div id="tandem-warning" class="alert alert-warning mt-2">' +
+                        '⚠️ <strong>Tandem detected.</strong> Ensure both players represent one country' +
+                        '</div>'
+                    );
+                }
+            } else {
+                $('#tandem-warning').remove();
+            }
+        });
+    });
+    </script>
+
+    <!-- Add hidden/readonly fields for auto-filled data -->
+    <style>
+    #country_code_display, #flag_path_display {
+        max-width: 200px;
+        margin-top: 4px;
+    }
+    #flag_preview_img {
+        display: none;
+        width: 48px;
+        height: 48px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 8px;
+    }
+    </style>
+
+    <div id="country_code_field" style="display:block; margin-top: 8px;">
+        <label>Country Code</label>
+        <input type="text" id="country_code_display" class="form-control" readonly>
+    </div>
+    <div id="flag_preview_field" style="display:block; margin-top: 8px;">
+        <label>Flag Preview</label>
+        <img id="flag_preview_img" src="" alt="Country flag">
+    </div>
+{% endblock %}

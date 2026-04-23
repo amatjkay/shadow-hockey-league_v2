@@ -3,6 +3,93 @@
 {% block head_meta %}
     {{ super() }}
     <title>{% block title %}{{ admin_view.name }} - SHL Admin{% endblock %}</title>
+    <!-- Select2 CDN for AJAX dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Select2 Bootstrap theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
+    <!-- Select2 Russian Localization (P3-1) -->
+    <script>
+        // Global Select2 defaults for Russian UI
+        $.fn.select2.defaults.set('language', {
+            errorLoading: function() { return 'Невозможно загрузить результаты'; },
+            inputTooLong: function(args) {
+                var overChars = args.input.length - args.maximum;
+                return 'Пожалуйста, удалите ' + overChars + ' символ' + (overChars === 1 ? '' : overChars < 5 ? 'а' : 'ов');
+            },
+            inputTooShort: function(args) {
+                var remainingChars = args.minimum - args.input.length;
+                return 'Пожалуйста, введите ещё ' + remainingChars + ' символ' + (remainingChars === 1 ? '' : remainingChars < 5 ? 'а' : 'ов');
+            },
+            loadingMore: function() { return 'Загрузка данных…'; },
+            maximumSelected: function(args) {
+                return 'Вы можете выбрать не более ' + args.maximum + ' элемент' + (args.maximum === 1 ? 'а' : 'ов');
+            },
+            noResults: function() { return 'Ничего не найдено'; },
+            searching: function() { return 'Поиск…'; },
+            removeAllItems: function() { return 'Удалить все элементы'; }
+        });
+    </script>
+{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        /* Select2 custom styles */
+        .select2-container--bootstrap4 .select2-selection--single {
+            height: calc(1.5em + 0.75rem + 2px);
+        }
+        .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+            line-height: calc(1.5em + 0.75rem);
+        }
+        .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+            height: calc(1.5em + 0.75rem + 2px);
+        }
+        .flag-preview-inline {
+            display: inline-block;
+            width: 24px;
+            height: 16px;
+            margin-right: 6px;
+            vertical-align: middle;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+        }
+        .flag-preview-large {
+            display: inline-block;
+            width: 64px;
+            height: 48px;
+            margin-top: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .readonly-field {
+            background-color: #f5f5f5 !important;
+            border: 1px solid #ddd !important;
+            color: #666 !important;
+            font-weight: bold;
+        }
+        .final-points-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .final-points-display .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .select2-container { width: 100% !important; }
+            .flag-preview-large { width: 48px; height: 36px; }
+        }
+    </style>
 {% endblock %}
 
 {% block access_control %}

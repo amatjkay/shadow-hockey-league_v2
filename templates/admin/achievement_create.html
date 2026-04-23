@@ -1,0 +1,96 @@
+{% extends 'admin/model/create.html' %}
+
+{% block tail %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        // Simple Select2 for standard dropdowns (QuerySelectField compatible)
+        $('#manager').select2({
+            width: '100%',
+            placeholder: 'Select manager...'
+        });
+
+        $('#type').select2({
+            width: '100%',
+            placeholder: 'Select achievement type...'
+        });
+
+        $('#league').select2({
+            width: '100%',
+            placeholder: 'Select league...'
+        });
+
+        $('#season').select2({
+            width: '100%',
+            placeholder: 'Select season...'
+        });
+            disabled: true
+        });
+
+        // Cascade: League change -> reload seasons
+        $('#league_id').on('select2:select', function(e) {
+            var leagueId = e.params.data.id;
+            // Enable season dropdown and reload
+            $('#season_id').prop('disabled', false).empty().trigger('change');
+            calculatePoints();
+        });
+
+        // Cascade: Type or League change -> recalculate
+        $('#type_id, #league_id').on('select2:select change', function() {
+            calculatePoints();
+        });
+
+        // Season change -> recalculate multiplier
+        $('#season_id').on('select2:select change', function() {
+            calculatePoints();
+        });
+
+        function calculatePoints() {
+            var typeId = $('#type_id').val();
+            var leagueId = $('#league_id').val();
+
+            if (!typeId || !leagueId) return;
+
+            // Get base points
+            $.get('/admin/api/achievement-types/' + typeId + '/points', { league_id: leagueId }, function(data) {
+                $('#base_points').val(data.base_points);
+                // Get season multiplier
+                var seasonId = $('#season_id').val();
+                if (seasonId) {
+                    // Fetch seasons to get multiplier
+                    $.get('/admin/api/seasons', { league_id: leagueId }, function(sdata) {
+                        var season = sdata.items.find(function(s) { return s.id == seasonId; });
+                        if (season) {
+                            var mult = season.multiplier;
+                            $('#multiplier').val(mult);
+                            var final = (data.base_points * mult).toFixed(2);
+                            $('#final_points').val(final);
+                            updateFinalPointsDisplay(final);
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateFinalPointsDisplay(value) {
+            $('#final_points_display').html(
+                '<span class="icon">🏆</span><span class="value">' + value + '</span><span class="label">points</span>'
+            ).addClass('final-points-display');
+        }
+
+        // Style readonly fields
+        $('#base_points, #multiplier, #final_points').addClass('readonly-field').prop('readonly', true);
+    });
+    </script>
+
+    <style>
+    #base_points, #multiplier, #final_points {
+        max-width: 200px;
+    }
+    #final_points_display {
+        margin-top: 10px;
+    }
+    </style>
+
+    <div id="final_points_display"></div>
+{% endblock %}

@@ -7,7 +7,7 @@ import unittest
 from typing import Any
 
 from app import create_app
-from models import Achievement, Country, Manager, db
+from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.rating_service import (
     BASE_POINTS,
     SEASON_MULTIPLIER,
@@ -17,6 +17,35 @@ from services.rating_service import (
 )
 
 
+def _seed_reference_data():
+    """Seed reference tables. Returns (league_ids, season_ids, type_map)."""
+    leagues = {}
+    for code in ["1", "2"]:
+        lg = League(code=code, name=f"League {code}")
+        db.session.add(lg)
+        leagues[code] = lg
+
+    seasons = {}
+    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
+        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        db.session.add(s)
+        seasons[code] = s
+
+    type_points = {
+        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
+        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+    }
+    types = {}
+    for code, (bp_l1, bp_l2) in type_points.items():
+        at = AchievementType(code=code, name=code, base_points_l1=bp_l1, base_points_l2=bp_l2)
+        db.session.add(at)
+        types[code] = at
+
+    db.session.flush()
+    return {c: lg.id for c, lg in leagues.items()}, {c: s.id for c, s in seasons.items()}, types
+
+
 class TestAppRoutes(unittest.TestCase):
     """Integration tests for Flask routes."""
 
@@ -24,7 +53,6 @@ class TestAppRoutes(unittest.TestCase):
         self.app = create_app("config.TestingConfig")
         self.client = self.app.test_client()
 
-        # Create tables and seed test data
         with self.app.app_context():
             db.create_all()
             self._seed_test_data()
@@ -36,6 +64,8 @@ class TestAppRoutes(unittest.TestCase):
 
     def _seed_test_data(self) -> None:
         """Seed database with test data."""
+        league_ids, season_ids, type_map = _seed_reference_data()
+
         # Create country
         country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
         db.session.add(country)
@@ -49,17 +79,17 @@ class TestAppRoutes(unittest.TestCase):
         # Create achievements
         achievements = [
             Achievement(
-                achievement_type="TOP1",
-                league="1",
-                season="23/24",
+                type_id=type_map["TOP1"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["23/24"],
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager.id,
             ),
             Achievement(
-                achievement_type="TOP2",
-                league="1",
-                season="21/22",
+                type_id=type_map["TOP2"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["21/22"],
                 title="TOP2",
                 icon_path="/static/img/cups/top2.svg",
                 manager_id=manager.id,
@@ -71,7 +101,7 @@ class TestAppRoutes(unittest.TestCase):
         db.session.commit()
 
     def test_home_page(self) -> None:
-        """Test that home page renders successfully."""
+        """Test that home page loads successfully."""
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         html = response.data.decode("utf-8")
@@ -91,7 +121,7 @@ class TestAppRoutes(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(data["status"], "healthy")
 
-        # Check extended health fields (Этап 2)
+        # Check extended health fields
         self.assertIn("timestamp", data)
         self.assertIn("response_time_ms", data)
         self.assertIn("database_status", data)
@@ -109,12 +139,7 @@ class TestAppRoutes(unittest.TestCase):
 
     def test_metrics_endpoint(self) -> None:
         """Test Prometheus metrics endpoint."""
-        # Note: Prometheus metrics are disabled in testing mode
-        # This test verifies the endpoint exists or is properly excluded
         response = self.client.get("/metrics")
-
-        # In testing mode, /metrics may return 404 or empty response
-        # Just verify it doesn't crash
         self.assertIn(response.status_code, [200, 404, 500])
 
 
@@ -126,6 +151,11 @@ class TestRatingServiceHelpers(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
+
+        league_ids, season_ids, type_map = _seed_reference_data()
+        self.league_ids = league_ids
+        self.season_ids = season_ids
+        self.type_map = type_map
 
         # Create test country and manager
         self.country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
@@ -146,9 +176,9 @@ class TestRatingServiceHelpers(unittest.TestCase):
     ) -> Achievement:
         """Helper to create test achievement."""
         ach = Achievement(
-            achievement_type=ach_type,
-            league=league,
-            season=season,
+            type_id=self.type_map[ach_type].id,
+            league_id=self.league_ids[league],
+            season_id=self.season_ids[season],
             title=title,
             icon_path=f"/static/img/cups/{ach_type.lower()}.svg",
             manager_id=self.manager.id,
@@ -237,6 +267,8 @@ class TestRatingCalculation(unittest.TestCase):
 
     def _seed_test_data(self) -> None:
         """Seed database with test data."""
+        league_ids, season_ids, type_map = _seed_reference_data()
+
         # Create countries
         self.country_rus = Country(code="RUS", flag_path="/static/img/flags/rus.png")
         self.country_bel = Country(code="BEL", flag_path="/static/img/flags/bel.png")
@@ -254,17 +286,17 @@ class TestRatingCalculation(unittest.TestCase):
         db.session.add_all(
             [
                 Achievement(
-                    achievement_type="TOP1",
-                    league="1",
-                    season="23/24",
+                    type_id=type_map["TOP1"].id,
+                    league_id=league_ids["1"],
+                    season_id=season_ids["23/24"],
                     title="TOP1",
                     icon_path="/static/img/cups/top1.svg",
                     manager_id=self.manager1.id,
                 ),
                 Achievement(
-                    achievement_type="TOP2",
-                    league="1",
-                    season="22/23",
+                    type_id=type_map["TOP2"].id,
+                    league_id=league_ids["1"],
+                    season_id=season_ids["22/23"],
                     title="TOP2",
                     icon_path="/static/img/cups/top2.svg",
                     manager_id=self.manager1.id,
@@ -275,9 +307,9 @@ class TestRatingCalculation(unittest.TestCase):
         # Create achievements for manager2 (medium score)
         db.session.add(
             Achievement(
-                achievement_type="TOP3",
-                league="1",
-                season="23/24",
+                type_id=type_map["TOP3"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["23/24"],
                 title="TOP3",
                 icon_path="/static/img/cups/top3.svg",
                 manager_id=self.manager2.id,
@@ -287,9 +319,9 @@ class TestRatingCalculation(unittest.TestCase):
         # Create achievements for manager3 (tandem, low score)
         db.session.add(
             Achievement(
-                achievement_type="R1",
-                league="2",
-                season="21/22",
+                type_id=type_map["R1"].id,
+                league_id=league_ids["2"],
+                season_id=season_ids["21/22"],
                 title="Round 1",
                 icon_path="/static/img/cups/r1.svg",
                 manager_id=self.manager3.id,
@@ -490,6 +522,8 @@ class TestAPIEndpoints(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
+            league_ids, season_ids, type_map = _seed_reference_data()
+
             # Create test data
             country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
             db.session.add(country)
@@ -500,9 +534,9 @@ class TestAPIEndpoints(unittest.TestCase):
             db.session.flush()
 
             achievement = Achievement(
-                achievement_type="TOP1",
-                league="1",
-                season="24/25",
+                type_id=type_map["TOP1"].id,
+                league_id=league_ids["1"],
+                season_id=season_ids["24/25"],
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager.id,

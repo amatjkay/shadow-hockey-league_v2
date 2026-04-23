@@ -1,9 +1,9 @@
 # Shadow Hockey League REST API Documentation
 
 **Base URL:** `https://shadow-hockey-league.ru/api` (production) | `http://127.0.0.1:5000/api` (dev)
-**Version:** 2.0
+**Version:** 2.1
 **Format:** JSON
-**Дата:** 3 апреля 2026 г.
+**Дата:** 13 апреля 2026 г.
 
 ---
 
