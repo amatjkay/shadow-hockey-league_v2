@@ -233,7 +233,7 @@ def setup_audit_events():
             logger.error(f"Error in audit event listener: {e}")
 
 
-def _log_model_change(session: Session, user_id: int, action: str, obj) -> None:
+def _log_model_change(session: Session, user_id: int, action: str, obj: Any) -> None:
     """Log a model change to audit trail."""
     try:
         # Skip audit log entries themselves to avoid infinite loops

@@ -1,0 +1,10 @@
+export declare const CREATE_ISSUE_MUTATION: import("graphql").DocumentNode;
+export declare const CREATE_ISSUES_MUTATION: import("graphql").DocumentNode;
+export declare const CREATE_PROJECT: import("graphql").DocumentNode;
+export declare const CREATE_BATCH_ISSUES: import("graphql").DocumentNode;
+export declare const UPDATE_ISSUE_MUTATION: import("graphql").DocumentNode;
+export declare const DELETE_ISSUE_MUTATION: import("graphql").DocumentNode;
+export declare const CREATE_ISSUE_LABELS: import("graphql").DocumentNode;
+export declare const CREATE_PROJECT_MILESTONE: import("graphql").DocumentNode;
+export declare const UPDATE_PROJECT_MILESTONE: import("graphql").DocumentNode;
+export declare const DELETE_PROJECT_MILESTONE: import("graphql").DocumentNode;

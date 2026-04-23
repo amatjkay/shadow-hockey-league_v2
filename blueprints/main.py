@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from flask import Blueprint, redirect, render_template, url_for
+from flask import Blueprint, Response, redirect, render_template, url_for
 
 
 from models import db
@@ -68,6 +68,6 @@ def index() -> str | tuple[str, int]:
 
 
 @main.route("/rating")
-def rating() -> Any:
+def rating() -> Response:
     """Redirect old /rating URL to main page with anchor."""
     return redirect(url_for("main.index") + "#rating", code=308)

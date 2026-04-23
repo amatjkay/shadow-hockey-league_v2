@@ -86,7 +86,6 @@
 | `AchievementType`| `achievement_types` | Base points for L1 and L2                  |
 | `League`         | `leagues`           | Self-referential parent (subleagues)       |
 | `Season`         | `seasons`           | Multiplier for point decay                 |
-| `Match`          | `matches`           | → home_team, away_team, season             |
 | `AuditLog`       | `audit_logs`        | → user_id; tracks all admin actions        |
 
 ### Critical Constraints

@@ -345,36 +345,6 @@ class Achievement(db.Model):
         )
 
 
-class Match(db.Model):
-    """Match table storing individual match results."""
-
-    __tablename__ = "matches"
-
-    id = db.Column(db.Integer, primary_key=True)
-    home_team_id = db.Column(
-        db.Integer, db.ForeignKey("managers.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    away_team_id = db.Column(
-        db.Integer, db.ForeignKey("managers.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    season_id = db.Column(
-        db.Integer, db.ForeignKey("seasons.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    home_score = db.Column(db.Integer, nullable=False, default=0)
-    away_score = db.Column(db.Integer, nullable=False, default=0)
-    performed_by = db.Column(
-        db.Integer, db.ForeignKey("admin_users.id", ondelete="SET NULL"), nullable=True
-    )
-    created_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
-
-    # Relationships
-    home_team = db.relationship("Manager", foreign_keys=[home_team_id], backref="home_matches")
-    away_team = db.relationship("Manager", foreign_keys=[away_team_id], backref="away_matches")
-    season = db.relationship("Season")
-    performed_by_user = db.relationship("AdminUser")
-
-    def __repr__(self) -> str:
-        return f"<Match {self.home_team.name} vs {self.away_team.name} ({self.home_score}-{self.away_score})>"
 class AuditLog(db.Model):
     """Audit log table for tracking admin actions.
 
