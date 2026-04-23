@@ -119,6 +119,8 @@ make test       # Run 383+ tests
 make lint       # Flake8
 make format     # Black + isort
 make clean      # Remove temp files
+make audit      # Data integrity verification
+make benchmark  # Performance latency check
 ```
 
 ---
@@ -137,4 +139,4 @@ make clean      # Remove temp files
 
 ---
 
-Last updated: 2026-04-23
+Last updated: 2026-04-23 (Post-Optimization Build)
