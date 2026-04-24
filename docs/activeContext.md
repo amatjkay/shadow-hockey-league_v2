@@ -13,6 +13,7 @@
 ---
 
 ## Status
+
 - **Branch:** `feature/admin-enhancement` (merged from `fix`)
 - **Goal:** Finalize stabilization of Admin Achievement infrastructure.
 - **Seeding Status:** ✅ Database seeded and point alignment verified.
@@ -20,12 +21,12 @@
 ## Recent Changes (2026-04-24)
 
 - **Admin Achievement Management**: Stabilized the achievement management workflow.
-    - Consolidated `manager_edit.html` into a single AJAX-powered modal workflow.
-    - Automated achievement field calculation in `services/admin.py` via `on_model_change`.
-    - Centralized icon resolution in `AchievementType.get_icon_url()` with support for custom overrides.
-    - Synchronized API responses and client-side scripts to use centralized icon logic.
-    - Removed duplicate `AchievementModelView` class to prevent shadowed configuration.
-    - Fixed JS syntax errors and standardized selectors in `achievement_create.html`.
+  - Consolidated `manager_edit.html` into a single AJAX-powered modal workflow.
+  - Automated achievement field calculation in `services/admin.py` via `on_model_change`.
+  - Centralized icon resolution in `AchievementType.get_icon_url()` with support for custom overrides.
+  - Synchronized API responses and client-side scripts to use centralized icon logic.
+  - Removed duplicate `AchievementModelView` class to prevent shadowed configuration.
+  - Fixed JS syntax errors and standardized selectors in `achievement_create.html`.
 - **Testing**: Implemented and verified `tests/test_admin_achievements.py` (100% pass rate).
 
 - **Architecture Refactoring**: Isolated Flask-Admin/WTForms compatibility monkey-patches into `utils/patches.py`. Applied globally in `app.py`.

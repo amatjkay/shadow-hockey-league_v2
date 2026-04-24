@@ -1,4 +1,4 @@
-{% extends 'admin/master.html' %}
+{% extends 'admin/base.html' %}
 
 {% block head_meta %}
     {{ super() }}
@@ -95,13 +95,13 @@
 {% block access_control %}
 {% if current_user.is_authenticated %}
 <div class="navbar-text">
-    <a class="nav-link" href="{{ url_for('admin_logout.index') }}">
+    <a class="nav-link" href="{{ url_for('admin.logout') }}">
         <i class="fa fa-sign-out"></i> Logout
     </a>
 </div>
 {% else %}
 <div class="navbar-text">
-    <a class="nav-link" href="{{ url_for('admin_login.index') }}">
+    <a class="nav-link" href="{{ url_for('admin.login') }}">
         <i class="fa fa-sign-in"></i> Login
     </a>
 </div>

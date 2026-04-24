@@ -28,7 +28,7 @@ def _seed_reference_data():
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
+        "TOP1": (800, 400), "TOP2": (400, 200), "TOP3": (200, 100),
         "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
     }
     types = {}

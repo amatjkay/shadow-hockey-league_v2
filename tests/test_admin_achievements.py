@@ -69,9 +69,9 @@ def test_api_calculate_points(auth_client, seeded_db):
     resp = auth_client.get(f'/admin/api/calculate-points?type_id={ach_type.id}&league_id={league.id}&season_id={season.id}')
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data['base_points'] == 10.0
-    assert data['multiplier'] == 1.0
-    assert data['final_points'] == 10.0
+    assert data['base_points'] == 800.0
+    assert data['multiplier'] == 0.5
+    assert data['final_points'] == 400.0
 
 def test_api_bulk_add_achievement(auth_client, seeded_db):
     """Test bulk adding achievements to a manager."""
@@ -102,7 +102,7 @@ def test_api_bulk_add_achievement(auth_client, seeded_db):
     # Verify in DB
     ach = db.session.query(Achievement).filter_by(manager_id=manager.id, season_id=new_season.id).first()
     assert ach is not None
-    assert ach.final_points == 20.0 # 10 * 2.0
+    assert ach.final_points == 1600.0 # 800 * 2.0
     assert ach.icon_path == "/static/img/cups/top1.svg"
 
 def test_api_delete_achievement(auth_client, seeded_db):

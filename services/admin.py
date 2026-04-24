@@ -11,9 +11,11 @@ import json
 import logging
 from typing import Any, cast
 
-from flask import Flask, redirect, url_for, request, flash, current_app, Markup, render_template
+from flask import Flask, redirect, url_for, request, flash, current_app, render_template
+from markupsafe import Markup
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
+from flask_admin.theme import Bootstrap4Theme
 from flask_admin.form import Select2Widget
 from flask_login import LoginManager, current_user, login_user, logout_user
 from wtforms import PasswordField, StringField, SelectField, HiddenField
@@ -22,8 +24,9 @@ from sqlalchemy.orm import joinedload
 
 from models import (
     db, AdminUser, Country, Manager, Achievement, AchievementType,
-    League, Season, AuditLog
+    League, Season, AuditLog, ApiKey
 )
+from data.static_paths import get_flag_choices
 
 # Configure logging for admin service
 admin_logger = logging.getLogger('shleague.admin')
@@ -48,9 +51,8 @@ def init_admin(app: Flask) -> None:
     admin = Admin(
         app,
         name='SH League Admin',
-        template_mode='bootstrap3',
         index_view=SHLAdminIndexView(),
-        base_template='admin/shl_base.html'
+        theme=Bootstrap4Theme(base_template='admin/shl_master.html')
     )
 
     # Add model views
@@ -86,7 +88,7 @@ class SHLAdminIndexView(AdminIndexView):
         
         return self.render('admin/index.html', stats=stats)
 
-    @expose('/login', methods=['GET', 'POST'])
+    @expose('/login/', methods=['GET', 'POST'])
     def login(self) -> Any:
         if current_user.is_authenticated:
             return redirect(url_for('.index'))
@@ -105,17 +107,24 @@ class SHLAdminIndexView(AdminIndexView):
                 
         return self.render('admin/login.html')
 
-    @expose('/logout')
+    @expose('/logout/')
     def logout(self) -> Any:
         admin_logger.info(f"Admin logout: {current_user.username if current_user.is_authenticated else 'unknown'}")
         logout_user()
         return redirect(url_for('.index'))
 
-
+    @expose('/flush-cache/', methods=['POST'])
+    def flush_cache(self) -> Any:
+        """Invalidate all leaderboard caches."""
+        from services.rating_service import invalidate_leaderboard_cache
+        invalidate_leaderboard_cache()
+        flash('Leaderboard cache successfully flushed', 'success')
+        return redirect(url_for('.index'))
 # ==================== Base View ====================
 
 class SHLModelView(ModelView):
     """Base model view with common security and logging."""
+
 
     # UI Customization
     list_template = 'admin/model/list.html'
@@ -140,12 +149,18 @@ class SHLModelView(ModelView):
         
         # We don't log the actual changes here (done via SQLAlchemy events for better coverage),
         # but we can log the action intent.
-        admin_logger.debug(f"{action} {model.__class__.__name__} by {current_user.username}")
+        username = getattr(current_user, 'username', 'system')
+        admin_logger.debug(f"{action} {model.__class__.__name__} by {username}")
 
     def on_model_delete(self, model: Any) -> None:
         """Log deletion to audit log."""
         from services.audit_service import log_action
-        admin_logger.info(f"DELETE {model.__class__.__name__} {getattr(model, 'id', 'unknown')} by {current_user.username}")
+        username = getattr(current_user, 'username', 'system')
+        admin_logger.info(f"DELETE {model.__class__.__name__} {getattr(model, 'id', 'unknown')} by {username}")
+
+
+# Resolve alias
+SecureModelView = SHLModelView
 
 
 # ==================== Core Views ====================
@@ -302,6 +317,42 @@ class AdminUserModelView(SHLModelView):
             model.set_password(form.password.data)
 
 
+class ApiKeyModelView(SHLModelView):
+    """View for managing API keys."""
+    column_list = ('name', 'scope', 'expires_at', 'revoked', 'last_used_at')
+    form_columns = ('name', 'scope', 'expires_at', 'revoked')
+    
+    column_labels = {
+        'revoked': 'Revoked?'
+    }
+    
+    form_choices = {
+        'scope': [('read', 'Read Only'), ('write', 'Read/Write'), ('admin', 'Admin')]
+    }
+
+
+class ServerControlView(AdminIndexView):
+    """View for server control operations."""
+    
+    def is_accessible(self) -> bool:
+        """Only super admins can access server control."""
+        return current_user.is_authenticated and current_user.has_permission('server_control')
+
+    def inaccessible_callback(self, name: str, **kwargs: Any) -> Any:
+        return redirect(url_for('admin.login', next=request.url))
+
+    @expose('/')
+    def index(self) -> Any:
+        return self.render('admin/server_control.html')
+
+    @expose('/restart', methods=['POST'])
+    def restart(self) -> Any:
+        """Simulate a server restart."""
+        flash('Server restart initiated. The application will be unavailable for a moment.', 'warning')
+        admin_logger.warning(f"Server restart initiated by {current_user.username}")
+        return redirect(url_for('.index'))
+
+
 # ==================== Utilities ====================
 
 def invalidate_leaderboard_cache() -> None:
@@ -318,3 +369,32 @@ def invalidate_leaderboard_cache() -> None:
         admin_logger.info("Leaderboard cache invalidated")
     except Exception as e:
         admin_logger.error(f"Failed to invalidate cache: {e}")
+
+
+# ==================== Rate Limiting (Internal) ====================
+
+_login_attempts: dict[str, list[float]] = {}
+
+
+def _check_login_rate_limit(max_attempts: int = 5, window_seconds: int = 300) -> bool:
+    """Basic in-memory rate limiting for login attempts."""
+    import time
+    from flask import request
+    
+    ip = request.remote_addr or 'unknown'
+    now = time.time()
+    
+    if ip not in _login_attempts:
+        _login_attempts[ip] = []
+        
+    # Remove old attempts
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < window_seconds]
+    
+    if len(_login_attempts[ip]) >= max_attempts:
+        return False
+        
+    _login_attempts[ip].append(now)
+    return True
+
+# Alias for backward compatibility in tests
+SecureModelView = SHLModelView

@@ -50,7 +50,7 @@ def moderator_user(db_session):
 @pytest.fixture
 def reference_data(db_session):
     """Create reference data for achievements."""
-    ach_type = AchievementType(code='TOP1', name='Top 1', base_points_l1=800, base_points_l2=300)
+    ach_type = AchievementType(code='TOP1', name='Top 1', base_points_l1=800, base_points_l2=400)
     league = League(code='1', name='League 1')
     league2 = League(code='2', name='League 2')
     season = Season(code='24/25', name='Season 24/25', multiplier=1.0, start_year=2024, end_year=2025, is_active=True)
@@ -261,7 +261,7 @@ class TestAchievementPointsAPI:
         )
         assert response.status_code == 200
         data = response.get_json()
-        assert data['base_points'] == 300
+        assert data['base_points'] == 400
         assert data['points_source'] == 'base_points_l2'
 
     def test_missing_league_id(self, client, admin_user, reference_data):

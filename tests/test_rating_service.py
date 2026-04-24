@@ -26,14 +26,14 @@ def _seed_reference_data():
         leagues[code] = lg
 
     seasons = {}
-    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    multipliers = {"25/26": 1.0, "24/25": 0.8, "23/24": 0.5, "22/23": 0.3, "21/22": 0.2}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
         s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
         db.session.add(s)
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
+        "TOP1": (800, 400), "TOP2": (400, 200), "TOP3": (200, 100),
         "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
     }
     types = {}
@@ -214,35 +214,35 @@ class TestRatingServiceHelpers(unittest.TestCase):
         result = calculate_achievement_points(ach)
 
         self.assertEqual(result["base"], 800)
-        self.assertEqual(result["mul"], 0.90)
-        self.assertEqual(result["points"], 720)  # 800 * 0.90
+        self.assertEqual(result["mul"], 0.5)
+        self.assertEqual(result["points"], 400)  # 800 * 0.5
 
     def test_calculate_points_top2_s21_22(self) -> None:
         """Test points calculation for TOP2 s21/22."""
         ach = self._create_achievement("TOP2", "1", "21/22", "TOP2")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 550)
-        self.assertEqual(result["mul"], 0.80)
-        self.assertEqual(result["points"], 440)  # 550 * 0.80 = 440
+        self.assertEqual(result["base"], 400)
+        self.assertEqual(result["mul"], 0.2)
+        self.assertEqual(result["points"], 80)  # 400 * 0.2
 
     def test_calculate_points_league2(self) -> None:
         """Test points calculation for league 2."""
         ach = self._create_achievement("TOP1", "2", "22/23", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 300)
-        self.assertEqual(result["mul"], 0.85)
-        self.assertEqual(result["points"], 255)  # 300 * 0.85
+        self.assertEqual(result["base"], 400)
+        self.assertEqual(result["mul"], 0.3)
+        self.assertEqual(result["points"], 120)  # 400 * 0.3
 
     def test_calculate_points_s25_26(self) -> None:
         """Test points calculation for season 25/26 (baseline)."""
         ach = self._create_achievement("TOP1", "2", "25/26", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 300)
+        self.assertEqual(result["base"], 400)
         self.assertEqual(result["mul"], 1.00)
-        self.assertEqual(result["points"], 300)  # 300 * 1.00
+        self.assertEqual(result["points"], 400)  # 400 * 1.00
 
     def test_season_multiplier_s25_26_exists(self) -> None:
         """Test that season 25/26 multiplier is defined as baseline."""
@@ -407,19 +407,19 @@ class TestRatingCalculation(unittest.TestCase):
         """Test that base points have correct values (updated system)."""
         # League 1 - increased values for TOP achievements
         self.assertEqual(BASE_POINTS[("1", "TOP1")], 800)
-        self.assertEqual(BASE_POINTS[("1", "TOP2")], 550)
-        self.assertEqual(BASE_POINTS[("1", "TOP3")], 450)
-        self.assertEqual(BASE_POINTS[("1", "BEST")], 50)
-        self.assertEqual(BASE_POINTS[("1", "R3")], 30)
-        self.assertEqual(BASE_POINTS[("1", "R1")], 10)
+        self.assertEqual(BASE_POINTS[("1", "TOP2")], 400)
+        self.assertEqual(BASE_POINTS[("1", "TOP3")], 200)
+        self.assertEqual(BASE_POINTS[("1", "BEST")], 200)
+        self.assertEqual(BASE_POINTS[("1", "R3")], 100)
+        self.assertEqual(BASE_POINTS[("1", "R1")], 50)
 
         # League 2
-        self.assertEqual(BASE_POINTS[("2", "TOP1")], 300)
+        self.assertEqual(BASE_POINTS[("2", "TOP1")], 400)
         self.assertEqual(BASE_POINTS[("2", "TOP2")], 200)
         self.assertEqual(BASE_POINTS[("2", "TOP3")], 100)
-        self.assertEqual(BASE_POINTS[("2", "BEST")], 40)
-        self.assertEqual(BASE_POINTS[("2", "R3")], 20)
-        self.assertEqual(BASE_POINTS[("2", "R1")], 5)
+        self.assertEqual(BASE_POINTS[("2", "BEST")], 100)
+        self.assertEqual(BASE_POINTS[("2", "R3")], 50)
+        self.assertEqual(BASE_POINTS[("2", "R1")], 25)
 
     def test_season_multipliers(self) -> None:
         """Test that season multipliers are defined with correct values."""
@@ -428,11 +428,11 @@ class TestRatingCalculation(unittest.TestCase):
             self.assertIn(season, SEASON_MULTIPLIER, f"Missing multiplier for season {season}")
 
         # Verify multiplier values (current season = baseline, older = discount)
-        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.00)  # Baseline
-        self.assertEqual(SEASON_MULTIPLIER["24/25"], 0.95)  # -5%
-        self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.90)  # -10%
-        self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.85)  # -15%
-        self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.80)  # -20%
+        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.0)  # Baseline
+        self.assertEqual(SEASON_MULTIPLIER["24/25"], 0.8)  # -20%
+        self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.5)  # -50%
+        self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.3)  # -70%
+        self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.2)  # -80%
 
 
 class TestSecurityHeaders(unittest.TestCase):

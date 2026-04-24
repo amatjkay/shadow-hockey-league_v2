@@ -6,8 +6,8 @@
 `Final Points = (Base Points * Season Multiplier)`
 
 - **Base Points**: Determined by `AchievementType` and `League`.
-    - League 1 (L1) uses `base_points_l1`.
-    - League 2 (L2), 2.1, 2.2 use `base_points_l2`.
+  - League 1 (L1) uses `base_points_l1`.
+  - League 2 (L2), 2.1, 2.2 use `base_points_l2`.
 - **Multiplier**: Defined in the `Season` model.
 - **Auto-calculation**: Achievements MUST be auto-calculated on the server-side via `on_model_change` to ensure database integrity.
 

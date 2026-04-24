@@ -24,6 +24,11 @@
 - [x] Resolve duplicate class definitions in `services/admin.py`.
 - [x] Implement integration tests for achievements.
 - [x] Finalize icon path resolution and API synchronization.
+- [x] Resolve Admin Template recursion (`shl_master.html` fix).
+- [x] Standardize Admin endpoints (`admin.login`, `admin.logout`).
+- [x] Implement `flush_cache` admin action.
+- [x] Synchronize 800/400 point system across all tests and UI.
+- [x] Verify 100% test pass rate for all modules (69+ integration tests).
 - [x] Merge `fix` into `feature/admin-enhancement` (Stabilization complete).
 - [ ] Planning for **Historical Season View**.
 

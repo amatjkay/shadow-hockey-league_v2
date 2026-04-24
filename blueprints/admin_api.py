@@ -802,3 +802,30 @@ def bulk_add_achievements(manager_id: int) -> Any:
         db.session.rollback()
         api_logger.error(f"Error in POST /admin/api/managers/{manager_id}/achievements/bulk-add: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+@admin_api_bp.route('/managers/<int:manager_id>/achievements/<int:ach_id>', methods=['DELETE'])
+@admin_required
+def delete_achievement(manager_id: int, ach_id: int) -> Any:
+    """Delete a specific achievement for a manager."""
+    try:
+        if not current_user.has_permission('delete'):
+            return jsonify({'error': 'Insufficient permissions'}), 403
+
+        achievement = db.session.query(Achievement).filter_by(
+            id=ach_id, manager_id=manager_id
+        ).first()
+
+        if not achievement:
+            return jsonify({'error': 'Achievement not found'}), 404
+
+        db.session.delete(achievement)
+        db.session.commit()
+
+        # Invalidate cache
+        invalidate_leaderboard_cache()
+
+        return jsonify({'success': True, 'message': 'Achievement deleted successfully'})
+
+    except Exception as e:
+        db.session.rollback()
+        api_logger.error(f"Error in DELETE /admin/api/managers/{manager_id}/achievements/{ach_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

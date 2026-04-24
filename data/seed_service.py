@@ -66,12 +66,12 @@ class SeedResult:
 
 
 class SeedService:
-    \"\"\"Service for seeding database from JSON files.
+    """Service for seeding database from JSON files.
 
     Args:
         session: SQLAlchemy database session.
         seed_dir: Path to directory containing seed JSON files.
-    \"\"\"
+    """
 
     def __init__(self, session: Any, seed_dir: str | Path | None = None) -> None:
         self.session = session
@@ -79,19 +79,19 @@ class SeedService:
         self.seed_dir = Path(seed_dir) if seed_dir else Path(__file__).parent / "seed"
 
     def _load_json(self, filename: str) -> Any:
-        \"\"\"Load and parse a JSON file.\"\"\"
+        """Load and parse a JSON file."""
         filepath = self.seed_dir / filename
         if not filepath.exists():
             raise FileNotFoundError(f"Seed file not found: {filepath}")
-        with open(filepath, \"r\", encoding=\"utf-8\") as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def check_db_state(self) -> dict[str, int]:
-        \"\"\"Check current database state.
+        """Check current database state.
 
         Returns:
             Dictionary with counts of existing records.
-        \"\"\"
+        """
         return {
             "countries": self.session.query(Country).count(),
             "managers": self.session.query(Manager).count(),
@@ -99,14 +99,14 @@ class SeedService:
         }
 
     def seed_all(self, force: bool = False) -> SeedResult:
-        \"\"\"Seed all data from JSON files.
+        """Seed all data from JSON files.
 
         Args:
             force: If True, clears all data before seeding.
 
         Returns:
             SeedResult with counts of created/skipped records.
-        \"\"\"
+        """
         result = SeedResult()
 
         # Check DB state
@@ -115,8 +115,8 @@ class SeedService:
 
         # Handle force mode
         if force:
-            if existing[\"countries\"] > 0 or existing[\"managers\"] > 0:
-                logger.warning(\"Force mode: clearing all data\")
+            if existing["countries"] > 0 or existing["managers"] > 0:
+                logger.warning("Force mode: clearing all data")
                 try:
                     self.session.query(Achievement).delete()
                     self.session.query(Manager).delete()
@@ -128,28 +128,28 @@ class SeedService:
                     self.session.commit()
                 except Exception as e:
                     self.session.rollback()
-                    result.errors.append(f\"Failed to clear data: {e}\")
+                    result.errors.append(f"Failed to clear data: {e}")
                     return result
         else:
             # Safe mode: skip if data exists
-            if existing[\"managers\"] > 0:
-                logger.info(\"Database already has data. Skipping seed (use --force to reseed).\")
+            if existing["managers"] > 0:
+                logger.info("Database already has data. Skipping seed (use --force to reseed).")
                 return result
 
         # Load seed data
         try:
-            countries_data = self._load_json(\"countries.json\")
-            managers_data = self._load_json(\"managers.json\")
-            achievements_data = self._load_json(\"achievements.json\")
+            countries_data = self._load_json("countries.json")
+            managers_data = self._load_json("managers.json")
+            achievements_data = self._load_json("achievements.json")
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            result.errors.append(f\"Failed to load seed data: {e}\")
+            result.errors.append(f"Failed to load seed data: {e}")
             return result
 
         # Validate
         validation_errors = validate_all(countries_data, managers_data, achievements_data)
         for section, errors in validation_errors.items():
             for error in errors:
-                result.errors.append(f\"Validation error in {section}: {error}\")
+                result.errors.append(f"Validation error in {section}: {error}")
 
         if result.errors:
             return result
@@ -173,52 +173,52 @@ class SeedService:
         return result
 
     def _seed_countries(self, data: list[dict], result: SeedResult) -> None:
-        \"\"\"Seed countries from JSON data.\"\"\"
+        """Seed countries from JSON data."""
         for item in data:
-            code = item[\"code\"]
+            code = item["code"]
             existing = self.session.query(Country).filter_by(code=code).first()
             if existing:
-                logger.debug(f\"Skipping existing country: {code}\")
+                logger.debug(f"Skipping existing country: {code}")
                 result.countries_skipped += 1
                 continue
 
             country = Country(
                 code=code,
-                name=item[\"name\"],
-                flag_path=self.paths.resolve_flag(item[\"flag_filename\"]),
+                name=item["name"],
+                flag_path=self.paths.resolve_flag(item["flag_filename"]),
             )
             self.session.add(country)
             result.countries_created += 1
-            logger.info(f\"Created country: {code}\")
+            logger.info(f"Created country: {code}")
 
     def _seed_managers(self, data: list[dict], result: SeedResult) -> None:
-        \"\"\"Seed managers from JSON data.\"\"\"
+        """Seed managers from JSON data."""
         for item in data:
-            name = item[\"name\"]
-            country_code = item[\"country_code\"]
+            name = item["name"]
+            country_code = item["country_code"]
 
             existing = self.session.query(Manager).filter_by(name=name).first()
             if existing:
-                logger.debug(f\"Skipping existing manager: {name}\")
+                logger.debug(f"Skipping existing manager: {name}")
                 result.managers_skipped += 1
                 continue
 
             country = self.session.query(Country).filter_by(code=country_code).first()
             if not country:
-                result.errors.append(f\"Country not found: {country_code} (for manager {name})\")
+                result.errors.append(f"Country not found: {country_code} (for manager {name})")
                 continue
 
             manager = Manager(name=name, country_id=country.id)
             self.session.add(manager)
             result.managers_created += 1
-            logger.info(f\"Created manager: {name}\")
+            logger.info(f"Created manager: {name}")
 
     def _seed_reference_data(self) -> None:
-        \"\"\"Seed reference tables (AchievementType, League, Season) if they are empty.\"\"\"
+        """Seed reference tables (AchievementType, League, Season) if they are empty."""
         # 1. Achievement Types
         # Aligning with Season 25/26 baseline: TOP1 = 800
         if self.session.query(AchievementType).count() == 0:
-            logger.info(\"Seeding default AchievementTypes...\")
+            logger.info("Seeding default AchievementTypes...")
             types_data = [
                 {'code': 'TOP1', 'name': 'Top 1', 'base_points_l1': 800, 'base_points_l2': 400},
                 {'code': 'TOP2', 'name': 'Top 2', 'base_points_l1': 400, 'base_points_l2': 200},
@@ -232,60 +232,60 @@ class SeedService:
 
         # 2. Leagues
         if self.session.query(League).count() == 0:
-            logger.info(\"Seeding default Leagues...\")
+            logger.info("Seeding default Leagues...")
             leagues = [
-                (\"1\", \"Elite League\", None),
-                (\"2\", \"Second League\", None),
+                ("1", "Elite League", None),
+                ("2", "Second League", None),
             ]
             for code, name, parent in leagues:
                 self.session.add(League(code=code, name=name, parent_code=parent))
 
         # 3. Seasons
         if self.session.query(Season).count() == 0:
-            logger.info(\"Seeding default Seasons...\")
+            logger.info("Seeding default Seasons...")
             # Updated multipliers: current is 1.0, older are significantly less
             seasons = [
-                (\"21/22\", \"Season 2021/22\", 0.20),
-                (\"22/23\", \"Season 2022/23\", 0.30),
-                (\"23/24\", \"Season 2023/24\", 0.50),
-                (\"24/25\", \"Season 2024/25\", 0.80),
-                (\"25/26\", \"Season 2025/26\", 1.00),
+                ("21/22", "Season 2021/22", 0.20),
+                ("22/23", "Season 2022/23", 0.30),
+                ("23/24", "Season 2023/24", 0.50),
+                ("24/25", "Season 2024/25", 0.80),
+                ("25/26", "Season 2025/26", 1.00),
             ]
             for code, name, mult in seasons:
-                self.session.add(Season(code=code, name=name, multiplier=mult, is_active=(code == \"25/26\")))
+                self.session.add(Season(code=code, name=name, multiplier=mult, is_active=(code == "25/26")))
 
     def _seed_achievements(self, data: list[dict], result: SeedResult) -> None:
-        \"\"\"Seed achievements from JSON data.\"\"\"
+        """Seed achievements from JSON data."""
         # Cache for performance
         types = {t.code: t for t in self.session.query(AchievementType).all()}
         leagues = {l.code: l for l in self.session.query(League).all()}
         seasons = {s.code: s for s in self.session.query(Season).all()}
 
         for item in data:
-            manager_name = item[\"manager_name\"]
+            manager_name = item["manager_name"]
             manager = self.session.query(Manager).filter_by(name=manager_name).first()
             if not manager:
-                result.errors.append(f\"Manager not found: {manager_name}\")
+                result.errors.append(f"Manager not found: {manager_name}")
                 continue
 
             # Map legacy types
-            ach_type_code = item[\"type\"]
-            if ach_type_code == \"BEST_REG\":
-                ach_type_code = \"BEST\"
-            elif ach_type_code == \"HOCKEY_STICKS_AND_PUCK\":
-                ach_type_code = \"R3\" if \"Round 3\" in item[\"title\"] else \"R1\"
+            ach_type_code = item["type"]
+            if ach_type_code == "BEST_REG":
+                ach_type_code = "BEST"
+            elif ach_type_code == "HOCKEY_STICKS_AND_PUCK":
+                ach_type_code = "R3" if "Round 3" in item["title"] else "R1"
 
             # Resolve objects
             ach_type = types.get(ach_type_code)
-            league = leagues.get(item[\"league\"])
-            season = seasons.get(item[\"season\"])
+            league = leagues.get(item["league"])
+            season = seasons.get(item["season"])
 
             if not all([ach_type, league, season]):
                 missing = []
-                if not ach_type: missing.append(f\"type:{ach_type_code}\")
-                if not league: missing.append(f\"league:{item['league']}\")
-                if not season: missing.append(f\"season:{item['season']}\")
-                result.errors.append(f\"Missing reference data for {manager_name}: {', '.join(missing)}\")
+                if not ach_type: missing.append(f"type:{ach_type_code}")
+                if not league: missing.append(f"league:{item['league']}")
+                if not season: missing.append(f"season:{item['season']}")
+                result.errors.append(f"Missing reference data for {manager_name}: {', '.join(missing)}")
                 continue
 
             # Check unique constraint
@@ -303,8 +303,8 @@ class SeedService:
                 type=ach_type,
                 league=league,
                 season=season,
-                title=item[\"title\"],
-                icon_path=self.paths.resolve_cup(item[\"icon_filename\"]),
+                title=item["title"],
+                icon_path=self.paths.resolve_cup(item["icon_filename"]),
                 manager_id=manager.id,
             )
             self.session.add(achievement)

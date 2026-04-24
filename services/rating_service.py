@@ -21,32 +21,31 @@ from models import Achievement, AchievementType, League, Manager, Season
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
 # Base points for each league and achievement type combination
-# Updated: increased gap between TOP1 and other achievements to make L1 victories more meaningful
+# Unified with SeedService baselines (TOP1 L1 = 800, L2 = 400)
 BASE_POINTS: dict[tuple[str, str], int] = {
     # League 1 - Elite division
     ("1", "TOP1"): 800,
-    ("1", "TOP2"): 550,
-    ("1", "TOP3"): 450,
-    ("1", "BEST"): 50,
-    ("1", "R3"): 30,
-    ("1", "R1"): 10,
-    # League 2 - Second division (50% of L1 values for TOP, similar for others)
-    ("2", "TOP1"): 300,
+    ("1", "TOP2"): 400,
+    ("1", "TOP3"): 200,
+    ("1", "BEST"): 200,
+    ("1", "R3"): 100,
+    ("1", "R1"): 50,
+    # League 2 - Second division (50% of L1 values)
+    ("2", "TOP1"): 400,
     ("2", "TOP2"): 200,
     ("2", "TOP3"): 100,
-    ("2", "BEST"): 40,
-    ("2", "R3"): 20,
-    ("2", "R1"): 5,
+    ("2", "BEST"): 100,
+    ("2", "R3"): 50,
+    ("2", "R1"): 25,
 }
 
-# Season multipliers - current season is baseline (1.00), older seasons have discount
-# Logic: recent achievements are more valuable than old ones
+# Season multipliers - current season is baseline (1.00), historical ones decrease significantly
 SEASON_MULTIPLIER: dict[str, float] = {
-    "25/26": 1.00,  # Current/latest season - baseline
-    "24/25": 0.95,  # Previous season - 5% discount
-    "23/24": 0.90,  # Older season - 10% discount
-    "22/23": 0.85,  # Oldest season - 15% discount
-    "21/22": 0.80,  # Ancient season - 20% discount
+    "25/26": 1.00,  # Baseline
+    "24/25": 0.80,
+    "23/24": 0.50,
+    "22/23": 0.30,
+    "21/22": 0.20,
 }
 
 # Human-readable labels for achievement kinds
