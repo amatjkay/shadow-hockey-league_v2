@@ -1,10 +1,5 @@
 # PROJECT_KNOWLEDGE.md — Core Principles & Business Rules
 
-> **This file contains the foundational logic and business rules for Shadow Hockey League v2.**
-> It is the primary reference for AI agents to ensure logical consistency.
-
----
-
 ## 1. Achievement & Point System
 
 ### Point Calculation Formula
@@ -18,46 +13,30 @@
 
 ### Reference Data Baselines
 - **TOP1**: L1 = 800 points | L2 = 400 points.
+- **TOP2**: L1 = 400 points | L2 = 200 points.
+- **TOP3/BEST**: L1 = 200 points | L2 = 100 points.
 - **Baseline Season**: Season 25/26 (Multiplier = 1.0).
-- **Historical Seasons**: Multipliers decrease as seasons get older (e.g., S23/24 = 0.5).
+- **Historical Seasons**: Multipliers decrease significantly (S24/25 = 0.8, S23/24 = 0.5, S22/23 = 0.3, S21/22 = 0.2).
+
+## 2. Infrastructure & Tech Stack
+
+- **Core**: Flask 3.1+ (Application Factory pattern in `app.py`).
+- **Database**: SQLite (`dev.db`) + SQLAlchemy 2.0. Migrations via Alembic.
+- **Admin**: Flask-Admin + AJAX-powered achievement management in `services/admin.py`.
+- **Asset Resolution**: Centralized icon pathing in `AchievementType.get_icon_url()`. Flags normalized to uppercase (e.g., `RUS.png`).
+
+## 3. Development Standards
+
+- **Type Hints**: 100% coverage mandatory for all new code.
+- **Testing**: Target ≥87% coverage. Run via `make test` or `venv/bin/pytest`.
+- **Audit**: All admin actions logged to `AuditLog`. Snapshots taken before deletion.
+- **Memory Bank**: Keep `docs/activeContext.md` and `docs/progress.md` updated.
+
+## 4. Automation & Seeding
+
+- `seed_db.py` handles idempotent data population.
+- `--force` flag clears the database for a clean reseed (destructive).
+- Mapping for legacy types (`BEST_REG`, `HOCKEY_STICKS_AND_PUCK`) is handled in `SeedService`.
 
 ---
-
-## 2. Icon & Asset Resolution
-
-### Flags
-- Flags are stored in `/static/img/flags/`.
-- Filenames MUST be uppercase (e.g., `RUS.png`, `CAN.png`).
-- Resolution is case-insensitive in logic but sensitive on the Linux filesystem.
-
-### Achievement Icons
-- Icons are stored in `/static/img/cups/`.
-- **Standard Pattern**: `{achievement_type_code}.svg` (lowercase).
-- **Centralized Resolution**: Use `AchievementType.get_icon_url()` in Python or the `icon_path` field from API responses in JS.
-- **Fallback**: `/static/img/cups/default.svg`.
-
----
-
-## 3. Database Constraints
-
-- **Unique Achievements**: A manager cannot have two achievements of the same `Type` in the same `League` and `Season`.
-- **League Compatibility**: Leagues 2.1 and 2.2 are strictly valid only for seasons starting from 2025 (Season 25/26).
-
----
-
-## 4. UI/UX Standards
-
-- **Admin Modal**: Achievement management in the Manager Edit view uses a centralized AJAX modal to prevent form submission conflicts.
-- **Tandem Detection**: Any manager name containing a comma or starting with "Tandem:" is flagged as a tandem in the UI.
-- **Caching**: The leaderboard is heavily cached via Redis. Any mutation to managers or achievements MUST trigger `invalidate_leaderboard_cache()`.
-
----
-
-## 5. Security & Auditing
-
-- **Audit Logs**: Every admin action (CREATE/UPDATE/DELETE) is logged with a JSON diff of changes.
-- **CSRF**: All POST/PUT/DELETE actions require a CSRF token, except for specific internal APIs (exempted in `app.py`).
-
----
-
 _Last updated: 2026-04-24_
