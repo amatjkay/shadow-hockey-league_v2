@@ -24,7 +24,7 @@
 - [x] Resolve duplicate class definitions in `services/admin.py`.
 - [x] Implement integration tests for achievements.
 - [x] Finalize icon path resolution and API synchronization.
-- [x] Preparation for merging `fix` into `main`.
+- [x] Merge `fix` into `feature/admin-enhancement` (Stabilization complete).
 - [ ] Planning for **Historical Season View**.
 
 ---

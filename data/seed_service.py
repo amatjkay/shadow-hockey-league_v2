@@ -83,7 +83,7 @@ class SeedService:
         filepath = self.seed_dir / filename
         if not filepath.exists():
             raise FileNotFoundError(f"Seed file not found: {filepath}")
-        with open(filepath, "r", encoding=\"utf-8\") as f:
+        with open(filepath, \"r\", encoding=\"utf-8\") as f:
             return json.load(f)
 
     def check_db_state(self) -> dict[str, int]:
