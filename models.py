@@ -139,7 +139,7 @@ class AchievementType(db.Model):
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
     base_points_l1 = db.Column(db.Integer, nullable=False, default=0)  # Base points for League 1
     base_points_l2 = db.Column(db.Integer, nullable=False, default=0)  # Base points for League 2
-    icon_path = db.Column(db.String(100), nullable=True, default='/static/img/cups/default.svg')
+    icon_path = db.Column(db.String(100), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     def __repr__(self) -> str:
