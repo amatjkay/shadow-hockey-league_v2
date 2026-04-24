@@ -1,43 +1,63 @@
-# База знаний проекта Shadow Hockey League v2
+# PROJECT_KNOWLEDGE.md — Core Principles & Business Rules
 
-## Архитектура и технический стек
+> **This file contains the foundational logic and business rules for Shadow Hockey League v2.**
+> It is the primary reference for AI agents to ensure logical consistency.
 
-*   **Ядро:** Фреймворк Flask версии 3.1+ с использованием паттерна Application Factory (`app.py`).
-*   **База данных:** SQLite (данные хранятся в файле `dev.db`), взаимодействие с базой осуществляется через ORM SQLAlchemy 2.0.
-*   **Кэширование:** Реализовано с помощью Redis (библиотека Flask-Caching), причем кэш автоматически сбрасывается при любых изменениях данных.
-*   **Безопасность:** Для всех веб-форм включена CSRF-защита, а доступ к API защищен специальными ключами.
-*   **Аудит данных (Audit Trail):** Система ведет логирование всех действий администратора. Кроме того, перед удалением любых данных делается их полный снимок (Snapshot), чтобы избежать безвозвратной потери информации.
+---
 
-## Стандарты разработки
+## 1. Achievement & Point System
 
-1.  **Строгая типизация:** Использовать Python Type Hints во всех методах.
-2.  **Базы данных:** Вносить любые изменения в структуру таблиц баз данных только через миграции Alembic.
-3.  **Управление версиями:** Связывать все Git-ветки и Pull Request с конкретными задачами в трекере Linear (обязательно использовать префикс `TIK-` и формат `Fixes TIK-ID` в описании PR).
-4.  **Документация:** Весь код и техническая документация должны вестись на английском языке, тогда как аналитика и обсуждения (тикеты, PR descriptions) могут вестись на русском.
-5.  **PROJECT_KNOWLEDGE:** Обязательное обновление этого файла в конце выполнения любой задачи, если в ходе ее реализации были изменены модели данных или произведены масштабные изменения в архитектуре.
+### Point Calculation Formula
+`Final Points = (Base Points * Season Multiplier)`
 
-## CI/CD и Качество кода
+- **Base Points**: Determined by `AchievementType` and `League`.
+    - League 1 (L1) uses `base_points_l1`.
+    - League 2 (L2), 2.1, 2.2 use `base_points_l2`.
+- **Multiplier**: Defined in the `Season` model.
+- **Auto-calculation**: Achievements MUST be auto-calculated on the server-side via `on_model_change` to ensure database integrity.
 
-1.  **Автоматизация (CI/CD):** Настроены GitHub Actions (`deploy.yml`), которые выполняют полный цикл проверок при каждом push/PR:
-    -   Форматирование (`black`, `isort`)
-    -   Статический анализ (`flake8`, `mypy`)
-    -   Автоматические тесты (`pytest` с Redis-сервисом)
-2.  **Makefile:** Все операции (установка, тесты, линтинг, миграции) выполняются через `Makefile` с использованием бинарных файлов из виртуального окружения (`venv/bin/`).
-3.  **Контроль стабильности:**
-    - `scripts/benchmark.py` — замер производительности (среднее время генерации лидерборда < 1ms).
-    - `scripts/audit_data.py` — проверка целостности данных и корректности формул (100% консистентность).
-    - Команды интегрированы в `Makefile` (`make benchmark`, `make audit`).
-4.  **Чистота кода:** Удалена устаревшая модель `Match`, так как она не использовалась в текущей архитектуре. База данных очищена через миграцию.
+### Reference Data Baselines
+- **TOP1**: L1 = 800 points | L2 = 400 points.
+- **Baseline Season**: Season 25/26 (Multiplier = 1.0).
+- **Historical Seasons**: Multipliers decrease as seasons get older (e.g., S23/24 = 0.5).
 
-## Оптимизация и Производительность
+---
 
-1.  **Проблема N+1 запросов:** При массовом чтении связанных объектов обязательно использовать `joinedload`. Это внедрено в методах `get_managers`.
-2.  **Типизация (Type Hints):** Код проекта имеет 100% покрытие аннотациями типов в ключевых сервисах и blueprint-ах. Любой новый код ОБЯЗАН содержать type hints.
+## 2. Icon & Asset Resolution
 
-## Бизнес-логика и Рейтинги
+### Flags
+- Flags are stored in `/static/img/flags/`.
+- Filenames MUST be uppercase (e.g., `RUS.png`, `CAN.png`).
+- Resolution is case-insensitive in logic but sensitive on the Linux filesystem.
 
-1.  **Формула расчета:** `Рейтинг = Базовые_очки(лига, тип) × Множитель_сезона`.
-2.  **Лиги:** Поддерживаются элитная (L1) и вторая (L2) лиги. Очки в L1 значительно выше для подчеркивания статуса дивизиона.
-3.  **Множители сезонов:** Чем старее достижение, тем ниже его вес (дисконт 5% за каждый год).
-4.  **Автоматизация:** Очки за достижения рассчитываются автоматически через SQLAlchemy триггеры (`before_insert`, `before_update`).
-5.  **Тандемы:** Поддерживается учет работы двух менеджеров как одной команды (`is_tandem`).
+### Achievement Icons
+- Icons are stored in `/static/img/cups/`.
+- **Standard Pattern**: `{achievement_type_code}.svg` (lowercase).
+- **Centralized Resolution**: Use `AchievementType.get_icon_url()` in Python or the `icon_path` field from API responses in JS.
+- **Fallback**: `/static/img/cups/default.svg`.
+
+---
+
+## 3. Database Constraints
+
+- **Unique Achievements**: A manager cannot have two achievements of the same `Type` in the same `League` and `Season`.
+- **League Compatibility**: Leagues 2.1 and 2.2 are strictly valid only for seasons starting from 2025 (Season 25/26).
+
+---
+
+## 4. UI/UX Standards
+
+- **Admin Modal**: Achievement management in the Manager Edit view uses a centralized AJAX modal to prevent form submission conflicts.
+- **Tandem Detection**: Any manager name containing a comma or starting with "Tandem:" is flagged as a tandem in the UI.
+- **Caching**: The leaderboard is heavily cached via Redis. Any mutation to managers or achievements MUST trigger `invalidate_leaderboard_cache()`.
+
+---
+
+## 5. Security & Auditing
+
+- **Audit Logs**: Every admin action (CREATE/UPDATE/DELETE) is logged with a JSON diff of changes.
+- **CSRF**: All POST/PUT/DELETE actions require a CSRF token, except for specific internal APIs (exempted in `app.py`).
+
+---
+
+_Last updated: 2026-04-24_
