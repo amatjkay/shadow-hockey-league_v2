@@ -136,6 +136,16 @@
       >
         <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
 
+        <div class="filters-bar" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+          <label for="season-filter" style="font-weight: 600;">Сезон:</label>
+          <select id="season-filter" class="form-control" style="max-width: 200px;" onchange="window.location.href='/?season=' + this.value">
+            <option value="">Все сезоны (Lifetime)</option>
+            <option value="1" {% if request.args.get('season') == '1' %}selected{% endif %}>Сезон 23/24</option>
+            <option value="2" {% if request.args.get('season') == '2' %}selected{% endif %}>Сезон 24/25</option>
+            <option value="3" {% if request.args.get('season') == '3' %}selected{% endif %}>Сезон 25/26 (Базовый)</option>
+          </select>
+        </div>
+
         {% if not rating_rows %}
         <div class="empty-state">
           <p class="empty-state__message">
@@ -231,8 +241,9 @@
                 <td class="table-items manager-cell">
                   <img
                     src="{{ row.country }}"
-                    alt=""
+                    alt="{{ row.country_code }}"
                     class="table-row__countries"
+                    onerror="this.src='https://flagcdn.com/w40/un.png'"
                   />
                   <span class="manager-name">{{ row.display_name }}</span>
                   {% if row.is_tandem %}<span

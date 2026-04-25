@@ -12,11 +12,13 @@
 - **Auto-calculation**: Achievements MUST be auto-calculated on the server-side via `on_model_change` to ensure database integrity.
 
 ### Reference Data Baselines
-- **TOP1**: L1 = 800 points | L2 = 400 points.
-- **TOP2**: L1 = 400 points | L2 = 200 points.
-- **TOP3/BEST**: L1 = 200 points | L2 = 100 points.
+- **TOP1**: L1 = 800 points | L2 = 300 points.
+- **TOP2**: L1 = 550 points | L2 = 200 points.
+- **TOP3**: L1 = 450 points | L2 = 100 points.
+- **BEST_REG**: L1 = 50 points | L2 = 25 points.
+- **ROUND_1**: L1 = 10 points | L2 = 5 points.
 - **Baseline Season**: Season 25/26 (Multiplier = 1.0).
-- **Historical Seasons**: Multipliers decrease significantly (S24/25 = 0.8, S23/24 = 0.5, S22/23 = 0.3, S21/22 = 0.2).
+- **Historical Seasons**: Multipliers decrease by 0.05 each year (S24/25 = 0.95, S23/24 = 0.90, S22/23 = 0.85, S21/22 = 0.80).
 
 ## 2. Infrastructure & Tech Stack
 

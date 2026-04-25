@@ -186,9 +186,8 @@ class ManagerModelView(SHLModelView):
     
     column_list = ('name', 'country', 'achievements_count', 'is_active')
     column_searchable_list = ('name',)
-    column_filters = ('country.name', 'is_active')
-    
-    column_select_related_list = ('country',)
+    # column_filters = (Country.name, 'is_active')
+    # column_select_related_list = [Manager.country]
     
     column_labels = {
         'achievements_count': 'Achievements'
@@ -213,10 +212,9 @@ class AchievementModelView(SHLModelView):
     """View for managing individual achievements."""
     
     column_list = ('manager', 'type', 'league', 'season', 'final_points', 'updated_at')
-    column_searchable_list = ('manager.name', 'title')
-    column_filters = ('type.code', 'league.code', 'season.code', 'final_points')
-    
-    column_select_related_list = ('manager', 'type', 'league', 'season')
+    # column_searchable_list = (Manager.name, 'title')
+    # column_filters = (AchievementType.code, League.code, Season.code, 'final_points')
+    # column_select_related_list = [Achievement.manager, Achievement.type, Achievement.league, Achievement.season]
     
     # Validation Rules
     form_ajax_refs = {

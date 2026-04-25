@@ -173,7 +173,7 @@ def calculate_achievement_points(
     }
 
 
-def build_leaderboard(session: Session) -> list[dict[str, Any]]:
+def build_leaderboard(session: Session, season_id: int | None = None) -> list[dict[str, Any]]:
     """Build the leaderboard with all managers and their ratings.
 
     Uses eager loading (joinedload) to prevent N+1 query problem:
@@ -212,12 +212,14 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
         total_points = 0
 
         # Safely handle country (BUG FIX: manager.country might be None in some tests)
-        country_flag = manager.country.flag_path if manager.country else ""
+        country_flag = manager.country.flag_display_url if manager.country else ""
         country_code = manager.country.code if manager.country else "???"
 
         for achievement in manager.achievements:
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)
+            
+            # total_points should always be cumulative (Lifetime) to match production
             total_points += parsed["points"]
 
         rows.append(

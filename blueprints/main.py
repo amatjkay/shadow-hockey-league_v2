@@ -29,7 +29,10 @@ def index() -> str | tuple[str, int]:
     try:
         start_time = time.time()
 
-        leaderboard_data = build_leaderboard(db.session)
+        season_id_raw = request.args.get("season")
+        season_id = int(season_id_raw) if season_id_raw and season_id_raw.isdigit() else None
+
+        leaderboard_data = build_leaderboard(db.session, season_id=season_id)
 
         elapsed_ms = round((time.time() - start_time) * 1000)
 
