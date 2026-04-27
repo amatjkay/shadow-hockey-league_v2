@@ -63,7 +63,7 @@
 
 | Server | Purpose | Constraint |
 | :--- | :--- | :--- |
-| `filesystem` | Read/write files in project root | Scoped to `/home/tiki/dev/shadow-hockey-league_v2` |
+| `filesystem` | Read/write files in project root | Scoped to `<PROJECT_ROOT>` (see `.windsurf/mcp_config.example.json`) |
 | `github` | Repository operations, PRs, issues | Token-authenticated |
 | `sqlite` | Direct query access to `dev.db` | **Read-only by default** (see AGENTS.md) |
 | `context7` | Fresh library/framework documentation | API-key authenticated |

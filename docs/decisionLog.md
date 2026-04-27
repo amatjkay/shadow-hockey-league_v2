@@ -157,6 +157,56 @@ season.
 
 ---
 
+## ADR-006: Untrack `.env` and vendored `mcp-servers/`; switch MCP servers to `npx`/`uvx`
+
+**Date:** 2026-04-27
+**Status:** Active (Phase 1 — working tree). Phase 2 (history rewrite via `git filter-repo`) pending owner approval.
+
+### Context
+- `.env` was tracked in `main` (blob `3b9c79c8…`) and contained a real third-party API key.
+  Root cause: `.gitignore` was wrapped in Markdown code fences (` ``` ` on lines 1 and 63),
+  making every rule (including `.env`) inert.
+- `mcp-servers/` was a committed `node_modules`-style tree (505 MB, 18 178 files in the index),
+  bloating clones and CI checkout.
+- `AGENTS.md §4` describes 8 MCP servers but the repo had no client config, so the rules
+  were descriptive only.
+
+### Decision
+1. Fix `.gitignore` (drop fences, add explicit rules for `.env*`, `mcp-servers/`, `node_modules/`,
+   `*.db`, IDE artefacts).
+2. `git rm --cached .env` and `git rm -r --cached mcp-servers/` — keep working-tree copies but
+   stop tracking.
+3. Add `.windsurf/mcp_config.example.json` describing all 8 servers from `AGENTS.md §4`,
+   launched via `npx`/`uvx` with secrets via `${env:VARNAME}`.
+4. Replace hard-coded `/home/tiki/...` paths in `docs/techContext.md` and
+   `.agents/skills/db-migration/SKILL.md` with `<PROJECT_ROOT>`.
+5. Document `GEMINI_API_KEY` in `.env.example` as an optional, never-committed variable.
+6. Defer git-history rewrite to a separate, owner-approved phase (`git filter-repo --path .env
+   --path mcp-servers/ --invert-paths` followed by force-push and a coordinated re-clone).
+
+### Rationale
+- Phase 1 is non-destructive and enforceable on-merge: the broken `.gitignore` was the root
+  cause of the leak and must be fixed regardless of the history rewrite.
+- Vendoring 505 MB of npm packages slows every clone and CI run; `npx` resolves the same
+  packages on-demand and stays in sync with upstream patches.
+- A single source of truth for MCP wiring (`.windsurf/mcp_config.example.json`) makes
+  `AGENTS.md §4` operational rather than aspirational.
+- Splitting Phase 1 (untrack) from Phase 2 (history rewrite) avoids force-pushing without
+  explicit approval and lets the leaked credential be rotated independently.
+
+### Consequences
+- The leaked credential remains in git history until Phase 2 completes — the owner must
+  rotate (or has rotated) the key out-of-band; the value alone is not sufficient evidence
+  of safety.
+- Existing local clones still contain `mcp-servers/` until users run `git clean`/re-clone.
+- `notebooklm` MCP entry is `disabled: true` in the template (no official server published);
+  enabling requires choosing a vetted community package.
+- Conflict between `AGENTS.md §3` (`coder` not allowed `sqlite`) and the `db-migration` skill
+  (built on `sqlite` MCP) is **left untouched in this PR** and tracked as an open item to be
+  resolved in a follow-up.
+
+---
+
 _Template for new entries:_
 
 ```markdown

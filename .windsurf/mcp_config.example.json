@@ -1,0 +1,82 @@
+{
+  "_comment": "Windsurf / Codeium MCP configuration template for shadow-hockey-league_v2. Copy to ~/.codeium/windsurf/mcp_config.json and replace placeholders. Secrets MUST come from environment variables, never hard-coded.",
+  "_source_of_truth": "AGENTS.md §4 — MCP Server Usage Rules",
+  "_paths": {
+    "user_config": "~/.codeium/windsurf/mcp_config.json",
+    "project_root": "<PROJECT_ROOT>"
+  },
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "<PROJECT_ROOT>"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "sqlite": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-sqlite",
+        "--db-path",
+        "<PROJECT_ROOT>/dev.db"
+      ],
+      "_constraint": "Read-only by default per AGENTS.md §2 — never run DROP/DELETE/ALTER/UPDATE through this server without explicit user approval."
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"
+      }
+    },
+    "duckduckgo": {
+      "command": "uvx",
+      "args": [
+        "duckduckgo-mcp-server"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "notebooklm": {
+      "_status": "PLACEHOLDER — no official MCP server published; verify community package before enabling.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-notebooklm"
+      ],
+      "env": {
+        "NOTEBOOKLM_COOKIE": "${env:NOTEBOOKLM_COOKIE}"
+      },
+      "disabled": true
+    },
+    "linear": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-linear"
+      ],
+      "env": {
+        "LINEAR_API_KEY": "${env:LINEAR_API_KEY}"
+      }
+    }
+  }
+}

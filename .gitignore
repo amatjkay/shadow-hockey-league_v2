@@ -25,15 +25,18 @@ coverage.xml
 
 # Database
 *.db
+*.db-journal
+dev.db.backup.*
 instance/*.db
 
 # Logs
 logs/
 *.log
 
-# Environment
+# Environment / secrets
 .env
 .env.local
+.env.*.local
 *.env.*
 !.env.example
 
@@ -53,10 +56,19 @@ pa_deploy_key*
 .DS_Store
 Thumbs.db
 
-# AI/LLM Context (ignore session state, track config and roles)
+# AI agents — track config and roles, ignore session state
+.agents/context/
+.agents/BACKUP*
+
+# Legacy AI/LLM Context — kept ignored for safety in case they ever reappear
 .qwen/context/
 .qwen/BACKUP*
 .qwen/migrations/
-!.qwen/config.json
-!.qwen/agents/
 
+# Vendored MCP servers (npm node_modules-style tree).
+# We launch MCP servers via npx/uvx; this directory must not be committed.
+mcp-servers/
+node_modules/
+
+# Windsurf — track only the example, ignore the user's local config
+.windsurf/mcp_config.json

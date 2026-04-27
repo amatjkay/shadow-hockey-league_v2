@@ -11,7 +11,7 @@ for inspection and Alembic for migration execution.
 - Any schema change whatsoever
 
 ## Prerequisites
-- `sqlite` MCP server connected to `/home/tiki/dev/shadow-hockey-league_v2/dev.db`
+- `sqlite` MCP server connected to `<PROJECT_ROOT>/dev.db`
 - Alembic configured (`alembic.ini` present in project root)
 - Virtual environment activated
 
@@ -53,7 +53,7 @@ Edit `models.py` to reflect the desired schema change:
 ### Step 3: Generate Alembic Migration
 ```bash
 # Generate migration script (do NOT run automatically — present to user)
-cd /home/tiki/dev/shadow-hockey-league_v2
+cd <PROJECT_ROOT>
 venv/bin/alembic revision --autogenerate -m "descriptive_migration_name"
 ```
 

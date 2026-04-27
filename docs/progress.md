@@ -33,6 +33,42 @@
 
 ---
 
+## 2026-04-27: Security & MCP cleanup (Phase 1)
+
+> Stacked on top of T-001/T-005..T-019. Completes the cleanup that PR #13 started
+> (`.env`/`.gitignore` part) plus adds the orthogonal `mcp-servers/` untrack and
+> Windsurf MCP-client wiring.
+
+### Completed
+- [x] `git rm -r --cached mcp-servers/` — 18 178 files untracked, ~505 MB removed from
+      working-tree pressure on clone. (Builds on PR #13's `.env`/`.gitignore` fix.)
+- [x] Added `.windsurf/mcp_config.example.json` covering all 8 MCP servers from
+      `AGENTS.md §4`, launched via `npx`/`uvx` with `${env:...}` placeholders.
+- [x] Replaced hard-coded `/home/tiki/...` paths with `<PROJECT_ROOT>` in
+      `docs/techContext.md` and `.agents/skills/db-migration/SKILL.md`.
+- [x] README: replaced `.qwen/` references with current `.agents/` layout; added
+      "AI-агенты и MCP" section with Windsurf setup steps; consolidated test/coverage
+      messaging with PR #14's wording.
+- [x] Logged decision as **ADR-006** in `docs/decisionLog.md` (sits alongside ADR-005
+      from PR #14, no renumbering needed).
+
+### In Progress
+- [ ] Phase 2 — history rewrite via `git filter-repo --path .env --path mcp-servers/
+      --invert-paths` and coordinated force-push to `main`. **Blocked on owner approval.**
+
+### Blockers
+- [!] Conflict between `AGENTS.md §3` (`coder` not allowed `sqlite`) and
+      `.agents/skills/db-migration/SKILL.md` (built on `sqlite` MCP). Tracked as open item;
+      not addressed in this PR to keep the change set minimal.
+- [!] `Makefile` `make test` (`pytest -n auto`) does not enforce coverage; the dropped
+      "87% coverage" badge will only return when CI gates on `make coverage --cov-fail-under`.
+
+### Ready for Review
+- See PR for Phase 1 changes. Reviewer must validate against `AGENTS.md §2` (Secret
+  Management) and `AGENTS.md §4` (MCP Server Usage Rules).
+
+---
+
 ## 2026-04-23: Stability & Data Integrity Audit
 
 ### Completed

@@ -9,6 +9,8 @@
 [![Tests](https://img.shields.io/badge/Tests-383%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
+> Точное число тестов и фактический процент покрытия — выводятся командами `make test` и `make coverage`. Бейджи без CI-источника удалены: считайте только результаты `pytest`.
+
 ---
 
 ## 🚀 Быстрый старт
@@ -103,12 +105,19 @@ shadow-hockey-league_v2/
 │   ├── seed/                   #   Исходные данные (JSON)
 │   ├── export/                 #   Экспорт из БД (JSON)
 │   └── schemas.py              #   Валидация JSON схем
-├── tests/                      # Pytest тесты (296 тестов, ~87%)
+├── tests/                      # Pytest тесты
 │   ├── integration/            #   Интеграционные тесты
 │   └── e2e/                    #   E2E тесты
-├── docs/                       # Документация
-├── scripts/                    # Утилиты (create_admin, check_*)
-├── .qwen/                      # AI Agent конфигурация
+├── docs/                       # Memory Bank: activeContext, techContext,
+│                               # progress, decisionLog, projectbrief, ADR-документация
+├── scripts/                    # Утилиты (create_admin, check_*, benchmark, audit_data)
+├── .agents/                    # AI Agent конфигурация
+│   ├── agents/                 #   Роли: architect, coder, reviewer
+│   └── skills/                 #   Воспроизводимые процедуры (db-migration, ...)
+├── .windsurf/                  # Конфиг MCP-клиента (template; локальный — игнорируется)
+├── AGENTS.md                   # Конституция для AI-агентов (memory bank, MCP-правила)
+├── PROJECT_KNOWLEDGE.md        # База знаний (бизнес-правила, архитектура)
+├── .antigravityrules           # Базовые правила кодирования и стека
 ├── requirements.txt            # Python зависимости
 ├── Makefile                    # Команды разработки
 └── alembic.ini                 # Alembic миграции
@@ -122,7 +131,8 @@ shadow-hockey-league_v2/
 | ------------- | ----------------------------------------- |
 | `make setup`  | Установка зависимостей + инициализация БД |
 | `make run`    | Запуск сервера разработки                 |
-| `make test`   | Запуск тестов (383 теста)                |
+| `make test`   | Запуск тестов (383 теста, `pytest -n auto`)   |
+| `make coverage` | Тесты + отчёт покрытия (`--cov`)        |
 | `make lint`   | Проверка кода (flake8)                    |
 | `make format` | Форматирование (black + isort)            |
 | `make clean`  | Очистка временных файлов                  |
@@ -131,7 +141,7 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-**383 теста.** Целевое покрытие — `≥ 87%` (`AGENTS.md §5`); фактическое фиксируйте прогоном `make coverage`.
+**383 теста.** Цель покрытия — `≥ 87%` (`AGENTS.md §5`); фактическое фиксируйте прогоном `make coverage` (в том числе в CI — `.github/workflows/deploy.yml`).
 
 - **Unit:** rating service, validation, cache, API auth, models
 - **Integration:** routes, API CRUD, database constraints, cache invalidation
@@ -228,6 +238,42 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 | [`docs/GITHUB_CLI.md`](docs/GITHUB_CLI.md)           | Работа с GitHub через CLI      |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок           |
 | [`CHANGELOG.md`](CHANGELOG.md)                       | История изменений              |
+
+---
+
+## 🤖 AI-агенты и MCP
+
+Проект использует протокол **Memory Bank** и набор MCP-серверов для работы AI-агентов.
+Источники истины:
+
+- [`AGENTS.md`](AGENTS.md) — конституция агентов, правила MCP, разделение ролей.
+- [`.antigravityrules`](.antigravityrules) — стандарты кода, тестов, бизнес-логики.
+- [`.agents/agents/`](.agents/agents/) — описания ролей `architect`, `coder`, `reviewer`.
+- [`.agents/skills/`](.agents/skills/) — воспроизводимые процедуры (db-migration, feature-research, linear-sync).
+- [`docs/activeContext.md`](docs/activeContext.md), [`docs/techContext.md`](docs/techContext.md), [`docs/progress.md`](docs/progress.md), [`docs/decisionLog.md`](docs/decisionLog.md) — Memory Bank.
+
+### MCP setup (Windsurf / Codeium)
+
+Шаблон конфига: [`.windsurf/mcp_config.example.json`](.windsurf/mcp_config.example.json).
+Локальный конфиг (`.windsurf/mcp_config.json` и `~/.codeium/windsurf/mcp_config.json`)
+не коммитится — он содержит токены.
+
+```bash
+# 1. Скопировать шаблон в пользовательский конфиг Windsurf:
+mkdir -p ~/.codeium/windsurf
+cp .windsurf/mcp_config.example.json ~/.codeium/windsurf/mcp_config.json
+
+# 2. Заменить <PROJECT_ROOT> на абсолютный путь к репозиторию
+#    и проставить переменные окружения:
+#      GITHUB_PERSONAL_ACCESS_TOKEN, CONTEXT7_API_KEY, LINEAR_API_KEY, ...
+
+# 3. Перезапустить Windsurf, проверить, что серверы поднялись.
+```
+
+> ⚠️ Серверы запускаются через `npx`/`uvx`. **Закоммиченных** node_modules в репо нет:
+> каталог `mcp-servers/` (если присутствует локально) находится в `.gitignore`.
+> `notebooklm` в шаблоне помечен `disabled: true` — официального MCP-сервера нет,
+> подключайте только если есть проверенный community-пакет.
 
 ---
 
