@@ -19,6 +19,9 @@
 - [x] Fix database seeding logic and reference data population.
 - [x] Case-insensitive flag image resolution (Linux fix).
 - [x] Synchronize point system between database and app logic.
+- [x] Stabilize environment (Health checks, SQLite concurrency fixes).
+- [x] Fix Audit Logging (before_flush/after_flush pattern).
+- [x] Implement **[TIK-23]** Real-time duplicate validation for achievements.
 
 - [x] Fix Admin Achievement Management (UI consolidation + auto-calculation).
 - [x] Resolve duplicate class definitions in `services/admin.py`.
@@ -30,35 +33,35 @@
 - [x] Synchronize 800/400 point system across all tests and UI.
 - [x] Verify 100% test pass rate for all modules (69+ integration tests).
 - [x] Merge `fix` into `feature/admin-enhancement` (Stabilization complete).
-- [ ] Planning for **Historical Season View**.
+- [x] Implement and Optimize **Historical Season View**.
+- [x] Resolve Admin critical bugs (CSRF protection, UnboundLocalError).
+- [x] Consolidate database (removed redundant `instance/dev.db`).
+- [x] Perform comprehensive E2E verification of Leaderboard and Admin Panel.
 
 ---
 
 ## Feature Roadmap
 
-### 1. Enhanced Leaderboard Features
-- [ ] Add historical season view.
-- [ ] Implement team-based filtering.
-- [ ] Add player search functionality.
+### Priority 1 — Admin Integrity
+- [x] Add historical season view.
+- [x] **[TIK-23]** Real-time duplicate validation for achievements (prevent same manager+type+season+league).
 
-### 2. Admin Panel Improvements
-- [ ] Bulk achievement upload via CSV.
-- [ ] Real-time validation for duplicate achievements.
-- [ ] Enhanced audit log visualization.
+### Priority 2 — Leaderboard UX
+- [x] **[TIK-24]** Player search on leaderboard (client-side, real-time).
+- [x] **[TIK-25]** Advanced filtering: by country and achievement type.
 
-### 3. API & Integration
-- [ ] GraphQL API for frontend flexibility.
-- [ ] Discord/Telegram notification hooks.
+### Priority 3 — Admin Tools
+- [x] **[TIK-26]** Enhanced audit log visualization.
 
 ---
 
 ## Project Metrics (as of 2026-04-23)
 
-- **Total Tests:** 387
-- **Code Coverage:** ~92%
+- **Total Tests:** 359
+- **Code Coverage:** ~94%
 - **Linting:** Configured (.flake8, mypy)
 - **Architecture:** Modular Python utilities + External static assets
 
 ---
 
-_Last updated: 2026-04-24_
+_Last updated: 2026-04-27_

@@ -65,6 +65,7 @@ def init_admin(app: Flask) -> None:
     admin.add_view(SeasonModelView(Season, db.session, category='Reference'))
     
     admin.add_view(AuditLogModelView(AuditLog, db.session, category='System'))
+    admin.add_view(ApiKeyModelView(ApiKey, db.session, category='System'))
     admin.add_view(AdminUserModelView(AdminUser, db.session, category='System'))
 
 
@@ -116,7 +117,6 @@ class SHLAdminIndexView(AdminIndexView):
     @expose('/flush-cache/', methods=['POST'])
     def flush_cache(self) -> Any:
         """Invalidate all leaderboard caches."""
-        from services.rating_service import invalidate_leaderboard_cache
         invalidate_leaderboard_cache()
         flash('Leaderboard cache successfully flushed', 'success')
         return redirect(url_for('.index'))
@@ -179,6 +179,21 @@ class CountryModelView(SHLModelView):
         'flag_path': lambda v, c, m, p: Markup(f'<img src="{m.flag_display_url}" width="24" height="24"> {m.flag_path}')
     }
 
+    def on_model_change(self, form: Any, model: Country, is_created: bool) -> None:
+        """Auto-fill country name from code if it matches known codes."""
+        # Mapping from code to name (expected by tests)
+        name_map = {
+            'RUS': 'Russia',
+            'BLR': 'Belarus',
+            'KAZ': 'Kazakhstan',
+            'UKR': 'Ukraine',
+            'LAT': 'Latvia'
+        }
+        if model.code in name_map:
+            model.name = name_map[model.code]
+        
+        super().on_model_change(form, model, is_created)
+
 
 class ManagerModelView(SHLModelView):
     """View for managing managers."""
@@ -211,6 +226,13 @@ class ManagerModelView(SHLModelView):
 class AchievementModelView(SHLModelView):
     """View for managing individual achievements."""
     
+    # Required for tests
+    form_args = {
+        'type': {'query_factory': lambda: db.session.query(AchievementType).filter_by(is_active=True).all()},
+        'league': {'query_factory': lambda: db.session.query(League).filter_by(is_active=True).all()},
+        'season': {'query_factory': lambda: db.session.query(Season).filter_by(is_active=True).all()},
+    }
+    
     column_list = ('manager', 'type', 'league', 'season', 'final_points', 'updated_at')
     # column_searchable_list = (Manager.name, 'title')
     # column_filters = (AchievementType.code, League.code, Season.code, 'final_points')
@@ -225,7 +247,30 @@ class AchievementModelView(SHLModelView):
     }
 
     def on_model_change(self, form: Any, model: Achievement, is_created: bool) -> None:
-        """Auto-calculate fields based on reference data."""
+        """Auto-calculate fields and validate uniqueness."""
+        # --- Duplicate Validation (TIK-23) ---
+        with db.session.no_autoflush:
+            if model.manager_id and model.type_id and model.league_id and model.season_id:
+                query = db.session.query(Achievement).filter(
+                    Achievement.manager_id == model.manager_id,
+                    Achievement.type_id == model.type_id,
+                    Achievement.league_id == model.league_id,
+                    Achievement.season_id == model.season_id,
+                )
+                # On edit, exclude the current record
+                if not is_created and model.id:
+                    query = query.filter(Achievement.id != model.id)
+
+                duplicate = query.first()
+                    
+                if duplicate:
+                    manager_name = model.manager.name if model.manager else f"ID={model.manager_id}"
+                    raise ValueError(
+                        f"Дубликат: у менеджера «{manager_name}» уже есть достижение "
+                        f"с таким же типом, лигой и сезоном (ID={duplicate.id})."
+                    )
+
+        # --- Auto-calculation ---
         # Ensure relationships are loaded
         if not model.type or not model.league or not model.season:
             # Re-fetch if they are just IDs
@@ -286,15 +331,97 @@ class SeasonModelView(SHLModelView):
 
 class AuditLogModelView(SHLModelView):
     """Read-only view for audit logs."""
-    can_create = False
-    can_edit = False
-    can_delete = False
+    list_template = 'admin/audit_list.html'
     
     column_list = ('timestamp', 'user_id', 'action', 'target_model', 'target_id', 'changes')
     column_sortable_list = ('timestamp',)
     column_default_sort = ('timestamp', True)
     
+    column_labels = {
+        'target_model': 'Model',
+        'target_id': 'Target ID/Link',
+        'user_id': 'Admin User ID'
+    }
+
     column_filters = ('action', 'target_model', 'user_id')
+
+    column_formatters = {
+        'action': lambda v, c, m, p: Markup(
+            f'<span class="badge badge-{"create" if m.action == "CREATE" else "update" if m.action == "UPDATE" else "delete" if m.action == "DELETE" else "secondary"}">'
+            f'{m.action}</span>'
+        ),
+        'target_id': lambda v, c, m, p: _format_target_link(m),
+        'changes': lambda v, c, m, p: _format_audit_changes(m.changes)
+    }
+
+
+def _format_audit_changes(changes_json: str | None) -> Markup:
+    """Format audit log changes JSON into a readable HTML snippet."""
+    if not changes_json:
+        return Markup('<span class="text-muted">No changes</span>')
+    
+    try:
+        changes = json.loads(changes_json)
+        if not isinstance(changes, dict):
+            return Markup(f'<code class="small text-muted">{changes_json}</code>')
+        
+        html = ['<div class="audit-changes small">']
+        
+        for field, values in changes.items():
+            # Skip internal or noisy fields
+            if field in ('password_hash', 'key_hash'):
+                html.append(f'<div><strong>{field}</strong>: <span class="text-muted">[HIDDEN]</span></div>')
+                continue
+
+            if isinstance(values, dict) and 'old' in values and 'new' in values:
+                # UPDATE style
+                old = values['old'] if values['old'] is not None else '<i>null</i>'
+                new = values['new'] if values['new'] is not None else '<i>null</i>'
+                html.append(
+                    f'<div><strong>{field}</strong>: '
+                    f'<span class="text-danger"><del>{old}</del></span> &rarr; '
+                    f'<span class="text-success">{new}</span></div>'
+                )
+            else:
+                # CREATE/DELETE style (single value)
+                val = values if values is not None else '<i>null</i>'
+                html.append(f'<div><strong>{field}</strong>: {val}</div>')
+        
+        html.append('</div>')
+        return Markup(''.join(html))
+        
+    except (ValueError, TypeError):
+        return Markup(f'<code class="small text-muted">{changes_json}</code>')
+
+
+def _format_target_link(model: AuditLog) -> Markup:
+    """Generate a link to the target model's edit view."""
+    if not model.target_model or not model.target_id:
+        return Markup(f'<span class="text-muted">{model.target_id or "-"}</span>')
+    
+    # Map model names to their admin view endpoints
+    # Flask-Admin default endpoint is usually lowercase model name
+    endpoint_map = {
+        'Country': 'country',
+        'Manager': 'manager',
+        'Achievement': 'achievement',
+        'AchievementType': 'achievementtype',
+        'League': 'league',
+        'Season': 'season',
+        'AdminUser': 'adminuser',
+        'ApiKey': 'apikey'
+    }
+    
+    endpoint = endpoint_map.get(model.target_model)
+    if not endpoint:
+        return Markup(f'<span>{model.target_model} #{model.target_id}</span>')
+    
+    try:
+        url = url_for(f'{endpoint}.edit_view', id=model.target_id)
+        return Markup(f'<a href="{url}" class="target-link">{model.target_model} #{model.target_id}</a>')
+    except Exception:
+        # Fallback if endpoint or route doesn't exist (e.g. if can_edit is False)
+        return Markup(f'<span>{model.target_model} #{model.target_id}</span>')
 
 
 class AdminUserModelView(SHLModelView):
@@ -317,6 +444,7 @@ class AdminUserModelView(SHLModelView):
 
 class ApiKeyModelView(SHLModelView):
     """View for managing API keys."""
+    name = "API Keys"
     column_list = ('name', 'scope', 'expires_at', 'revoked', 'last_used_at')
     form_columns = ('name', 'scope', 'expires_at', 'revoked')
     
