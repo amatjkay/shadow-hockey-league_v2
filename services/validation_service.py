@@ -5,11 +5,17 @@ This module provides functions to validate data before inserting into database.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from models import Country, Manager
+
+# Format-only regex for league codes. Matches ``1``, ``2``, ``2.1``, ``3.5``, ``42``,
+# but rejects ``0``, ``01``, ``2.``, ``2.1.1``, etc. Existence of the league in the
+# database is checked separately (e.g. via ``League.query.filter_by(code=...)``).
+_LEAGUE_CODE_RE = re.compile(r"^[1-9]\d*(\.\d+)?$")
 
 
 class ValidationError(Exception):
@@ -89,9 +95,16 @@ def validate_achievement_data(
 ) -> tuple[bool, str | None]:
     """Validate achievement data format.
 
+    Accepts the league as a string code matching ``N`` or ``N.M`` where the
+    parent ``N`` is any positive integer (``1``, ``2``, ``3``, …) and the
+    optional subleague ``M`` is any positive integer (``2.1``, ``2.2``, …).
+    By the project's business rule L1 has no subleagues, so ``1.1`` is
+    rejected. Existence of the league in the database is checked separately;
+    this validator only enforces the format.
+
     Args:
         achievement_type: Type of achievement (TOP1, TOP2, etc.)
-        league: League number (1 or 2)
+        league: League code (``1``, ``2``, ``2.1``, …).
         season: Season string (e.g., "24/25")
         title: Achievement title
 
@@ -103,8 +116,13 @@ def validate_achievement_data(
     if not achievement_type:
         errors.append("Achievement type is required")
 
-    if league not in ("1", "2"):
-        errors.append(f"League must be '1' or '2', got '{league}'")
+    if not _LEAGUE_CODE_RE.match(league or ""):
+        errors.append(
+            f"League must match format 'N' or 'N.M' (digits, no leading zeros), got '{league}'"
+        )
+    elif league.startswith("1."):
+        # L1 is a flat division — subleagues are reserved for L2+ per project rules.
+        errors.append(f"League 1 has no subleagues, got '{league}'")
 
     if not season:
         errors.append("Season is required")

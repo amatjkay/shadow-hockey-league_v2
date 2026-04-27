@@ -24,11 +24,21 @@
       `services/api.py` now uses `@limiter.limit("100 per minute")` for all
       15 REST endpoints (was the dead `@api_limiter` instance). Added
       `tests/test_api.py::TestAPIRateLimiting` proving the 101st request to
-      `/api/countries` returns 429 (test count `383 → 384`).
+      `/api/countries` returns 429 (test count `383 → 384`). PR #16.
+- [x] **T-003 + T-004 + T-007 + T-020** — Unified points calculation through
+      `League.base_points_field` (parent_code-aware). New `services/scoring_service.py`
+      exports `get_base_points(ach_type, league)` used by `services.api`,
+      `services.rating_service`, `services.admin`, and `blueprints.admin_api`
+      — every `league.code == '1' ? base_points_l1 : base_points_l2` branch
+      replaced. `services.rating_service._get_base_points_from_db` rewritten
+      to iterate `League` objects (was league_code strings). Validation in
+      `services.validation_service.validate_achievement_data` now accepts the
+      format `N` or `N.M` (`1`, `2`, `2.1`, `3.5`, ...) and rejects only
+      malformed codes and L1 subleagues (per business rule “L1 has no
+      subleagues”). Test count `384 → 390` (added 4 scoring-helper tests +
+      2 validation format tests; 1 obsolete test repurposed).
 
 ### In Progress
-- [ ] **T-003 + T-004 + T-007 + T-020** — unify points calculation through
-      `League.base_points_field`; expand validation to support subleagues.
 - [ ] **T-009** — make `audit_service.log_action` transactionally neutral.
 - [ ] **T-008** — defer `ApiKey.last_used_at` writes off the request hot path.
 - [ ] **T-010** — drop `with db.session.begin()` in `blueprints/health.py`.

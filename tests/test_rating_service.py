@@ -28,13 +28,19 @@ def _seed_reference_data():
     seasons = {}
     multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
-        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        s = Season(
+            code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
+        )
         db.session.add(s)
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
-        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+        "TOP1": (800, 300),
+        "TOP2": (550, 200),
+        "TOP3": (450, 100),
+        "BEST": (50, 40),
+        "R3": (30, 20),
+        "R1": (10, 5),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -505,10 +511,10 @@ class TestValidationService(unittest.TestCase):
         self.assertIsNone(error)
 
     def test_validate_achievement_data_invalid_league(self) -> None:
-        """Test invalid league validation."""
+        """Malformed league code is rejected (numeric subleagues like '2.1' are allowed)."""
         from services.validation_service import validate_achievement_data
 
-        is_valid, error = validate_achievement_data("TOP1", "3", "24/25", "TOP1")
+        is_valid, error = validate_achievement_data("TOP1", "abc", "24/25", "TOP1")
         self.assertFalse(is_valid)
         self.assertIsNotNone(error)
 
@@ -549,14 +555,17 @@ class TestAPIEndpoints(unittest.TestCase):
             self.achievement_id = achievement.id
 
             # Create API key for tests
-            from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
+            from services.api_auth import generate_api_key, hash_api_key
+
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Test API Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Test API Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:

@@ -17,6 +17,7 @@ from typing import Any
 from sqlalchemy.orm import Session, joinedload
 
 from models import Achievement, AchievementType, League, Manager, Season
+from services.scoring_service import get_base_points
 
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
@@ -75,15 +76,16 @@ def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
     if not types:
         return BASE_POINTS  # Fallback to hardcoded
 
-    leagues = {l.code: l.code for l in session.query(League).all()}
+    leagues = session.query(League).all()
     if not leagues:
         return BASE_POINTS
 
     result: dict[tuple[str, str], int] = {}
     for ach_type in types:
-        for league_code in leagues:
-            points = ach_type.base_points_l1 if league_code == "1" else ach_type.base_points_l2
-            result[(league_code, ach_type.code)] = points
+        for league in leagues:
+            # get_base_points honours League.parent_code so subleagues like 2.1
+            # correctly inherit base_points_l2 from their parent.
+            result[(league.code, ach_type.code)] = int(get_base_points(ach_type, league))
 
     return result
 
@@ -117,7 +119,7 @@ def get_achievement_kind(achievement: Achievement) -> str:
     """
     # Use the relationship to get the type code
     type_code = achievement.type.code if achievement.type else achievement.title.split()[0]
-    
+
     if type_code.startswith("TOP"):
         return type_code
     if "Best regular" in achievement.title:
@@ -151,7 +153,11 @@ def calculate_achievement_points(
     sm = season_multiplier if season_multiplier is not None else SEASON_MULTIPLIER
 
     # Get codes from relationships
-    league_code = achievement.league.code if achievement.league else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
+    league_code = (
+        achievement.league.code
+        if achievement.league
+        else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
+    )
     season_code = achievement.season.code if achievement.season else "24/25"
 
     # Calculate points: base × multiplier
@@ -200,7 +206,7 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
             joinedload(Manager.achievements).joinedload(Achievement.type),
             joinedload(Manager.achievements).joinedload(Achievement.league),
             joinedload(Manager.achievements).joinedload(Achievement.season),
-            joinedload(Manager.country)
+            joinedload(Manager.country),
         )
         .order_by(Manager.name)
         .all()
@@ -297,26 +303,23 @@ def setup_rating_triggers() -> None:
                 season = session.get(Season, target.season_id)
 
         if ach_type and league and season:
-            target.base_points = float(
-                ach_type.base_points_l1 if league.code == '1'
-                else ach_type.base_points_l2
-            )
+            target.base_points = get_base_points(ach_type, league)
             target.multiplier = float(season.multiplier)
             target.final_points = round(target.base_points * target.multiplier, 2)
 
-    @event.listens_for(Achievement, 'before_insert')
+    @event.listens_for(Achievement, "before_insert")
     def achievement_before_insert(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before insert."""
         _recalculate_points(target)
 
-    @event.listens_for(Achievement, 'before_update')
+    @event.listens_for(Achievement, "before_update")
     def achievement_before_update(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before update if relevant fields changed."""
         _recalculate_points(target)
 
-    @event.listens_for(Achievement, 'after_delete')
+    @event.listens_for(Achievement, "after_delete")
     def achievement_after_delete(mapper: Any, connection: Any, target: Achievement) -> None:
         """Invalidate leaderboard cache after achievement deletion."""
         from services.cache_service import invalidate_leaderboard_cache
-        invalidate_leaderboard_cache()
 
+        invalidate_leaderboard_cache()

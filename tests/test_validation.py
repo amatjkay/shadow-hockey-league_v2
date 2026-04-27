@@ -179,11 +179,25 @@ class TestAchievementValidation(unittest.TestCase):
         self.assertFalse(is_valid)
         self.assertIsNotNone(error)
 
-    def test_validate_achievement_data_invalid_league(self) -> None:
-        """Invalid league should fail."""
-        is_valid, error = validate_achievement_data("TOP1", "3", "24/25", "TOP1")
+    def test_validate_achievement_data_malformed_league_rejected(self) -> None:
+        """Malformed league code (non-numeric / leading zero / trailing dot) is rejected."""
+        for bad in ("abc", "01", "0", "2.", "2.1.1", ""):
+            is_valid, error = validate_achievement_data("TOP1", bad, "24/25", "TOP1")
+            self.assertFalse(is_valid, f"Expected '{bad}' to fail format validation")
+            self.assertIsNotNone(error)
+
+    def test_validate_achievement_data_l1_subleague_rejected(self) -> None:
+        """L1 has no subleagues per business rules — '1.1' must be rejected."""
+        is_valid, error = validate_achievement_data("TOP1", "1.1", "24/25", "TOP1")
         self.assertFalse(is_valid)
-        self.assertIsNotNone(error)
+        assert error is not None
+        self.assertIn("League 1 has no subleagues", error)
+
+    def test_validate_achievement_data_subleague_accepted(self) -> None:
+        """Subleagues for L2+ pass format validation (DB existence checked elsewhere)."""
+        for code in ("2", "2.1", "2.2", "3", "3.1", "10", "10.5"):
+            is_valid, error = validate_achievement_data("TOP1", code, "24/25", "TOP1")
+            self.assertTrue(is_valid, f"Expected '{code}' to pass format validation: {error}")
 
     def test_validate_achievement_data_invalid_season(self) -> None:
         """Invalid season format - currently passes validation (no season format check)."""
@@ -234,41 +248,53 @@ class TestDataValidator(unittest.TestCase):
     def test_validate_countries_valid(self) -> None:
         """Valid countries should pass validation."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
-        result = validator.validate_countries([
-            {"code": "USA", "flag_path": "/static/img/flags/usa.png"},
-            {"code": "GBR", "flag_path": "/static/img/flags/gbr.png"},
-        ])
+        result = validator.validate_countries(
+            [
+                {"code": "USA", "flag_path": "/static/img/flags/usa.png"},
+                {"code": "GBR", "flag_path": "/static/img/flags/gbr.png"},
+            ]
+        )
         self.assertTrue(result)
         self.assertEqual(len(validator.errors), 0)
 
     def test_validate_countries_duplicate(self) -> None:
         """Duplicate country codes should fail."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
-        result = validator.validate_countries([
-            {"code": "RUS", "flag_path": "/static/img/flags/rus.png"},
-        ])
+        result = validator.validate_countries(
+            [
+                {"code": "RUS", "flag_path": "/static/img/flags/rus.png"},
+            ]
+        )
         self.assertFalse(result)
 
     def test_validate_managers_valid(self) -> None:
         """Valid managers should pass validation."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
-        result = validator.validate_managers([
-            {"name": "Manager 1", "country_id": self.country.id},
-            {"name": "Manager 2", "country_id": self.country.id},
-        ])
+        result = validator.validate_managers(
+            [
+                {"name": "Manager 1", "country_id": self.country.id},
+                {"name": "Manager 2", "country_id": self.country.id},
+            ]
+        )
         self.assertTrue(result)
 
     def test_validate_managers_duplicate_name(self) -> None:
         """Duplicate manager names should fail."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
-        result = validator.validate_managers([
-            {"name": "Duplicate", "country_id": self.country.id},
-            {"name": "Duplicate", "country_id": self.country.id},
-        ])
+        result = validator.validate_managers(
+            [
+                {"name": "Duplicate", "country_id": self.country.id},
+                {"name": "Duplicate", "country_id": self.country.id},
+            ]
+        )
         self.assertFalse(result)
 
     def test_validate_achievements_valid(self) -> None:
@@ -278,36 +304,45 @@ class TestDataValidator(unittest.TestCase):
         db.session.commit()
 
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
-        result = validator.validate_achievements([
-            {
-                "manager_id": manager.id,
-                "achievement_type": "TOP1",
-                "league": "1",
-                "season": "25/26",
-                "title": "TOP1",
-            },
-        ], {manager.id})
+        result = validator.validate_achievements(
+            [
+                {
+                    "manager_id": manager.id,
+                    "achievement_type": "TOP1",
+                    "league": "1",
+                    "season": "25/26",
+                    "title": "TOP1",
+                },
+            ],
+            {manager.id},
+        )
         self.assertTrue(result)
 
     def test_validate_achievements_invalid_manager(self) -> None:
         """Achievements with invalid manager should fail."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
-        result = validator.validate_achievements([
-            {
-                "manager_id": 9999,
-                "achievement_type": "TOP1",
-                "league": "1",
-                "season": "25/26",
-                "title": "TOP1",
-            },
-        ], {1})
+        result = validator.validate_achievements(
+            [
+                {
+                    "manager_id": 9999,
+                    "achievement_type": "TOP1",
+                    "league": "1",
+                    "season": "25/26",
+                    "title": "TOP1",
+                },
+            ],
+            {1},
+        )
         self.assertFalse(result)
 
     def test_get_report_with_errors(self) -> None:
         """Report should show errors."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
         validator.errors.append("Test error 1")
         validator.errors.append("Test error 2")
@@ -318,6 +353,7 @@ class TestDataValidator(unittest.TestCase):
     def test_get_report_no_errors(self) -> None:
         """Report should show success when no errors."""
         from services.validation_service import DataValidator
+
         validator = DataValidator(db.session)
         report = validator.get_report()
         self.assertIn("No errors found", report)
