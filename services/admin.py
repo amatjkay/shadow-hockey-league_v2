@@ -224,15 +224,17 @@ class ManagerModelView(SHLModelView):
 
 
 class AchievementModelView(SHLModelView):
-    """View for managing individual achievements."""
-    
-    # Required for tests
-    form_args = {
-        'type': {'query_factory': lambda: db.session.query(AchievementType).filter_by(is_active=True).all()},
-        'league': {'query_factory': lambda: db.session.query(League).filter_by(is_active=True).all()},
-        'season': {'query_factory': lambda: db.session.query(Season).filter_by(is_active=True).all()},
-    }
-    
+    """View for managing individual achievements.
+
+    The ``type`` / ``league`` / ``season`` foreign-key dropdowns are wired
+    through ``form_ajax_refs`` below — that is the canonical Flask-Admin
+    pattern for relationship pickers and works under the current WTForms
+    3.x where ``form_args={'<rel>': {'query_factory': ...}}`` would be
+    forwarded into a plain ``Field.__init__`` and crash with
+    ``TypeError: Field.__init__() got an unexpected keyword argument
+    'query_factory'``.
+    """
+
     column_list = ('manager', 'type', 'league', 'season', 'final_points', 'updated_at')
     # column_searchable_list = (Manager.name, 'title')
     # column_filters = (AchievementType.code, League.code, Season.code, 'final_points')

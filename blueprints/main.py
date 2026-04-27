@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from flask import Blueprint, Response, redirect, render_template, url_for
+from flask import Blueprint, Response, redirect, render_template, request, url_for
 
 
 from models import db
