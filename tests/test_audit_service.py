@@ -392,3 +392,83 @@ def sample_audit_logs(app, admin_user):
         except Exception:
             # Ignore cleanup errors
             pass
+
+
+class TestLogActionTransactionPolicy:
+    """Regression tests for the ``commit`` parameter introduced by T-009.
+
+    The audit row must:
+      * with ``commit=True`` (default) — be persisted before ``log_action``
+        returns, exactly as the historical contract promised.
+      * with ``commit=False`` — be flushed (gain a primary key, surface
+        integrity errors) but **not** committed; the caller decides.
+        A subsequent ``db.session.rollback()`` must wipe the row, proving
+        the audit entry joined the parent transaction.
+    """
+
+    def test_default_commit_persists_after_rollback(self, app, admin_user):
+        """``commit=True`` writes are durable across a session rollback."""
+        with app.app_context():
+            entry = log_action(
+                user_id=admin_user.id,
+                action='LOGIN',
+            )
+            assert entry is not None
+            assert entry.id is not None
+
+            # Even if the caller rolls back afterwards, the audit row stays:
+            # log_action committed in its own transaction.
+            db.session.rollback()
+
+            persisted = db.session.get(AuditLog, entry.id)
+            assert persisted is not None
+            assert persisted.action == 'LOGIN'
+
+            # Cleanup
+            db.session.delete(persisted)
+            db.session.commit()
+
+    def test_commit_false_joins_parent_transaction(self, app, admin_user):
+        """``commit=False`` flushes only — caller-owned rollback discards the row."""
+        with app.app_context():
+            entry = log_action(
+                user_id=admin_user.id,
+                action='UPDATE',
+                target_model='Manager',
+                target_id=999,
+                commit=False,
+            )
+            assert entry is not None
+            # Flushed → primary key assigned.
+            assert entry.id is not None
+            entry_id = entry.id
+
+            # Caller decides to abort: audit row must vanish with the parent
+            # transaction, not survive on its own.
+            db.session.rollback()
+
+            assert db.session.get(AuditLog, entry_id) is None
+
+    def test_commit_false_then_caller_commit_persists(self, app, admin_user):
+        """``commit=False`` + caller ``commit()`` writes the row exactly once."""
+        with app.app_context():
+            entry = log_action(
+                user_id=admin_user.id,
+                action='CREATE',
+                target_model='Country',
+                target_id=42,
+                commit=False,
+            )
+            assert entry is not None
+            entry_id = entry.id
+
+            db.session.commit()
+
+            persisted = db.session.get(AuditLog, entry_id)
+            assert persisted is not None
+            assert persisted.target_model == 'Country'
+            assert persisted.target_id == 42
+
+            # Cleanup
+            db.session.delete(persisted)
+            db.session.commit()

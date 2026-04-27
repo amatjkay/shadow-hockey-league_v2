@@ -30,31 +30,47 @@ def log_action(
     target_model: Optional[str] = None,
     target_id: Optional[int] = None,
     changes: Optional[dict[str, Any]] = None,
+    commit: bool = True,
 ) -> Optional[AuditLog]:
     """Log an admin action to the audit trail.
-    
+
     Args:
         user_id: ID of the admin user performing the action
         action: Type of action (CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE)
         target_model: Name of the model being acted upon (e.g., 'Manager')
         target_id: Primary key of the target record
         changes: Dictionary of changes for UPDATE actions
-        
+        commit: Transaction policy.
+
+            * ``True`` (default, backward-compatible): treats this call as a
+              standalone audit write. Adds the row, commits the session, and
+              rolls back on error. Safe for callers that have already
+              committed their own work (e.g. ``flush_cache``, ``LOGIN``,
+              ``SecureModelView`` which calls ``super().create_model()`` /
+              ``super().update_model()`` *before* ``log_action``).
+            * ``False``: treats this call as part of an open transaction.
+              Adds + flushes the row (so it gets a primary key and triggers
+              column-level validation) but does NOT commit; the caller is
+              responsible for committing or rolling back. On error the audit
+              row is expunged from the session so the parent transaction is
+              not torn down — the caller can decide whether the audit
+              failure should fail the whole action.
+
     Returns:
-        AuditLog entry if successful, None if logging failed
-        
+        AuditLog entry if successful, None if logging failed.
+
     Raises:
-        ValueError: If required parameters are invalid
+        ValueError: If required parameters are invalid.
     """
     if not user_id:
         raise ValueError("user_id is required")
-    
+
     if not action or len(action) > 50:
         raise ValueError("action is required and must be <= 50 characters")
-    
+
     if target_model and len(target_model) > 50:
         raise ValueError("target_model must be <= 50 characters")
-    
+
     # Convert changes dict to JSON string for storage
     changes_json = None
     if changes is not None:
@@ -63,33 +79,57 @@ def log_action(
         except (TypeError, ValueError) as e:
             logger.warning(f"Failed to serialize changes to JSON: {e}")
             changes_json = json.dumps({"error": "Failed to serialize changes"})
-    
+
     # Thread-safe database operation
     with _audit_lock:
+        audit_entry: Optional[AuditLog] = None
         try:
             audit_entry = AuditLog(
                 user_id=user_id,
                 action=action,
                 target_model=target_model,
                 target_id=target_id,
-                changes=changes_json
+                changes=changes_json,
             )
-            
+
             db.session.add(audit_entry)
-            db.session.commit()
-            
+            if commit:
+                db.session.commit()
+            else:
+                # Caller owns the surrounding transaction. Flush so the row
+                # gets a primary key and any column-level integrity errors
+                # surface here, but leave commit/rollback to the caller.
+                db.session.flush()
+
             logger.info(f"Audit log entry created: {action} by user {user_id}")
             return audit_entry
-            
+
         except SQLAlchemyError as e:
-            db.session.rollback()
+            if commit:
+                db.session.rollback()
+            else:
+                # Don't tear down the parent transaction — just drop our row.
+                if audit_entry is not None:
+                    try:
+                        db.session.expunge(audit_entry)
+                    except Exception:  # pragma: no cover - defensive
+                        pass
             logger.error(f"Failed to create audit log entry: {e}")
             # Fallback to regular logging
-            logger.info(f"ACTION LOG: {action} by user {user_id} on {target_model}#{target_id}")
+            logger.info(
+                f"ACTION LOG: {action} by user {user_id} on {target_model}#{target_id}"
+            )
             return None
-        
+
         except Exception as e:
-            db.session.rollback()
+            if commit:
+                db.session.rollback()
+            else:
+                if audit_entry is not None:
+                    try:
+                        db.session.expunge(audit_entry)
+                    except Exception:  # pragma: no cover - defensive
+                        pass
             logger.error(f"Unexpected error creating audit log entry: {e}")
             return None
 
