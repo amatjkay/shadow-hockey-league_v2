@@ -11,6 +11,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from app import create_app
+from config import TestingConfig
 from models import Achievement, AchievementType, ApiKey, Country, League, Manager, Season, db
 from services.api_auth import generate_api_key, hash_api_key
 
@@ -26,13 +27,19 @@ def _seed_reference_data():
     seasons = {}
     multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
-        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        s = Season(
+            code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
+        )
         db.session.add(s)
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 300), "TOP2": (550, 200), "TOP3": (450, 100),
-        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+        "TOP1": (800, 300),
+        "TOP2": (550, 200),
+        "TOP3": (450, 100),
+        "BEST": (50, 40),
+        "R3": (30, 20),
+        "R1": (10, 5),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -83,43 +90,53 @@ class TestAPIAuthentication(unittest.TestCase):
 
             # Create API keys with different scopes
             self.admin_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.admin_key),
-                name="Admin Test Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.admin_key),
+                    name="Admin Test Key",
+                    scope="admin",
+                )
+            )
 
             self.write_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.write_key),
-                name="Write Test Key",
-                scope="write",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.write_key),
+                    name="Write Test Key",
+                    scope="write",
+                )
+            )
 
             self.read_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.read_key),
-                name="Read Test Key",
-                scope="read",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.read_key),
+                    name="Read Test Key",
+                    scope="read",
+                )
+            )
 
             # Create expired key
             self.expired_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.expired_key),
-                name="Expired Key",
-                scope="read",
-                expires_at=datetime.now(timezone.utc) - timedelta(days=1),
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.expired_key),
+                    name="Expired Key",
+                    scope="read",
+                    expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+                )
+            )
 
             # Create revoked key
             self.revoked_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.revoked_key),
-                name="Revoked Key",
-                scope="read",
-                revoked=True,
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.revoked_key),
+                    name="Revoked Key",
+                    scope="read",
+                    revoked=True,
+                )
+            )
 
             db.session.commit()
 
@@ -226,11 +243,13 @@ class TestAPIPagination(unittest.TestCase):
 
             # Create API key
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Pagination Test Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Pagination Test Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:
@@ -300,6 +319,74 @@ class TestAPIPagination(unittest.TestCase):
         data = response.get_json()
         # Should be a list, not a dict with pagination
         self.assertIsInstance(data, list)
+
+
+class _RateLimitTestingConfig(TestingConfig):
+    """TestingConfig variant with the rate limiter ON.
+
+    Flask-Limiter caches ``enabled`` on the singleton during ``init_app``,
+    so RATELIMIT_ENABLED must be True *before* ``create_app`` is called —
+    flipping it via ``app.config[...]`` afterwards is silently ignored
+    (`flask_limiter._extension.Limiter.init_app` returns early when
+    disabled, never registering the ``before_request`` hook).
+    """
+
+    RATELIMIT_ENABLED = True
+    RATELIMIT_STORAGE_URI = "memory://"
+
+
+class TestAPIRateLimiting(unittest.TestCase):
+    """Verifies that ``services.extensions.limiter`` is bound to the app.
+
+    Before T-002, ``services/api.py`` created its own ``Limiter`` without
+    calling ``init_app``, so ``@api_limiter.limit("100 per minute")`` was
+    silently inert. This test enables rate limiting on a TestingConfig
+    subclass and asserts that the 101st request to ``/api/countries``
+    returns 429.
+    """
+
+    def setUp(self) -> None:
+        # Re-init the singleton limiter against an app where RATELIMIT_ENABLED
+        # is True. Other tests run with the default TestingConfig (disabled),
+        # so we must explicitly flip the singleton's cached ``enabled`` flag
+        # back on before init_app.
+        from services.extensions import limiter
+
+        limiter.enabled = True
+        self.app = create_app("tests.test_api._RateLimitTestingConfig")
+        self.client = self.app.test_client()
+        with self.app.app_context():
+            db.create_all()
+
+    def tearDown(self) -> None:
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+        # Reset bucket state and restore the singleton to its previous
+        # disabled posture so subsequent tests aren't rate-limited.
+        from services.extensions import limiter
+
+        try:
+            limiter.reset()
+        except Exception:
+            pass
+        limiter.enabled = False
+
+    def test_countries_rate_limit_returns_429_after_100_requests(self) -> None:
+        # Use a unique API-key header value so the rate-limit bucket is
+        # isolated from any other test that may run in the same process.
+        headers = {"X-API-Key": "rate-limit-test-bucket-T002"}
+
+        for i in range(100):
+            response = self.client.get("/api/countries", headers=headers)
+            self.assertEqual(
+                response.status_code,
+                200,
+                f"Request {i + 1} returned {response.status_code}",
+            )
+
+        response = self.client.get("/api/countries", headers=headers)
+        self.assertEqual(response.status_code, 429)
 
 
 if __name__ == "__main__":

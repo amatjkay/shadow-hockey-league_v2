@@ -15,11 +15,18 @@
       `README.md` season table corrected to `25/26..21/22`; test count `296 → 383`;
       coverage badge dropped (was static, misleading); env-vars table refreshed.
       `docs/ARCHITECTURE.md` test count `381 → 383`. ADR-005 added to
-      `docs/decisionLog.md` recording season baseline decision.
+      `docs/decisionLog.md` recording season baseline decision. PR #14 merged into
+      `devin/integration-analyst-fixes`.
+- [x] **T-002 + T-011** — Rate limiter unified into a single `services.extensions.limiter`
+      Flask-Limiter instance bound via `init_app`. Storage URI is read from
+      `REDIS_URL` (production) with `memory://` fallback; `RATELIMIT_ENABLED`
+      mirrors `TESTING` so test suite isn't slowed by 50/hour defaults.
+      `services/api.py` now uses `@limiter.limit("100 per minute")` for all
+      15 REST endpoints (was the dead `@api_limiter` instance). Added
+      `tests/test_api.py::TestAPIRateLimiting` proving the 101st request to
+      `/api/countries` returns 429 (test count `383 → 384`).
 
 ### In Progress
-- [ ] **T-002 + T-011** — wire `api_limiter` via `init_app`, switch to Redis
-      storage in production (next PR).
 - [ ] **T-003 + T-004 + T-007 + T-020** — unify points calculation through
       `League.base_points_field`; expand validation to support subleagues.
 - [ ] **T-009** — make `audit_service.log_action` transactionally neutral.
