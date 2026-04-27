@@ -124,6 +124,39 @@ Implement a Memory Bank (`docs/`) + Subagent definitions (`.agents/`) + Skills
 
 ---
 
+## ADR-005: Season `25/26` is the Current Baseline (multiplier 1.00)
+
+**Date:** 2026-04-27
+**Status:** Active
+
+### Context
+README.md and `docs/projectbrief.md` disagreed on which season carries the baseline
+multiplier of 1.00. README listed `24/25` as current; `projectbrief.md`,
+`services/rating_service.SEASON_MULTIPLIER`, and the `seasons` reference table
+all point to `25/26`.
+
+### Decision
+The current season is **`25/26`**. Past seasons receive a 5% per-year discount:
+`24/25=0.95`, `23/24=0.90`, `22/23=0.85`, `21/22=0.80`. Source of truth is the
+`seasons` DB table; the hardcoded `SEASON_MULTIPLIER` constant in
+`services/rating_service.py` is a fallback only.
+
+### Rationale
+Code and the more recent project brief already reflect `25/26`. README simply
+fell out of sync. Aligning documentation prevents incorrect business assumptions
+when new managers/achievements are imported for the just-finished `25/26`
+season.
+
+### Consequences
+- README.md updated to list `25/26..21/22`.
+- `docs/ARCHITECTURE.md` test count corrected (`381 → 383`).
+- Any future shift of the baseline (when `26/27` opens) requires:
+  1. Updating the `seasons` table.
+  2. Updating `services/rating_service.SEASON_MULTIPLIER` fallback.
+  3. Appending a new ADR entry here.
+
+---
+
 _Template for new entries:_
 
 ```markdown

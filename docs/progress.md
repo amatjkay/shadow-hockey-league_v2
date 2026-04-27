@@ -3,6 +3,36 @@
 > **Purpose:** Living document tracking completed work, in-progress tasks, and blockers.
 > All agents MUST update this before ending their turn.
 
+## 2026-04-27: Analyst Audit — Documentation & Security
+
+### Completed
+- [x] Full repo audit produced (artifact in Devin session). 20 decomposed tasks
+      (T-001..T-020) recorded.
+- [x] **T-001** — `.env` removed from git tracking; `.gitignore` cleaned of
+      stray markdown fences; `.env.example` updated (documented `GEMINI_API_KEY`,
+      removed Windows-only DB path). PR #13 → `devin/integration-analyst-fixes`.
+- [x] **T-005, T-006, T-018, T-019** — Documentation sync:
+      `README.md` season table corrected to `25/26..21/22`; test count `296 → 383`;
+      coverage badge dropped (was static, misleading); env-vars table refreshed.
+      `docs/ARCHITECTURE.md` test count `381 → 383`. ADR-005 added to
+      `docs/decisionLog.md` recording season baseline decision.
+
+### In Progress
+- [ ] **T-002 + T-011** — wire `api_limiter` via `init_app`, switch to Redis
+      storage in production (next PR).
+- [ ] **T-003 + T-004 + T-007 + T-020** — unify points calculation through
+      `League.base_points_field`; expand validation to support subleagues.
+- [ ] **T-009** — make `audit_service.log_action` transactionally neutral.
+- [ ] **T-008** — defer `ApiKey.last_used_at` writes off the request hot path.
+- [ ] **T-010** — drop `with db.session.begin()` in `blueprints/health.py`.
+
+### Blockers
+- [!] `GEMINI_API_KEY` and other publicly-committed secrets still live in git
+      history. PR #13 untracks the file but does **not** rewrite history. User
+      must rotate the Gemini key and decide on `git filter-repo` against `main`.
+
+---
+
 ## 2026-04-23: Stability & Data Integrity Audit
 
 ### Completed

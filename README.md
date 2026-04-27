@@ -6,8 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
-[![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-296%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-383%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
@@ -67,10 +66,14 @@ points = base_points(league, achievement_type) × season_multiplier
 
 | Сезон | Множитель       |
 | ----- | --------------- |
-| 24/25 | ×1.00 (базовый) |
-| 23/24 | ×0.95 (−5%)     |
-| 22/23 | ×0.90 (−10%)    |
-| 21/22 | ×0.85 (−15%)    |
+| 25/26 | ×1.00 (текущий, базовый) |
+| 24/25 | ×0.95 (−5%)     |
+| 23/24 | ×0.90 (−10%)    |
+| 22/23 | ×0.85 (−15%)    |
+| 21/22 | ×0.80 (−20%)    |
+
+Источник истины — таблица `seasons` в БД. Хардкод в `services/rating_service.SEASON_MULTIPLIER`
+используется только как fallback при пустой таблице.
 
 ---
 
@@ -119,7 +122,7 @@ shadow-hockey-league_v2/
 | ------------- | ----------------------------------------- |
 | `make setup`  | Установка зависимостей + инициализация БД |
 | `make run`    | Запуск сервера разработки                 |
-| `make test`   | Запуск тестов (296 тестов)                |
+| `make test`   | Запуск тестов (383 теста)                |
 | `make lint`   | Проверка кода (flake8)                    |
 | `make format` | Форматирование (black + isort)            |
 | `make clean`  | Очистка временных файлов                  |
@@ -128,7 +131,7 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-**296 тестов, ~87% покрытие:**
+**383 теста.** Целевое покрытие — `≥ 87%` (`AGENTS.md §5`); фактическое фиксируйте прогоном `make coverage`.
 
 - **Unit:** rating service, validation, cache, API auth, models
 - **Integration:** routes, API CRUD, database constraints, cache invalidation
@@ -204,11 +207,11 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 | Переменная            | Описание              | По умолчанию        |
 | --------------------- | --------------------- | ------------------- |
 | `FLASK_ENV`           | Режим работы          | `development`       |
-| `DATABASE_URL`        | URL базы данных       | `sqlite:///dev.db`  |
-| `SECRET_KEY`          | Ключ сессий           | Автогенерация       |
+| `DATABASE_URL`        | URL базы данных       | абсолютный путь к `./dev.db` (`config.py`) |
+| `SECRET_KEY`          | Ключ сессий           | dev fallback (обязателен в prod) |
+| `WTF_CSRF_SECRET_KEY` | CSRF защита           | dev fallback (обязателен в prod) |
 | `ENABLE_API`          | Включение REST API    | `True`              |
-| `API_KEY_SECRET`      | Секрет для API ключей | —                   |
-| `WTF_CSRF_SECRET_KEY` | CSRF защита           | —                   |
+| `API_KEY_SECRET`      | Секрет для API ключей | dev fallback (обязателен в prod) |
 | `REDIS_URL`           | Redis URL             | `redis://localhost` |
 
 ---
