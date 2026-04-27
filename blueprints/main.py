@@ -18,8 +18,27 @@ from services.cache_service import cache
 main = Blueprint("main", __name__)
 
 
+def _leaderboard_cache_key() -> str:
+    """Build a season-scoped cache key for the leaderboard view.
+
+    Without a season query parameter we use the bare ``"leaderboard"``
+    key — keeping back-compat with ``services/cache_service.py`` and
+    the tests in ``tests/integration/test_cache_invalidation.py`` that
+    `cache.set("leaderboard", ...)` directly.
+
+    With ``?season=N`` we partition the cache so each season gets its
+    own entry. The fixed key would otherwise serve the first request's
+    response to every later request regardless of the season selector
+    (Devin Review finding on PR #19).
+    """
+    season = request.args.get("season")
+    if season and season.isdigit():
+        return f"leaderboard:{season}"
+    return "leaderboard"
+
+
 @main.route("/")
-@cache.cached(timeout=300, key_prefix="leaderboard")  # Cache for 5 minutes
+@cache.cached(timeout=300, key_prefix=_leaderboard_cache_key)  # 5 min
 def index() -> str | tuple[str, int]:
     """Render the leaderboard page.
 

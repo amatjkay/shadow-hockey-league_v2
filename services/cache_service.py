@@ -18,21 +18,29 @@ cache: Cache = Cache()
 
 
 def invalidate_leaderboard_cache() -> bool:
-    """Invalidate the leaderboard cache.
-    
-    Call this function after:
+    """Invalidate the leaderboard cache (all season-scoped variants).
+
+    The leaderboard view at ``blueprints/main.py:index`` uses a callable
+    cache key that partitions per ``?season=N`` query parameter. Deleting
+    the bare ``"leaderboard"`` key alone would leave stale per-season
+    entries behind. We clear the whole cache, which mirrors what
+    ``services/admin.py::SHLAdminIndexView.flush_cache`` already does
+    and is the only reliable strategy for backends without prefix
+    deletion (SimpleCache; Redis without SCAN-based delete).
+
+    Call this after:
     - Creating/updating/deleting a manager
     - Creating/updating/deleting an achievement
     - Creating/updating/deleting a country
-    
+
     Returns:
-        True if cache was invalidated, False otherwise
+        True if cache was cleared, False otherwise.
     """
     if cache is None:
         return False
-    
+
     try:
-        cache.delete('leaderboard')
+        cache.clear()
         return True
     except Exception:
         return False
