@@ -115,10 +115,12 @@ class SHLAdminIndexView(AdminIndexView):
             return redirect(url_for('.index'))
 
         if request.method == 'POST':
-            # Brute-force defence: 10 attempts / 60 s per IP.
-            if not _check_login_rate_limit(max_attempts=10, window_seconds=60):
+            # Brute-force defence: 10 *failed* attempts / 60 s per client IP.
+            # Successful logins do not count toward the budget so that admins
+            # can't lock themselves out by repeatedly logging in/out.
+            if not _is_login_rate_limit_ok(max_attempts=10, window_seconds=60):
                 admin_logger.warning(
-                    f"Rate-limited login attempt from {request.remote_addr}"
+                    f"Rate-limited login attempt from {_get_client_ip()}"
                 )
                 flash('Too many login attempts. Please wait 60 seconds.', 'error')
                 return self.render('admin/login.html')
@@ -132,6 +134,7 @@ class SHLAdminIndexView(AdminIndexView):
                 admin_logger.info(f"Admin login: {username}")
                 return redirect(url_for('.index'))
             else:
+                _record_failed_login_attempt()
                 flash('Invalid username or password', 'error')
 
         return self.render('admin/login.html')
@@ -536,24 +539,63 @@ def invalidate_leaderboard_cache() -> None:
 _login_attempts: dict[str, list[float]] = {}
 
 
-def _check_login_rate_limit(max_attempts: int = 5, window_seconds: int = 300) -> bool:
-    """Basic in-memory rate limiting for login attempts."""
-    import time
+def _get_client_ip() -> str:
+    """Resolve the real client IP, honouring X-Forwarded-For.
+
+    `request.remote_addr` is the proxy IP behind Nginx (see
+    docs/ARCHITECTURE.md § Production deployment). Without `ProxyFix`
+    that would bucket every client under one entry and turn the per-IP
+    rate-limit into a global lockout. We parse the leftmost value of
+    X-Forwarded-For ourselves so this works even if `ProxyFix` hasn't
+    been wired up yet.
+    """
     from flask import request
-    
-    ip = request.remote_addr or 'unknown'
+
+    forwarded = request.headers.get('X-Forwarded-For')
+    if forwarded:
+        # Leftmost token is the originating client.
+        return forwarded.split(',')[0].strip() or 'unknown'
+    return request.remote_addr or 'unknown'
+
+
+def _is_login_rate_limit_ok(max_attempts: int = 5, window_seconds: int = 300) -> bool:
+    """Return True iff the caller is *under* the failed-login budget.
+
+    Does NOT record an attempt - successful logins should not consume
+    the budget. Pair with :func:`_record_failed_login_attempt` on the
+    failure branch.
+    """
+    import time
+
+    ip = _get_client_ip()
     now = time.time()
-    
-    if ip not in _login_attempts:
-        _login_attempts[ip] = []
-        
-    # Remove old attempts
-    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < window_seconds]
-    
-    if len(_login_attempts[ip]) >= max_attempts:
+
+    bucket = _login_attempts.setdefault(ip, [])
+    # Drop attempts that have aged out of the window.
+    bucket[:] = [t for t in bucket if now - t < window_seconds]
+
+    return len(bucket) < max_attempts
+
+
+def _record_failed_login_attempt() -> None:
+    """Record a failed login for rate-limiting purposes."""
+    import time
+
+    ip = _get_client_ip()
+    _login_attempts.setdefault(ip, []).append(time.time())
+
+
+def _check_login_rate_limit(max_attempts: int = 5, window_seconds: int = 300) -> bool:
+    """Backward-compatible combined check + record.
+
+    Kept for any external callers; the admin login flow now uses the
+    split :func:`_is_login_rate_limit_ok` /
+    :func:`_record_failed_login_attempt` API so successful logins don't
+    consume the budget.
+    """
+    if not _is_login_rate_limit_ok(max_attempts, window_seconds):
         return False
-        
-    _login_attempts[ip].append(now)
+    _record_failed_login_attempt()
     return True
 
 # Alias for backward compatibility in tests
