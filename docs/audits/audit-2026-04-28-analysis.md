@@ -59,7 +59,51 @@
 
 Также в `scratch/`: `verify_points.py:13`, `final_prod_sync.py:38`, `sync_ids.py:50`, `recalc_points.py:12`, `full_prod_recalc.py:36` — но это одноразовые скрипты; рефакторить не обязательно, можно оставить как есть с пометкой «archive only».
 
-**Гипотеза (не подтверждено по миграции):** при появлении подлиги вида `2.1.1` или `3.x` все 9 мест посчитают очки по `base_points_l2` независимо от родителя. Подтверждение требует рассмотрения миграции `8a3279741758` и поля `League.base_points_field` (упомянуто в описании PR #17, но не открывал в этой сессии). Помечено как T-V-2 (verification task).
+#### 1.3 verification — `League.base_points_field` (T-V-2 ✅)
+
+Проверено по миграции `migrations/versions/8a3279741758_add_parent_code_to_leagues.py` и `models.py:200-204`.
+
+**Что есть в коде:**
+
+```python
+# models.py:200-204
+@property
+def base_points_field(self) -> str:
+    """Return which base_points field to use for this league."""
+    root = self.parent_code or self.code
+    return "base_points_l1" if root == "1" else "base_points_l2"
+```
+
+**Заполнение `parent_code` миграцией `8a3279741758` (строки 39-43):**
+
+```python
+# Populate parent_code for existing data
+# Leagues 2.1 and 2.2 are subleagues of league 2
+op.execute("UPDATE leagues SET parent_code = '2' WHERE code IN ('2.1', '2.2')")
+# Leagues 1 and 2 have no parent
+op.execute("UPDATE leagues SET parent_code = NULL WHERE code IN ('1', '2')")
+```
+
+**Поведение для всех известных и гипотетических кодов:**
+
+| Код лиги | `parent_code` (после миграции) | `root = parent_code or code` | `base_points_field` | Корректность |
+|----------|-------------------------------|------------------------------|---------------------|--------------|
+| `1` | `NULL` | `'1'` | `base_points_l1` | ✅ |
+| `2` | `NULL` | `'2'` | `base_points_l2` | ✅ |
+| `2.1` | `'2'` | `'2'` | `base_points_l2` | ✅ |
+| `2.2` | `'2'` | `'2'` | `base_points_l2` | ✅ |
+| `2.x` (новая подлига L2) | `'2'` (требует ручного INSERT с `parent_code='2'`) | `'2'` | `base_points_l2` | ✅ при правильной вставке |
+| `3` (новая корневая лига) | `NULL` | `'3'` | `base_points_l2` (т.к. `'3' != '1'`) | ⚠️ принудительно мапится в L2 — **может быть багом**, если business-rule предполагает «L3 = свой пул очков» |
+| `3.1` (подлига L3) | `'3'` (если правильно проставить) | `'3'` | `base_points_l2` | ⚠️ то же |
+| `2.1.1` (подлига второго уровня) | теоретически `'2.1'` | `'2.1'` | `base_points_l2` (т.к. `'2.1' != '1'`) | ✅ корректно по случаю — но логика ломается, если `2.1.1` должна наследовать через `2.1.parent_code='2'` (двухуровневое наследование не поддержано) |
+| `1.x` (гипотетическая подлига L1) | теоретически `'1'` | `'1'` | `base_points_l1` | ✅ |
+
+**Выводы:**
+
+1. **9 мест в коде с `league.code == "1"` (см. таблицу выше)** — действительно баг при появлении подлиги L1 (`1.1`, `1.x`). Через `base_points_field` это решается автоматически.
+2. **Двухуровневое наследование (`2.1.1` → `2.1` → `2`)** не поддержано: свойство смотрит только на `parent_code`, не идёт по цепочке вверх. Если в будущем потребуется — нужен рекурсивный обход или денормализация `root_code`.
+3. **Лиги `3.*` принудительно попадают в `base_points_l2`** — это не сломает текущую систему (потому что в БД нет `'3'`-кодов), но если бизнес добавит лигу 3 — нужен явный re-design (либо `base_points_l3`-колонка, либо мап-таблица).
+4. **Validator (см. PR #17)** должен явно отклонять `'1.x'` коды до тех пор, пока бизнес не подтвердит формулу для подлиг L1. По состоянию на `main` (PR #17 не смержен) валидатор принимает только строго `'1'` или `'2'`, что исключает `2.1`/`2.2` — это противоречит миграции и требует фикса (см. T-007/T-020 в PR #17).
 
 ### 1.4. PR #28 — ProxyFix default ✅ ПОДТВЕРЖДЕНО
 
@@ -73,9 +117,25 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
 
 - `blueprints/health.py:75-82` — `redis.Redis(host=..., port=..., socket_connect_timeout=2)`. **`socket_timeout` не задан.** Аудит верен: connect timeout без read timeout — `redis_client.ping()` может зависнуть на read до системного дефолта.
 
-### 1.6. B11 — баннер метрик ⚠️ ЧАСТИЧНО ПОДТВЕРЖДЕНО (P3 косметика)
+### 1.6. B11 — баннер метрик ✅ ПОДТВЕРЖДЕНО (P3 косметика, T-V-3 ✅)
 
-- `app.py:235` — лог-сообщение: `"Default metrics: http_requests_total, http_request_duration_seconds"`. Утверждение про counter `_total` в коде не валидировал (требует посмотреть, какие default-метрики регистрирует `prometheus_flask_exporter`). Помечено T-V-3.
+- `app.py:235` — лог-сообщение: `"Default metrics: http_requests_total, http_request_duration_seconds"`.
+- **Фактический вывод `curl http://127.0.0.1:5050/metrics`** (запущен локально через `venv/bin/python app.py`, prometheus_flask_exporter настроен в `services/metrics_service.py:33-37` с `defaults_prefix="shadow_hockey_league"`):
+  - **Application-specific (5 метрик с префиксом `shadow_hockey_league_`):**
+    - `shadow_hockey_league_http_request_total` (counter) — **note: `request_total` singular, NOT `requests_total`**
+    - `shadow_hockey_league_http_request_duration_seconds` (histogram)
+    - `shadow_hockey_league_http_request_exceptions_total` (counter)
+    - `shadow_hockey_league_exporter_info` (gauge)
+  - **Стандартные `prometheus_client` default-метрики (10 штук):**
+    - `python_gc_objects_collected_total`, `python_gc_collections_total`, `python_gc_objects_uncollectable_total`, `python_info`
+    - `process_cpu_seconds_total`, `process_open_fds`, `process_max_fds`, `process_resident_memory_bytes`, `process_virtual_memory_bytes`, `process_start_time_seconds`
+
+- **Расхождения баннера с реальностью (B11):**
+  1. **`http_requests_total` (баннер) vs `shadow_hockey_league_http_request_total` (факт)** — два бага: (a) отсутствует префикс `shadow_hockey_league_`; (b) баннер пишет `requests` (множ.число), реальная метрика — `request` (ед.число).
+  2. **`http_request_duration_seconds` (баннер) vs `shadow_hockey_league_http_request_duration_seconds` (факт)** — отсутствует префикс.
+  3. **Не упомянуто в баннере:** `shadow_hockey_league_http_request_exceptions_total`, `shadow_hockey_league_exporter_info` + 10 стандартных метрик.
+
+- **Минимальный фикс TIK-38:** заменить строку `app.py:233-236` на актуальное перечисление; либо заменить лог-сообщение на динамическое (например, через `metrics.metrics()` или `prometheus_client.REGISTRY.collect()` отфильтрованное по префиксу). Самый простой вариант — корректная статика, без runtime-инспекции.
 
 ---
 
@@ -160,9 +220,9 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
 
 ### Группа V — верификация (предусловия для остальных задач)
 
-- **T-V-1** | Считать прод-конфиг (`/etc/systemd/system/shadow-hockey-league.service`, `.env` на сервере) и подтвердить наличие/отсутствие `PROXY_FIX_X_FOR`. **Зависимости:** SSH-доступ к проду или ответ пользователя. **Готовность:** в комментарии к этому PR указано фактическое значение env на проде.
-- **T-V-2** | Подтвердить гипотезу из §1.3 — открыть миграцию `migrations/versions/8a3279741758_*.py` и `models.py::League.base_points_field`, документировать поведение для подлиг `2.1`, `2.2` и гипотетических `2.1.1`, `3.x`. **Зависимости:** нет. **Готовность:** в `docs/audits/audit-2026-04-28-analysis.md` добавлен раздел «§1.3 verification» с цитатой из кода.
-- **T-V-3** | Подтвердить B11 — запустить app локально, обратиться к `/metrics`, выписать реальный список метрик, сравнить с лог-баннером `app.py:235`. **Зависимости:** dev-server. **Готовность:** в этот же документ добавлен список фактических метрик.
+- **T-V-1** | Считать прод-конфиг (`/etc/systemd/system/shadow-hockey-league.service`, `.env` на сервере) и подтвердить наличие/отсутствие `PROXY_FIX_X_FOR`. **Зависимости:** SSH-доступ к проду или ответ пользователя. **Готовность:** в комментарии к этому PR указано фактическое значение env на проде. **Status:** ⛔ not needed — PR #28 closed, прод остаётся на текущем default «x_for=1» за nginx.
+- **T-V-2** | Подтвердить гипотезу из §1.3 — открыть миграцию `migrations/versions/8a3279741758_*.py` и `models.py::League.base_points_field`, документировать поведение для подлиг `2.1`, `2.2` и гипотетических `2.1.1`, `3.x`. **Зависимости:** нет. **Готовность:** в `docs/audits/audit-2026-04-28-analysis.md` добавлен раздел «§1.3 verification» с цитатой из кода. **Status:** ✅ done — см. §1.3 verification выше.
+- **T-V-3** | Подтвердить B11 — запустить app локально, обратиться к `/metrics`, выписать реальный список метрик, сравнить с лог-баннером `app.py:235`. **Зависимости:** dev-server. **Готовность:** в этот же документ добавлен список фактических метрик. **Status:** ✅ done — см. §1.6 выше.
 
 ### Группа A — PR triage
 
