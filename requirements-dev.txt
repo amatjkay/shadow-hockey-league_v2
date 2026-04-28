@@ -7,6 +7,13 @@ pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-xdist>=3.0.0
 
+# E2E smoke (tests/e2e/test_smoke.py) — run manually against a live dev
+# server, not wired into the CI pytest collection. After adding/upgrading
+# playwright, run `./venv/bin/playwright install chromium` once to fetch
+# the bundled browser.
+playwright>=1.45.0
+pytest-playwright>=0.5.0
+
 # Type stubs
 types-Flask>=1.1.6
 types-SQLAlchemy>=1.4.53

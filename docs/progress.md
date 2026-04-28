@@ -55,13 +55,63 @@
 
 ---
 
-## Project Metrics (as of 2026-04-23)
+## Project Metrics (as of 2026-04-28)
 
-- **Total Tests:** 359
+- **Total Tests:** 388 unit/integration (3 pre-existing failures unchanged) +
+  42-scenario Playwright e2e smoke (manual run only, not auto-collected by pytest).
 - **Code Coverage:** ~94%
 - **Linting:** Configured (.flake8, mypy)
 - **Architecture:** Modular Python utilities + External static assets
 
 ---
 
-_Last updated: 2026-04-27_
+## Recent Bugfixes (Diagnostic Pass on `feature/admin-enhancement`)
+
+Driven by manual user verification of `/?season=N` failing on the live dev server.
+All bundled in **PR #19** (`devin/1777326827-e2e-bugfixes`):
+
+- **[TIK-27]** B1 — `blueprints/main.py` missing `request` import → homepage 500.
+- **[TIK-27]** B2 — `services/admin.py` form_args used unsupported `query_factory`
+  on FK fields → Achievement create/edit form 500.
+- **[TIK-27]** B3 — `dev.db` `icon_path` referenced `/static/img/icons/...`,
+  files lived under `/static/img/cups/...` → trophy 404s on leaderboard.
+- **[TIK-27]** B4 — `@cache.cached(key_prefix='leaderboard')` was a static
+  string, so `?season=` variants shared a cache bucket. Switched to a callable
+  key + `cache.clear()` on invalidation.
+- **[TIK-28]** B6 — `RatingService.build_leaderboard()` accepted `season_id`
+  but never filtered on it; the dropdown looked broken even after B1/B4.
+- **[TIK-29]** B7 — `templates/index.html` season dropdown was hard-coded to
+  three seasons; replaced with dynamic rendering from the `Season` table.
+- **[TIK-29]** B8 — `dev.db` shipped with only 18 of 49 achievements (no
+  BEST_REG, no HOCKEY_STICKS_AND_PUCK). Re-seeded from the canonical
+  `data/seed/achievements.json`.
+
+Follow-up data-only PR **#20**:
+
+- **[TIK-30]** Add 9 Shadow 1 league (Elite) 24/25 awards. Prod was missing the
+  same data; user dictated the winners (TOP1 Vyacheslav Shamanov, TOP2/BEST
+  whiplash 92, TOP3 Сергей Стрельченко, R3 Павел Роевнев, R1 Nurzhan
+  Yessengaliev / AleX TiiKii / Igor Kadzayev / Oleg Karandashov).
+
+Tooling PR **#21**:
+
+- **[TIK-31]** Playwright e2e smoke suite (`tests/e2e/test_smoke.py`). Manual
+  run against a live dev server: 42-scenario walk through public pages, REST
+  API auth contract, every Flask-Admin model view (list / new / first-row
+  edit), admin extras, and a console-error budget. `tests/e2e/conftest.py`
+  excludes the script from `pytest` auto-collection so CI is unaffected.
+
+## Known Open Issues
+
+- **B5** — jQuery race in `templates/admin/shl_master.html`: inline script
+  calls `$.fn.select2.defaults.set(...)` before the parent template's jQuery
+  loads. Surfaces as `pageerror: $ is not defined` in the browser console on
+  every admin page. Functionality is unaffected; Flask-Admin re-loads its
+  own select2 later. Tracked separately, will get a TIK ticket before fix.
+- **PR #15 / #16 / #17** — earlier integration-fix work (rate-limiter Redis
+  storage, `base_points` unification, MCP-config hygiene), open against
+  `devin/integration-analyst-fixes`. Awaiting user review/merge decision.
+
+---
+
+_Last updated: 2026-04-28_
