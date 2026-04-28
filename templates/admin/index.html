@@ -10,13 +10,13 @@
             >Logged in as <strong>{{ current_user.username }}</strong></span
           >
           <a
-            href="{{ url_for('admin_logout.index') }}"
+            href="{{ url_for('admin.logout') }}"
             class="btn btn-outline-secondary btn-sm"
             >Logout</a
           >
           {% else %}
           <a
-            href="{{ url_for('admin_login.index') }}"
+            href="{{ url_for('admin.login') }}"
             class="btn btn-primary btn-sm"
             >Login</a
           >
@@ -128,7 +128,7 @@
 
       {% else %}
       <div class="alert alert-info">
-        Пожалуйста, <a href="{{ url_for('admin_login.index') }}">войдите</a> для
+        Пожалуйста, <a href="{{ url_for('admin.login') }}">войдите</a> для
         доступа к админ-панели.
       </div>
       {% endif %}

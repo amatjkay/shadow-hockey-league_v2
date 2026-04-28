@@ -20,7 +20,7 @@ from typing import Any
 
 from data.schemas import validate_all
 from data.static_paths import StaticPaths
-from models import Achievement, Country, Manager
+from models import Achievement, AchievementType, Country, League, Manager, Season, AuditLog
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +121,10 @@ class SeedService:
                     self.session.query(Achievement).delete()
                     self.session.query(Manager).delete()
                     self.session.query(Country).delete()
+                    self.session.query(AchievementType).delete()
+                    self.session.query(League).delete()
+                    self.session.query(Season).delete()
+                    self.session.query(AuditLog).delete()
                     self.session.commit()
                 except Exception as e:
                     self.session.rollback()
@@ -149,6 +153,10 @@ class SeedService:
 
         if result.errors:
             return result
+
+        # Seed reference data (types, leagues, seasons)
+        self._seed_reference_data()
+        self.session.flush()
 
         # Seed countries
         self._seed_countries(countries_data, result)
@@ -205,8 +213,54 @@ class SeedService:
             result.managers_created += 1
             logger.info(f"Created manager: {name}")
 
+    def _seed_reference_data(self) -> None:
+        """Seed reference tables (AchievementType, League, Season) if they are empty."""
+        # 1. Achievement Types
+        # Aligning with Season 25/26 baseline: TOP1 = 800
+        if self.session.query(AchievementType).count() == 0:
+            logger.info("Seeding default AchievementTypes...")
+            types_data = [
+                {'code': 'TOP1', 'name': 'Top 1', 'base_points_l1': 800, 'base_points_l2': 400},
+                {'code': 'TOP2', 'name': 'Top 2', 'base_points_l1': 400, 'base_points_l2': 200},
+                {'code': 'TOP3', 'name': 'Top 3', 'base_points_l1': 200, 'base_points_l2': 100},
+                {'code': 'BEST', 'name': 'Best Regular', 'base_points_l1': 200, 'base_points_l2': 100},
+                {'code': 'R3', 'name': 'Round 3', 'base_points_l1': 100, 'base_points_l2': 50},
+                {'code': 'R1', 'name': 'Round 1', 'base_points_l1': 50, 'base_points_l2': 25},
+            ]
+            for data in types_data:
+                self.session.add(AchievementType(**data))
+
+        # 2. Leagues
+        if self.session.query(League).count() == 0:
+            logger.info("Seeding default Leagues...")
+            leagues = [
+                ("1", "Elite League", None),
+                ("2", "Second League", None),
+            ]
+            for code, name, parent in leagues:
+                self.session.add(League(code=code, name=name, parent_code=parent))
+
+        # 3. Seasons
+        if self.session.query(Season).count() == 0:
+            logger.info("Seeding default Seasons...")
+            # Updated multipliers: current is 1.0, older are significantly less
+            seasons = [
+                ("21/22", "Season 2021/22", 0.20),
+                ("22/23", "Season 2022/23", 0.30),
+                ("23/24", "Season 2023/24", 0.50),
+                ("24/25", "Season 2024/25", 0.80),
+                ("25/26", "Season 2025/26", 1.00),
+            ]
+            for code, name, mult in seasons:
+                self.session.add(Season(code=code, name=name, multiplier=mult, is_active=(code == "25/26")))
+
     def _seed_achievements(self, data: list[dict], result: SeedResult) -> None:
         """Seed achievements from JSON data."""
+        # Cache for performance
+        types = {t.code: t for t in self.session.query(AchievementType).all()}
+        leagues = {l.code: l for l in self.session.query(League).all()}
+        seasons = {s.code: s for s in self.session.query(Season).all()}
+
         for item in data:
             manager_name = item["manager_name"]
             manager = self.session.query(Manager).filter_by(name=manager_name).first()
@@ -214,21 +268,41 @@ class SeedService:
                 result.errors.append(f"Manager not found: {manager_name}")
                 continue
 
+            # Map legacy types
+            ach_type_code = item["type"]
+            if ach_type_code == "BEST_REG":
+                ach_type_code = "BEST"
+            elif ach_type_code == "HOCKEY_STICKS_AND_PUCK":
+                ach_type_code = "R3" if "Round 3" in item["title"] else "R1"
+
+            # Resolve objects
+            ach_type = types.get(ach_type_code)
+            league = leagues.get(item["league"])
+            season = seasons.get(item["season"])
+
+            if not all([ach_type, league, season]):
+                missing = []
+                if not ach_type: missing.append(f"type:{ach_type_code}")
+                if not league: missing.append(f"league:{item['league']}")
+                if not season: missing.append(f"season:{item['season']}")
+                result.errors.append(f"Missing reference data for {manager_name}: {', '.join(missing)}")
+                continue
+
             # Check unique constraint
             existing = self.session.query(Achievement).filter_by(
                 manager_id=manager.id,
-                league=item["league"],
-                season=item["season"],
-                achievement_type=item["type"],
+                league_id=league.id,
+                season_id=season.id,
+                type_id=ach_type.id,
             ).first()
             if existing:
                 result.achievements_skipped += 1
                 continue
 
             achievement = Achievement(
-                achievement_type=item["type"],
-                league=item["league"],
-                season=item["season"],
+                type=ach_type,
+                league=league,
+                season=season,
                 title=item["title"],
                 icon_path=self.paths.resolve_cup(item["icon_filename"]),
                 manager_id=manager.id,

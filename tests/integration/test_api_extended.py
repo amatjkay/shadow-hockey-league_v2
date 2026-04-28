@@ -37,7 +37,7 @@ def api_data(db_session):
     db.session.add(country)
     db.session.flush()
 
-    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=300)
+    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
     league = League(code="1", name="League 1")
     season = Season(code="24/25", name="Season 24/25", multiplier=1.0, is_active=True)
     db.session.add_all([ach_type, league, season])

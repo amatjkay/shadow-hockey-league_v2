@@ -62,11 +62,20 @@ class TestAchievementModelView(unittest.TestCase):
         self.assertIn("season", AchievementModelView.column_list)
         self.assertIn("final_points", AchievementModelView.column_list)
 
-    def test_form_args_has_query_factories(self):
-        """form_args should have query_factory for type, league, season."""
-        self.assertIn("type", AchievementModelView.form_args)
-        self.assertIn("league", AchievementModelView.form_args)
-        self.assertIn("season", AchievementModelView.form_args)
+    def test_form_ajax_refs_covers_relationship_fields(self):
+        """form_ajax_refs should drive type/league/season/manager pickers.
+
+        The previous ``form_args={'<rel>': {'query_factory': ...}}`` shape
+        crashed under WTForms 3.x with
+        ``TypeError: Field.__init__() got an unexpected keyword argument
+        'query_factory'`` — see B2 in the e2e bug report. The canonical
+        Flask-Admin pattern is ``form_ajax_refs``, which is what the live
+        admin actually uses.
+        """
+        self.assertIn("type", AchievementModelView.form_ajax_refs)
+        self.assertIn("league", AchievementModelView.form_ajax_refs)
+        self.assertIn("season", AchievementModelView.form_ajax_refs)
+        self.assertIn("manager", AchievementModelView.form_ajax_refs)
 
     def test_achievement_model_auto_calculation(self):
         """Achievement should auto-calculate base_points, multiplier, final_points."""

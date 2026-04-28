@@ -35,7 +35,7 @@ def _seed_reference_data(include_leagues=None, include_seasons=None, include_typ
         league_map[code] = lg
 
     season_map = {}
-    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    multipliers = {"25/26": 1.00, "24/25": 0.80, "23/24": 0.50, "22/23": 0.30, "21/22": 0.20}
     for i, code in enumerate(seasons):
         s = Season(code=code, name=f"Season {code}", multiplier=multipliers.get(code, 1.0), is_active=(i == 0))
         db.session.add(s)
@@ -43,12 +43,12 @@ def _seed_reference_data(include_leagues=None, include_seasons=None, include_typ
 
     type_map = {}
     type_points = {
-        "TOP1": (800, 300),
-        "TOP2": (550, 200),
-        "TOP3": (450, 100),
-        "BEST": (50, 40),
-        "R3": (30, 20),
-        "R1": (10, 5),
+        "TOP1": (800, 400),
+        "TOP2": (400, 200),
+        "TOP3": (200, 100),
+        "BEST": (200, 100),
+        "R3": (100, 50),
+        "R1": (50, 25),
     }
     for code in types:
         bp_l1, bp_l2 = type_points.get(code, (0, 0))
@@ -162,43 +162,43 @@ class TestBasePointsFromDB(unittest.TestCase):
         """Test all League 1 base points from DB."""
         db.session.add(League(code="1", name="League 1"))
         db.session.add_all([
-            AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=300),
-            AchievementType(code="TOP2", name="TOP2", base_points_l1=550, base_points_l2=200),
-            AchievementType(code="TOP3", name="TOP3", base_points_l1=450, base_points_l2=100),
-            AchievementType(code="BEST", name="Best regular", base_points_l1=50, base_points_l2=40),
-            AchievementType(code="R3", name="Round 3", base_points_l1=30, base_points_l2=20),
-            AchievementType(code="R1", name="Round 1", base_points_l1=10, base_points_l2=5),
+            AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=400),
+            AchievementType(code="TOP2", name="TOP2", base_points_l1=400, base_points_l2=200),
+            AchievementType(code="TOP3", name="TOP3", base_points_l1=200, base_points_l2=100),
+            AchievementType(code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100),
+            AchievementType(code="R3", name="Round 3", base_points_l1=100, base_points_l2=50),
+            AchievementType(code="R1", name="Round 1", base_points_l1=50, base_points_l2=25),
         ])
         db.session.commit()
 
         result = _get_base_points_from_db(db.session)
         self.assertEqual(result[("1", "TOP1")], 800)
-        self.assertEqual(result[("1", "TOP2")], 550)
-        self.assertEqual(result[("1", "TOP3")], 450)
-        self.assertEqual(result[("1", "BEST")], 50)
-        self.assertEqual(result[("1", "R3")], 30)
-        self.assertEqual(result[("1", "R1")], 10)
+        self.assertEqual(result[("1", "TOP2")], 400)
+        self.assertEqual(result[("1", "TOP3")], 200)
+        self.assertEqual(result[("1", "BEST")], 200)
+        self.assertEqual(result[("1", "R3")], 100)
+        self.assertEqual(result[("1", "R1")], 50)
 
     def test_base_points_l2_values(self) -> None:
         """Test all League 2 base points from DB."""
         db.session.add(League(code="2", name="League 2"))
         db.session.add_all([
-            AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=300),
-            AchievementType(code="TOP2", name="TOP2", base_points_l1=550, base_points_l2=200),
-            AchievementType(code="TOP3", name="TOP3", base_points_l1=450, base_points_l2=100),
-            AchievementType(code="BEST", name="Best regular", base_points_l1=50, base_points_l2=40),
-            AchievementType(code="R3", name="Round 3", base_points_l1=30, base_points_l2=20),
-            AchievementType(code="R1", name="Round 1", base_points_l1=10, base_points_l2=5),
+            AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=400),
+            AchievementType(code="TOP2", name="TOP2", base_points_l1=400, base_points_l2=200),
+            AchievementType(code="TOP3", name="TOP3", base_points_l1=200, base_points_l2=100),
+            AchievementType(code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100),
+            AchievementType(code="R3", name="Round 3", base_points_l1=100, base_points_l2=50),
+            AchievementType(code="R1", name="Round 1", base_points_l1=50, base_points_l2=25),
         ])
         db.session.commit()
 
         result = _get_base_points_from_db(db.session)
-        self.assertEqual(result[("2", "TOP1")], 300)
+        self.assertEqual(result[("2", "TOP1")], 400)
         self.assertEqual(result[("2", "TOP2")], 200)
         self.assertEqual(result[("2", "TOP3")], 100)
-        self.assertEqual(result[("2", "BEST")], 40)
-        self.assertEqual(result[("2", "R3")], 20)
-        self.assertEqual(result[("2", "R1")], 5)
+        self.assertEqual(result[("2", "BEST")], 100)
+        self.assertEqual(result[("2", "R3")], 50)
+        self.assertEqual(result[("2", "R1")], 25)
 
 
 class TestSeasonMultiplierFromDB(unittest.TestCase):
@@ -232,19 +232,19 @@ class TestSeasonMultiplierFromDB(unittest.TestCase):
         """Test all season multipliers from DB."""
         db.session.add_all([
             Season(code="25/26", name="Season 2025/26", multiplier=1.00, is_active=True),
-            Season(code="24/25", name="Season 2024/25", multiplier=0.95, is_active=False),
-            Season(code="23/24", name="Season 2023/24", multiplier=0.90, is_active=False),
-            Season(code="22/23", name="Season 2022/23", multiplier=0.85, is_active=False),
-            Season(code="21/22", name="Season 2021/22", multiplier=0.80, is_active=False),
+            Season(code="24/25", name="Season 2024/25", multiplier=0.80, is_active=False),
+            Season(code="23/24", name="Season 2023/24", multiplier=0.50, is_active=False),
+            Season(code="22/23", name="Season 2022/23", multiplier=0.30, is_active=False),
+            Season(code="21/22", name="Season 2021/22", multiplier=0.20, is_active=False),
         ])
         db.session.commit()
 
         result = _get_season_multiplier_from_db(db.session)
         self.assertEqual(result["25/26"], 1.00)
-        self.assertEqual(result["24/25"], 0.95)
-        self.assertEqual(result["23/24"], 0.90)
-        self.assertEqual(result["22/23"], 0.85)
-        self.assertEqual(result["21/22"], 0.80)
+        self.assertEqual(result["24/25"], 0.80)
+        self.assertEqual(result["23/24"], 0.50)
+        self.assertEqual(result["22/23"], 0.30)
+        self.assertEqual(result["21/22"], 0.20)
 
 
 class TestAchievementPointsCalculation(unittest.TestCase):
@@ -296,60 +296,60 @@ class TestAchievementPointsCalculation(unittest.TestCase):
         self.assertEqual(result["points"], 800)
 
     def test_top1_l1_s24_25(self) -> None:
-        """TOP1 League 1 Season 24/25: 800 x 0.95 = 760"""
+        """TOP1 League 1 Season 24/25: 800 x 0.80 = 640"""
         ach = self._create_achievement("TOP1", "1", "24/25", "TOP1")
         result = calculate_achievement_points(ach)
         self.assertEqual(result["base"], 800)
-        self.assertEqual(result["mul"], 0.95)
-        self.assertEqual(result["points"], 760)
+        self.assertEqual(result["mul"], 0.80)
+        self.assertEqual(result["points"], 640)
 
     def test_top1_l1_s23_24(self) -> None:
-        """TOP1 League 1 Season 23/24: 800 x 0.90 = 720"""
+        """TOP1 League 1 Season 23/24: 800 x 0.50 = 400"""
         ach = self._create_achievement("TOP1", "1", "23/24", "TOP1")
         result = calculate_achievement_points(ach)
         self.assertEqual(result["base"], 800)
-        self.assertEqual(result["mul"], 0.90)
-        self.assertEqual(result["points"], 720)
+        self.assertEqual(result["mul"], 0.50)
+        self.assertEqual(result["points"], 400)
 
     def test_top2_l1_s22_23(self) -> None:
-        """TOP2 League 1 Season 22/23: 550 x 0.85 = 467.5 -> 468 (banker's rounding)"""
+        """TOP2 League 1 Season 22/23: 400 x 0.30 = 120"""
         ach = self._create_achievement("TOP2", "1", "22/23", "TOP2")
         result = calculate_achievement_points(ach)
-        self.assertEqual(result["base"], 550)
-        self.assertEqual(result["mul"], 0.85)
-        self.assertEqual(result["points"], 468)
+        self.assertEqual(result["base"], 400)
+        self.assertEqual(result["mul"], 0.30)
+        self.assertEqual(result["points"], 120)
 
     def test_top3_l1_s21_22(self) -> None:
-        """TOP3 League 1 Season 21/22: 450 x 0.80 = 360"""
+        """TOP3 League 1 Season 21/22: 200 x 0.20 = 40"""
         ach = self._create_achievement("TOP3", "1", "21/22", "TOP3")
         result = calculate_achievement_points(ach)
-        self.assertEqual(result["base"], 450)
-        self.assertEqual(result["mul"], 0.80)
-        self.assertEqual(result["points"], 360)
+        self.assertEqual(result["base"], 200)
+        self.assertEqual(result["mul"], 0.20)
+        self.assertEqual(result["points"], 40)
 
     def test_best_l1_s25_26(self) -> None:
-        """Best regular League 1 Season 25/26: 50 x 1.00 = 50"""
+        """Best regular League 1 Season 25/26: 200 x 1.00 = 200"""
         ach = self._create_achievement("BEST", "1", "25/26", "Best regular player")
+        result = calculate_achievement_points(ach)
+        self.assertEqual(result["base"], 200)
+        self.assertEqual(result["mul"], 1.00)
+        self.assertEqual(result["points"], 200)
+
+    def test_r3_l2_s25_26(self) -> None:
+        """Round 3 League 2 Season 25/26: 50 x 1.00 = 50"""
+        ach = self._create_achievement("R3", "2", "25/26", "Round 3")
         result = calculate_achievement_points(ach)
         self.assertEqual(result["base"], 50)
         self.assertEqual(result["mul"], 1.00)
         self.assertEqual(result["points"], 50)
 
-    def test_r3_l2_s25_26(self) -> None:
-        """Round 3 League 2 Season 25/26: 20 x 1.00 = 20"""
-        ach = self._create_achievement("R3", "2", "25/26", "Round 3")
-        result = calculate_achievement_points(ach)
-        self.assertEqual(result["base"], 20)
-        self.assertEqual(result["mul"], 1.00)
-        self.assertEqual(result["points"], 20)
-
     def test_r1_l2_s21_22(self) -> None:
-        """Round 1 League 2 Season 21/22: 5 x 0.80 = 4"""
+        """Round 1 League 2 Season 21/22: 25 x 0.20 = 5"""
         ach = self._create_achievement("R1", "2", "21/22", "Round 1")
         result = calculate_achievement_points(ach)
-        self.assertEqual(result["base"], 5)
-        self.assertEqual(result["mul"], 0.80)
-        self.assertEqual(result["points"], 4)
+        self.assertEqual(result["base"], 25)
+        self.assertEqual(result["mul"], 0.20)
+        self.assertEqual(result["points"], 5)
 
     def test_unknown_season_defaults_to_1(self) -> None:
         """Unknown season should default to multiplier 1.0."""
@@ -423,28 +423,28 @@ class TestPointsCalculationWithDBData(unittest.TestCase):
         self.assertEqual(result["points"], 800)
 
     def test_points_from_db_top2_l1_previous(self) -> None:
-        """TOP2 L1 s24/25 from DB: 550 x 0.95 = 522.5 -> 522"""
+        """TOP2 L1 s24/25 from DB: 400 x 0.80 = 320"""
         ach = self._create_achievement("TOP2", "1", "24/25", "TOP2")
         bp = _get_base_points_from_db(db.session)
         sm = _get_season_multiplier_from_db(db.session)
         result = calculate_achievement_points(ach, bp, sm)
-        self.assertEqual(result["points"], 522)
+        self.assertEqual(result["points"], 320)
 
     def test_points_from_db_top1_l2_current(self) -> None:
-        """TOP1 L2 s25/26 from DB: 300 x 1.00 = 300"""
+        """TOP1 L2 s25/26 from DB: 400 x 1.00 = 400"""
         ach = self._create_achievement("TOP1", "2", "25/26", "TOP1")
         bp = _get_base_points_from_db(db.session)
         sm = _get_season_multiplier_from_db(db.session)
         result = calculate_achievement_points(ach, bp, sm)
-        self.assertEqual(result["points"], 300)
+        self.assertEqual(result["points"], 400)
 
     def test_points_from_db_r1_l2_oldest(self) -> None:
-        """R1 L2 s21/22 from DB: 5 x 0.80 = 4"""
+        """R1 L2 s21/22 from DB: 25 x 0.20 = 5"""
         ach = self._create_achievement("R1", "2", "21/22", "Round 1")
         bp = _get_base_points_from_db(db.session)
         sm = _get_season_multiplier_from_db(db.session)
         result = calculate_achievement_points(ach, bp, sm)
-        self.assertEqual(result["points"], 4)
+        self.assertEqual(result["points"], 5)
 
 
 if __name__ == "__main__":

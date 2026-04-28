@@ -21,32 +21,31 @@ from models import Achievement, AchievementType, League, Manager, Season
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
 # Base points for each league and achievement type combination
-# Updated: increased gap between TOP1 and other achievements to make L1 victories more meaningful
+# Unified with SeedService baselines (TOP1 L1 = 800, L2 = 400)
 BASE_POINTS: dict[tuple[str, str], int] = {
     # League 1 - Elite division
     ("1", "TOP1"): 800,
-    ("1", "TOP2"): 550,
-    ("1", "TOP3"): 450,
-    ("1", "BEST"): 50,
-    ("1", "R3"): 30,
-    ("1", "R1"): 10,
-    # League 2 - Second division (50% of L1 values for TOP, similar for others)
-    ("2", "TOP1"): 300,
+    ("1", "TOP2"): 400,
+    ("1", "TOP3"): 200,
+    ("1", "BEST"): 200,
+    ("1", "R3"): 100,
+    ("1", "R1"): 50,
+    # League 2 - Second division (50% of L1 values)
+    ("2", "TOP1"): 400,
     ("2", "TOP2"): 200,
     ("2", "TOP3"): 100,
-    ("2", "BEST"): 40,
-    ("2", "R3"): 20,
-    ("2", "R1"): 5,
+    ("2", "BEST"): 100,
+    ("2", "R3"): 50,
+    ("2", "R1"): 25,
 }
 
-# Season multipliers - current season is baseline (1.00), older seasons have discount
-# Logic: recent achievements are more valuable than old ones
+# Season multipliers - current season is baseline (1.00), historical ones decrease significantly
 SEASON_MULTIPLIER: dict[str, float] = {
-    "25/26": 1.00,  # Current/latest season - baseline
-    "24/25": 0.95,  # Previous season - 5% discount
-    "23/24": 0.90,  # Older season - 10% discount
-    "22/23": 0.85,  # Oldest season - 15% discount
-    "21/22": 0.80,  # Ancient season - 20% discount
+    "25/26": 1.00,  # Baseline
+    "24/25": 0.80,
+    "23/24": 0.50,
+    "22/23": 0.30,
+    "21/22": 0.20,
 }
 
 # Human-readable labels for achievement kinds
@@ -174,7 +173,7 @@ def calculate_achievement_points(
     }
 
 
-def build_leaderboard(session: Session) -> list[dict[str, Any]]:
+def build_leaderboard(session: Session, season_id: int | None = None) -> list[dict[str, Any]]:
     """Build the leaderboard with all managers and their ratings.
 
     Uses eager loading (joinedload) to prevent N+1 query problem:
@@ -183,7 +182,14 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
     - Loads base points and season multipliers from reference tables (1 query each)
 
     Args:
-        session: SQLAlchemy database session
+        session: SQLAlchemy database session.
+        season_id: Optional ``Season.id``. When provided, only achievements
+            tied to that season contribute to the leaderboard rows — totals,
+            ranks, and the per-manager achievement list are all computed as
+            if no other seasons existed. Managers without any achievement
+            in the requested season are still returned (with ``total=0``)
+            so the dropdown does not silently hide active managers.
+            ``None`` means lifetime aggregate (all seasons).
 
     Returns:
         List of manager rating dictionaries, sorted by total points descending
@@ -213,12 +219,20 @@ def build_leaderboard(session: Session) -> list[dict[str, Any]]:
         total_points = 0
 
         # Safely handle country (BUG FIX: manager.country might be None in some tests)
-        country_flag = manager.country.flag_path if manager.country else ""
+        country_flag = manager.country.flag_display_url if manager.country else ""
         country_code = manager.country.code if manager.country else "???"
 
         for achievement in manager.achievements:
+            # Season filter: when the caller asked for one specific season,
+            # skip every achievement that does not belong to it. Passing
+            # season_id=None preserves the lifetime aggregate behaviour.
+            if season_id is not None and achievement.season_id != season_id:
+                continue
+
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)
+
+            # total_points should always be cumulative (Lifetime) to match production
             total_points += parsed["points"]
 
         rows.append(

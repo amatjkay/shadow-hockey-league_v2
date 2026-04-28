@@ -1,146 +1,124 @@
-# Decision Log — Shadow Hockey League v2
+# Decision Log
 
-> **Purpose:** Architectural Decision Records (ADRs) for significant technical choices.
-> Each entry documents the context, decision, rationale, and consequences.
+## 2026-04-24: Achievement Management Stabilization
 
----
+**Context**: The manager achievement management was broken due to duplicate UI sections, JS errors, and mandatory model fields missing from the form.
 
-## ADR-001: SQLite as Production Database
+**Decision**:
+1.  **Consolidate UI**: Removed redundant achievement sections in `manager_edit.html`, moving to a single AJAX modal workflow.
+2.  **Auto-calculation**: Shifted field population (title, icon_path, base_points, multiplier, final_points) from client-side JS to server-side `on_model_change` hook in `services/admin.py`.
+3.  **Code Cleanup**: Deleted a duplicate `AchievementModelView` class that was causing conflicting configurations.
 
-**Date:** 2024 (project inception)
-**Status:** Active
-
-### Context
-The project needed a simple, file-based database that could be easily deployed on a VPS
-without requiring a separate database server process.
-
-### Decision
-Use SQLite with SQLAlchemy 2.0 ORM and Alembic for migrations.
-
-### Rationale
-- Zero-config deployment — no PostgreSQL/MySQL process to manage
-- File-based backups — simple `cp dev.db dev.db.bak`
-- Sufficient for expected load (single admin, moderate API traffic)
-- SQLAlchemy abstraction allows future migration to PostgreSQL if needed
-
-### Consequences
-- No true concurrent write support — tests use thread-safety workarounds
-- No `ARRAY`, `JSON`, or advanced column types — using `Text` with JSON strings
-- Alembic migrations are the only safe way to modify schema
+**Rationale**:
+- Reduces form complexity and potential for user error.
+- Ensures data consistency (points always match reference tables).
+- Eliminates "dead code" and shadowed class definitions.
 
 ---
 
-## ADR-002: Redis with SimpleCache Fallback
+## 2026-04-23: Removal of mcp-servers from Git
 
-**Date:** 2024
-**Status:** Active
+- **Decision**: Remove `mcp-servers/` directory from version control.
+- **Rationale**: The directory contains thousands of node modules and dependencies that bloat the repository, leading to extremely slow git operations and deployment times.
+- **Alternative**: MCP servers should be managed as global tools or external dependencies.
+- **Status**: Implemented.
 
-### Context
-Leaderboard queries with rating calculations are expensive. Caching was needed,
-but Redis availability couldn't be guaranteed on all environments.
+## 2026-04-24: Database Point Alignment and Season 25/26 Baseline
 
-### Decision
-Use Flask-Caching with Redis as primary backend and `SimpleCache` as automatic fallback.
-
-### Rationale
-- Redis provides shared cache across Gunicorn workers in production
-- SimpleCache works for development and testing without Redis dependency
-- Tests use `_FakeRedis` (in-memory mock) for deterministic behavior
-
-### Consequences
-- Cache invalidation must be explicit — no TTL-based auto-refresh for data mutations
-- `invalidate_leaderboard_cache()` must be called after every CREATE/UPDATE/DELETE
+- **Decision**: Synchronize `SeedService` base points with `RatingService` (e.g., TOP1 = 800) and establish Season 25/26 as the 1.0 multiplier baseline.
+- **Rationale**: Previously, the database was seeded with legacy point values (e.g., TOP1 = 10), which contradicted the calculations shown in the UI and rating reports. This caused confusion and incorrect leaderboard ordering.
+- **Implementation**: Updated `SeedService._seed_reference_data` and ensured `--force` mode clears all reference tables to allow point updates.
+- **Status**: Implemented and verified via E2E testing.
 
 ---
 
-## ADR-003: Flask-Admin with Monkey-Patches
+## 2026-04-24: Achievement Icon Resolution Stabilization
 
-**Date:** 2025
-**Status:** Active — Critical
+**Context**: Inconsistent icon pathing between standard Admin forms and custom Manager Edit modals caused broken images.
 
-### Context
-Flask-Admin 2.0.2 has incompatibilities with WTForms 3.x and its own `BaseView._run_view`.
+**Decision**:
+1. Centralized icon resolution in `AchievementType.get_icon_url()`.
+2. Removed hardcoded defaults from `models.py` to allow dynamic `{code}.svg` resolution.
+3. Updated all API responses (`calculate-points`, `get-manager-achievements`) and client-side scripts (`autofill.js`, `manager_edit.html`) to use the centralized logic or the server-provided `icon_path`.
 
-### Decision
-Apply targeted monkey-patches in `services/admin.py` rather than pinning older library versions.
+**Rationale**: 
+- Reduces logic duplication across Python and JavaScript.
+- Simplifies adding new achievement types (no manual icon pathing required if standard naming is used).
+- Fixes regression where custom icons were ignored in the Manager Edit modal.
 
-### Rationale
-- Pinning WTForms < 3.0 would block security patches
-- Upstream Flask-Admin fixes are slow to release
-- Patches are minimal (2 functions) and well-documented
-
-### Consequences
-- ⚠️ Patches must be tested after any Flask-Admin or WTForms upgrade
-- Patches are clearly marked with comments and docstrings explaining the fix
+**Status**: Implemented and verified via integration tests.
 
 ---
 
-## ADR-004: Denormalized Points on Achievement Records
+## 2026-04-28: Cache key partitioning and Season filter contract
 
-**Date:** 2024
-**Status:** Active
+**Context**: While diagnosing a homepage 500 reported by the user, three latent issues
+in the `?season=N` filter pipeline were uncovered:
 
-### Context
-The rating formula `base_points × season_multiplier` could be calculated on-the-fly,
-but this would require joining 3 tables for every leaderboard render.
+1. `blueprints/main.py` accepted `?season=N` from the dropdown but never read it
+   (`request` was not imported).
+2. `@cache.cached(key_prefix='leaderboard')` used a static prefix, so the cache
+   bucket was shared across `?season=` variants — even after fixing (1) the page
+   would always render the first cached variant.
+3. `RatingService.build_leaderboard(season_id=...)` accepted the parameter but
+   never filtered on it inside the loop.
 
-### Decision
-Store `base_points`, `multiplier`, and `final_points` directly on each `Achievement` row.
+**Decision**:
 
-### Rationale
-- Eliminates expensive JOINs for the most frequent query (leaderboard)
-- Points are recalculated automatically via `recalc_service.py` when base values change
-- SQLAlchemy event listeners trigger recalculation on `AchievementType` or `Season` updates
+1. Read `season_id` from `request.args.get("season")` in `blueprints/main.py::index`.
+2. Replace the static `key_prefix` with a callable that includes the season id (e.g.
+   `key_prefix=lambda: f"leaderboard:{request.args.get('season') or 'lifetime'}"`).
+   `invalidate_leaderboard_cache()` now calls `cache.clear()` to flush all variants.
+3. In `build_leaderboard`, when `season_id is not None`, filter the achievements loop
+   so managers without a matching achievement still appear with `total=0` (consistent
+   with the lifetime view). Verified by 4 new regression tests in
+   `tests/test_rating_service.py`.
 
-### Consequences
-- Data redundancy — must ensure recalculation triggers are reliable
-- Bulk imports must calculate points correctly at insert time
+**Rationale**:
+- Correctness — three-step fix was needed because each layer relied on a different
+  silent assumption.
+- Caching contract — any future `@cache.cached` decorator that varies by query string
+  must use a callable `key_prefix`. This rule is now in `PROJECT_KNOWLEDGE.md §5`.
 
----
-
-## ADR-005: Agent Architecture with Memory Bank
-
-**Date:** 2026-04-23
-**Status:** Active
-
-### Context
-Multiple AI agents working on the project need shared context, consistent standards,
-and safety guardrails to prevent destructive actions.
-
-### Decision
-Implement a Memory Bank (`docs/`) + Subagent definitions (`.agents/`) + Skills
-(`.agents/skills/`) architecture governed by `AGENTS.md`.
-
-### Rationale
-- Memory Bank provides persistent context across agent sessions
-- Subagent roles prevent context window bloat by separating concerns
-- Skills enable reusable, auditable workflows for common operations
-- `AGENTS.md` serves as a single constitution all agents must follow
-
-### Consequences
-- Agents must read context files before acting (adds startup overhead)
-- `docs/progress.md` must be maintained as a living document
-- New skills can be added incrementally without modifying core architecture
+**Status**: Implemented in PR #19, verified on dev server and by 4 regression tests.
 
 ---
 
-_Template for new entries:_
+## 2026-04-28: Playwright e2e smoke suite
 
-```markdown
-## ADR-NNN: [Title]
+**Context**: Manual user-driven smoke testing was the only safety net for this app.
+Subtle regressions (e.g. an admin form 500 or a leaderboard 404 spree) were only being
+caught after the fact.
 
-**Date:** YYYY-MM-DD
-**Status:** Proposed | Active | Deprecated | Superseded by ADR-XXX
+**Decision**: Add `tests/e2e/test_smoke.py` — a Playwright-based smoke walking 42 scenarios
+(public pages + REST API auth + every Flask-Admin model view + admin extras + console
+error budget). Excluded from `pytest` auto-collection via `tests/e2e/conftest.py` so CI
+remains unchanged. Suite is intentionally tolerant of business-data drift — it asserts
+on status codes and the absence of console errors, not on row counts.
 
-### Context
-[What problem or situation prompted this decision?]
+**Rationale**:
+- A live, exercising probe catches things that unit tests miss (template breakage,
+  missing static assets, FK form regressions).
+- Manual run only — adopting it as a CI gate would require a hosted dev server and
+  is left as a follow-up.
 
-### Decision
-[What was decided?]
+**Status**: Implemented in PR #21, currently 42/42 passing.
 
-### Rationale
-[Why was this the best option?]
+---
 
-### Consequences
-[What are the trade-offs and implications?]
-```
+## 2026-04-28: Audit log gap — known issue, no fix yet
+
+**Context**: Deep e2e probe revealed `audit_logs` table is empty after admin CRUD
+operations. Investigation found the SQLAlchemy `after_flush` listener in
+`services/audit_service.py` early-returns unless `g.current_user_id` is set, and the
+setter `set_current_user_for_audit()` is only called from tests.
+
+**Decision**: File the issue (B9, P1) in `docs/progress.md` and `PROJECT_KNOWLEDGE.md §3`.
+Do not fix in the docs PR — the fix is a behavioural change requiring its own ticket
+and regression test (assert that creating a Country yields a new `audit_logs` row).
+
+**Rationale**: The fix itself is small (~10 LoC, a Flask-Login `before_request` hook),
+but rolling it into a docs-only PR would mix concerns. Tracking the gap explicitly so
+nothing relies on audit-log data until it's wired up.
+
+**Status**: Documented; fix pending separate ticket.

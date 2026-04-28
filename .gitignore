@@ -1,63 +1,40 @@
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
+/home/tiki/dev/shadow-hockey-league_v2/.gitignore
+
+# Dependencies
 venv/
-.venv/
-.ENV
-.python-version
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-
-# Database
-*.db
-instance/*.db
-
-# Logs
-logs/
-*.log
+node_modules/
+mcp-servers/
 
 # Environment
 .env
 .env.local
-*.env.*
-!.env.example
+instance/
+*.db
+!dev.db
 
-# SSH Keys
-*.key
-*.pem
-github_actions_key*
-pa_deploy_key*
+# Caching
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
 # OS
 .DS_Store
 Thumbs.db
 
-# AI/LLM Context (ignore session state, track config and roles)
-.qwen/context/
-.qwen/BACKUP*
-.qwen/migrations/
-!.qwen/config.json
-!.qwen/agents/
-```
+# Project-specific
+data/export/*.json
+temp/
+logs/
+*.tmp
+*.bak
