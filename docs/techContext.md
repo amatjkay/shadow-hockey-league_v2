@@ -142,6 +142,8 @@ make benchmark  # Performance latency check
 | `ENABLE_API` | No | `True` |
 | `API_KEY_SECRET` | Yes | — |
 | `WTF_CSRF_SECRET_KEY` | Yes | — |
+| `PROXY_FIX_X_FOR` | No | `0` |
+| `FLASK_RUN_HOST` | No | `127.0.0.1` |
 
 ---
 

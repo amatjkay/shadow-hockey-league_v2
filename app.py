@@ -56,8 +56,8 @@ def create_app(config_class: str | None = None) -> Flask:
     # that `request.remote_addr` and Flask-Limiter see the real client IP
     # via X-Forwarded-For. Without this, every per-IP feature (login
     # rate-limit, API rate-limit, audit log IP) buckets every client under
-    # the proxy IP. See docs/ARCHITECTURE.md § Production deployment.
-    proxy_count = int(app.config.get("PROXY_FIX_X_FOR", os.environ.get("PROXY_FIX_X_FOR", "1")))
+    # the proxy IP. See docs/ARCHITECTURE.md § Production deployment (ProxyFix).
+    proxy_count = int(app.config.get("PROXY_FIX_X_FOR", os.environ.get("PROXY_FIX_X_FOR", "0")))
     if proxy_count > 0:
         app.wsgi_app = ProxyFix(  # type: ignore[method-assign]
             app.wsgi_app,

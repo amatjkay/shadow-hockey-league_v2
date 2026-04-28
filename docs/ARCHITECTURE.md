@@ -239,6 +239,33 @@ alembic upgrade head
 systemctl restart shadow-hockey-league
 ```
 
+### Production deployment (ProxyFix)
+
+In production, the Flask application sits behind **Nginx → Gunicorn → Flask**.
+Nginx terminates TLS and forwards requests to Gunicorn on port 8000 (internal).
+Because Nginx is a reverse proxy, the raw `REMOTE_ADDR` seen by Flask is the
+proxy's IP (e.g., `127.0.0.1`), **not** the real client IP.
+
+To restore the true client IP, `create_app()` in `app.py` conditionally wraps
+the WSGI app with Werkzeug's `ProxyFix` middleware, controlled by the
+`PROXY_FIX_X_FOR` environment variable:
+
+| `PROXY_FIX_X_FOR` | Meaning |
+| :--- | :--- |
+| `0` (default) | ProxyFix **disabled**. `request.remote_addr` = raw socket address. Use when not behind a proxy. |
+| `1` | Trust **one** `X-Forwarded-For` entry (standard single-proxy setup with Nginx). |
+| `N` | Trust `N` entries — set to the number of trusted proxies in the chain. |
+
+> **Security warning (from Werkzeug docs):** enabling ProxyFix without actually
+> being behind a trusted proxy allows clients to spoof `X-Forwarded-For` and
+> bypass per-IP protections (login rate-limit, API rate-limit, audit log IP).
+> Always leave the default (`0`) unless the deployment uses a reverse proxy.
+
+Features that rely on the resolved IP:
+- Admin login brute-force rate-limit (`services/admin.py`)
+- API rate-limit (`Flask-Limiter`)
+- Audit log IP recording (`services/audit_service.py`)
+
 ### Backup Strategy
 
 - **Ежедневно:** 03:00 UTC (cron)

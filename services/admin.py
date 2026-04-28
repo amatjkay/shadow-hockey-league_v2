@@ -544,7 +544,7 @@ def _get_client_ip() -> str:
 
     `request.remote_addr` has already been resolved to the real client IP
     by the ProxyFix middleware wired up in :func:`app.create_app` (see
-    `app.py` and `docs/ARCHITECTURE.md` § Production deployment), which
+    `app.py` and `docs/ARCHITECTURE.md` § Production deployment (ProxyFix)), which
     walks `X-Forwarded-For` from the right using the configured trusted-
     proxy count.
 
