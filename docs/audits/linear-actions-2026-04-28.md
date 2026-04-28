@@ -67,8 +67,10 @@ mcp_linear_linear_edit_issue
 `AGENTS.md` §5 декларирует: «All admin CRUD actions logged via audit_service.log_action()».
 В реальности:
 
-1. Функция `audit_service.log_action()` в коде **отсутствует**. Есть только листенер
-   `@event.listens_for(Session, "after_flush")` в `services/audit_service.py:209-216`.
+1. Функция `audit_service.log_action()` **существует** (`services/audit_service.py:27`) и вызывается
+   из `services/recalc_service.py`, но **не используется** Flask-Admin'ом для автоматического
+   логирования CRUD. Автоматический листенер
+   `@event.listens_for(Session, "after_flush")` в `services/audit_service.py:209-216`
 2. Листенер early-return'ит, если `flask.g.current_user_id` пуст:
    ```python
    current_user_id = getattr(g, "current_user_id", None)
