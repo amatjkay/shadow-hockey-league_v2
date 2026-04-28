@@ -139,10 +139,10 @@
         <div class="filters-bar" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
           <label for="season-filter" style="font-weight: 600;">Сезон:</label>
           <select id="season-filter" class="form-control" style="max-width: 200px;" onchange="window.location.href='/?season=' + this.value">
-            <option value="">Все сезоны (Lifetime)</option>
-            <option value="1" {% if request.args.get('season') == '1' %}selected{% endif %}>Сезон 23/24</option>
-            <option value="2" {% if request.args.get('season') == '2' %}selected{% endif %}>Сезон 24/25</option>
-            <option value="3" {% if request.args.get('season') == '3' %}selected{% endif %}>Сезон 25/26 (Базовый)</option>
+            <option value="" {% if not selected_season_id %}selected{% endif %}>Все сезоны (Lifetime)</option>
+            {% for s in seasons %}
+              <option value="{{ s.id }}" {% if selected_season_id == s.id %}selected{% endif %}>Сезон {{ s.code }}{% if s.is_active %} (Базовый){% endif %}</option>
+            {% endfor %}
           </select>
         </div>
 

@@ -268,6 +268,7 @@ class TestRatingCalculation(unittest.TestCase):
     def _seed_test_data(self) -> None:
         """Seed database with test data."""
         league_ids, season_ids, type_map = _seed_reference_data()
+        self.season_ids = season_ids
 
         # Create countries
         self.country_rus = Country(code="RUS", flag_path="/static/img/flags/rus.png")
@@ -383,6 +384,93 @@ class TestRatingCalculation(unittest.TestCase):
         non_tandem_entry = next(e for e in result if e["name"] == "Manager One")
         self.assertFalse(non_tandem_entry["is_tandem"])
         self.assertEqual(non_tandem_entry["display_name"], "Manager One")
+
+    # ---- season filter (B6) ----------------------------------------
+    #
+    # Seed reminder:
+    #   manager1: TOP1 / L1 / 23-24  +  TOP2 / L1 / 22-23
+    #   manager2: TOP3 / L1 / 23-24
+    #   manager3: R1   / L2 / 21-22
+    #
+    # build_leaderboard(season_id=N) must return all three managers but
+    # only count achievements tied to season N. Managers with no
+    # qualifying achievement keep total=0 so the dropdown does not
+    # silently hide active rows.
+
+    def test_season_filter_keeps_managers_with_zero_total(self) -> None:
+        """Selecting a season returns every manager — those without a
+        matching achievement get total=0 and an empty achievements
+        list, instead of vanishing from the page."""
+        season_2425 = self.season_ids["24/25"]  # nobody has achievements here
+        result = build_leaderboard(db.session, season_id=season_2425)
+
+        names = {row["name"] for row in result}
+        self.assertEqual(names, {"Manager One", "Manager Two", "Tandem: A, B"})
+
+        for row in result:
+            self.assertEqual(
+                row["total"],
+                0,
+                f"{row['name']!r} should have total=0 for an empty season",
+            )
+            self.assertEqual(
+                row["achievements"],
+                [],
+                f"{row['name']!r} should have no achievements for an empty season",
+            )
+
+    def test_season_filter_isolates_single_season(self) -> None:
+        """?season=23/24 — only manager1 (TOP1) and manager2 (TOP3)
+        contribute; manager1's TOP2 (22/23) is filtered out, manager3
+        is present but with total=0."""
+        season_2324 = self.season_ids["23/24"]
+        result = build_leaderboard(db.session, season_id=season_2324)
+
+        m1 = next(r for r in result if r["name"] == "Manager One")
+        m2 = next(r for r in result if r["name"] == "Manager Two")
+        m3 = next(r for r in result if r["name"] == "Tandem: A, B")
+
+        # manager1: only TOP1/L1/23-24 contributes — TOP2/22-23 is
+        # filtered out.
+        self.assertEqual(len(m1["achievements"]), 1)
+        self.assertEqual(m1["achievements"][0]["kind"], "TOP1")
+
+        # manager2: TOP3/L1/23-24 is the only achievement and it does
+        # belong to 23/24, so it stays.
+        self.assertEqual(len(m2["achievements"]), 1)
+        self.assertEqual(m2["achievements"][0]["kind"], "TOP3")
+
+        # manager3 has nothing in 23/24.
+        self.assertEqual(m3["total"], 0)
+        self.assertEqual(m3["achievements"], [])
+
+    def test_season_filter_changes_totals_vs_lifetime(self) -> None:
+        """Lifetime total for manager1 ≠ single-season totals — proves
+        the filter is doing real work, not a no-op."""
+        lifetime = build_leaderboard(db.session)
+        s23 = build_leaderboard(db.session, season_id=self.season_ids["23/24"])
+        s22 = build_leaderboard(db.session, season_id=self.season_ids["22/23"])
+
+        m1_lifetime = next(r for r in lifetime if r["name"] == "Manager One")["total"]
+        m1_s23 = next(r for r in s23 if r["name"] == "Manager One")["total"]
+        m1_s22 = next(r for r in s22 if r["name"] == "Manager One")["total"]
+
+        # Lifetime is the sum of the per-season slices for this manager
+        # because every achievement belongs to exactly one season.
+        self.assertEqual(m1_lifetime, m1_s23 + m1_s22)
+        # And each per-season slice is strictly less than lifetime
+        # (manager1 has multi-season achievements).
+        self.assertLess(m1_s23, m1_lifetime)
+        self.assertLess(m1_s22, m1_lifetime)
+
+    def test_season_filter_none_equals_lifetime(self) -> None:
+        """season_id=None must be identical to omitting the argument."""
+        a = build_leaderboard(db.session)
+        b = build_leaderboard(db.session, season_id=None)
+        self.assertEqual(
+            [(r["name"], r["total"]) for r in a],
+            [(r["name"], r["total"]) for r in b],
+        )
 
     def test_base_points_coverage(self) -> None:
         """Test that BASE_POINTS covers all expected combinations."""
