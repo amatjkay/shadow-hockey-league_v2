@@ -149,4 +149,24 @@ Rollup PR **#23**:
 
 ---
 
+## Repo Audit & Triage (2026-04-28)
+
+### What was done
+- Created audit analysis document summarising repo state (branches, PRs, Linear tickets).
+- **Linear tickets created:** TIK-36, TIK-37, TIK-38.
+- **Linear tickets cancelled:** TIK-12, TIK-18, TIK-19 (obsolete / superseded).
+- **Linear ticket completed:** TIK-16 marked done.
+- **PRs closed:** #11, #15, #28 (stale or superseded).
+- **Branch cleanup:** 16 stale branches deleted.
+
+### What's left
+- Phases 2B through 4 per the plan (remaining implementation, testing, and deployment work).
+- Open issues B9 (audit-log gap), B10 (/health Redis timeout), B11 (metrics banner mismatch).
+- User decision still pending on `devin/integration-analyst-fixes` PR stack (#16/#17/#18).
+
+### New blockers
+- None identified.
+
+---
+
 _Last updated: 2026-04-28_
