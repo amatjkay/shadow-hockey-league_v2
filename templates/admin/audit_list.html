@@ -1,0 +1,39 @@
+{% extends 'admin/model/list.html' %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .audit-changes {
+            max-width: 400px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        .audit-changes div {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #f1f1f1;
+            padding-bottom: 2px;
+        }
+        .audit-changes div:last-child {
+            border-bottom: none;
+        }
+        .audit-changes strong {
+            color: #495057;
+            font-size: 0.85rem;
+        }
+        .badge-create { background-color: #28a745; color: white; }
+        .badge-update { background-color: #007bff; color: white; }
+        .badge-delete { background-color: #dc3545; color: white; }
+        .target-link {
+            font-weight: 500;
+            text-decoration: underline;
+        }
+    </style>
+{% endblock %}
+
+{% block list_row_actions %}
+    {{ super() }}
+{% endblock %}

@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
 [![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-296%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-388%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
@@ -54,23 +54,26 @@ points = base_points(league, achievement_type) × season_multiplier
 
 ### Базовые очки
 
-| Достижение   | Лига 1 | Лига 2 |
-| ------------ | ------ | ------ |
-| TOP1         | 800    | 300    |
-| TOP2         | 550    | 200    |
-| TOP3         | 450    | 100    |
-| Best regular | 50     | 40     |
-| Round 3      | 30     | 20     |
-| Round 1      | 10     | 5      |
+Источник истины — `data/seed/achievements.json` + таблица `achievement_types` в `dev.db`.
+
+| Код    | Достижение           | Лига 1 | Лига 2 |
+| ------ | -------------------- | ------ | ------ |
+| `TOP1` | Чемпион              | 800    | 400    |
+| `TOP2` | Финалист             | 400    | 200    |
+| `TOP3` | Бронзовый призёр     | 200    | 100    |
+| `BEST` | Лучший в регулярке   | 200    | 100    |
+| `R3`   | Полуфинал (1/2)      | 100    | 50     |
+| `R1`   | Четвертьфинал (1/4)  | 50     | 25     |
 
 ### Множители сезонов
 
 | Сезон | Множитель       |
 | ----- | --------------- |
-| 24/25 | ×1.00 (базовый) |
-| 23/24 | ×0.95 (−5%)     |
-| 22/23 | ×0.90 (−10%)    |
-| 21/22 | ×0.85 (−15%)    |
+| 25/26 | ×1.00 (базовый) |
+| 24/25 | ×0.80           |
+| 23/24 | ×0.50           |
+| 22/23 | ×0.30           |
+| 21/22 | ×0.20           |
 
 ---
 
@@ -100,9 +103,9 @@ shadow-hockey-league_v2/
 │   ├── seed/                   #   Исходные данные (JSON)
 │   ├── export/                 #   Экспорт из БД (JSON)
 │   └── schemas.py              #   Валидация JSON схем
-├── tests/                      # Pytest тесты (296 тестов, ~87%)
+├── tests/                      # Pytest тесты (388 тестов, ~87%)
 │   ├── integration/            #   Интеграционные тесты
-│   └── e2e/                    #   E2E тесты
+│   └── e2e/                    #   Playwright smoke (запуск вручную, см. README ниже)
 ├── docs/                       # Документация
 ├── scripts/                    # Утилиты (create_admin, check_*)
 ├── .qwen/                      # AI Agent конфигурация
@@ -119,7 +122,7 @@ shadow-hockey-league_v2/
 | ------------- | ----------------------------------------- |
 | `make setup`  | Установка зависимостей + инициализация БД |
 | `make run`    | Запуск сервера разработки                 |
-| `make test`   | Запуск тестов (296 тестов)                |
+| `make test`   | Запуск тестов (388 unit/integration)      |
 | `make lint`   | Проверка кода (flake8)                    |
 | `make format` | Форматирование (black + isort)            |
 | `make clean`  | Очистка временных файлов                  |
@@ -128,17 +131,22 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-**296 тестов, ~87% покрытие:**
+**388 unit/integration тестов** (~87% покрытие) + **42-сценарный Playwright smoke**:
 
 - **Unit:** rating service, validation, cache, API auth, models
 - **Integration:** routes, API CRUD, database constraints, cache invalidation
 - **Admin:** CSRF, auth, CRUD, smoke-тесты
-- **E2E:** полный цикл приложения
+- **E2E (manual):** `tests/e2e/test_smoke.py` — публичные страницы, REST API, Flask-Admin views, console error budget. Не подхватывается `pytest` (требует живой dev-сервер).
 
 ```bash
 make test
 # или
-pytest --cov=. --cov-report=term-missing
+pytest --ignore=tests/e2e --cov=. --cov-report=term-missing
+
+# E2E (требует запущенный сервер):
+BASE_URL=http://127.0.0.1:5000 \
+E2E_ADMIN_USER=e2e_admin E2E_ADMIN_PASS=... \
+./venv/bin/python tests/e2e/test_smoke.py
 ```
 
 ---

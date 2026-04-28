@@ -159,7 +159,7 @@ def validate_achievements(data: Any) -> list[str]:
         errors.append("Achievements data must be a list")
         return errors
 
-    valid_types = {"TOP1", "TOP2", "TOP3", "BEST", "R3", "R1"}
+    valid_types = {"TOP1", "TOP2", "TOP3", "BEST", "R3", "R1", "BEST_REG", "HOCKEY_STICKS_AND_PUCK"}
 
     for i, item in enumerate(data):
         prefix = f"Achievements[{i}]"

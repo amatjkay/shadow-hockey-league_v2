@@ -1,39 +1,58 @@
-# База знаний проекта Shadow Hockey League v2
+# PROJECT_KNOWLEDGE.md — Core Principles & Business Rules
 
-## Архитектура и технический стек
+## 1. Achievement & Point System
 
-*   **Ядро:** Фреймворк Flask версии 3.1+ с использованием паттерна Application Factory (`app.py`).
-*   **База данных:** SQLite (данные хранятся в файле `dev.db`), взаимодействие с базой осуществляется через ORM SQLAlchemy 2.0.
-*   **Кэширование:** Реализовано с помощью Redis (библиотека Flask-Caching), причем кэш автоматически сбрасывается при любых изменениях данных.
-*   **Безопасность:** Для всех веб-форм включена CSRF-защита, а доступ к API защищен специальными ключами.
-*   **Аудит данных (Audit Trail):** Система ведет логирование всех действий администратора. Кроме того, перед удалением любых данных делается их полный снимок (Snapshot), чтобы избежать безвозвратной потери информации.
+### Point Calculation Formula
+`Final Points = (Base Points * Season Multiplier)`
 
-## Стандарты разработки
+- **Base Points**: Determined by `AchievementType` and `League`.
+  - League 1 (L1) uses `base_points_l1`.
+  - League 2 (L2), 2.1, 2.2 use `base_points_l2`.
+- **Multiplier**: Defined in the `Season` model.
+- **Auto-calculation**: Achievements MUST be auto-calculated on the server-side via `on_model_change` to ensure database integrity.
 
-1.  **Строгая типизация:** Использовать Python Type Hints во всех методах.
-2.  **Базы данных:** Вносить любые изменения в структуру таблиц баз данных только через миграции Alembic.
-3.  **Управление версиями:** Связывать все Git-ветки и Pull Request с конкретными задачами в трекере Linear (обязательно использовать префикс `TIK-` и формат `Fixes TIK-ID` в описании PR).
-4.  **Документация:** Весь код и техническая документация должны вестись на английском языке, тогда как аналитика и обсуждения (тикеты, PR descriptions) могут вестись на русском.
-5.  **PROJECT_KNOWLEDGE:** Обязательное обновление этого файла в конце выполнения любой задачи, если в ходе ее реализации были изменены модели данных или произведены масштабные изменения в архитектуре.
+### Reference Data Baselines
 
-## CI/CD и Качество кода
+> Source of truth: `data/seed/achievements.json` + `seed_db.py` + `achievement_types`/`seasons` rows in `dev.db`. Verify with `SELECT code, base_points_l1, base_points_l2 FROM achievement_types` before changing.
 
-1.  **Автоматизация (CI/CD):** Настроены GitHub Actions (`deploy.yml`), которые выполняют полный цикл проверок при каждом push/PR:
-    -   Форматирование (`black`, `isort`)
-    -   Статический анализ (`flake8`, `mypy`)
-    -   Автоматические тесты (`pytest` с Redis-сервисом)
-2.  **Makefile:** Все операции (установка, тесты, линтинг, миграции) выполняются через `Makefile` с использованием бинарных файлов из виртуального окружения (`venv/bin/`).
-3.  **Чистота кода:** Удалена устаревшая модель `Match`, так как она не использовалась в текущей архитектуре. База данных очищена через миграцию.
+| Code | Name | L1 (Elite) | L2 |
+| :--- | :--- | ---: | ---: |
+| `TOP1` | Top 1 | 800 | 400 |
+| `TOP2` | Top 2 | 400 | 200 |
+| `TOP3` | Top 3 | 200 | 100 |
+| `BEST` | Best Regular | 200 | 100 |
+| `R3` | Round 3 (semifinal exit) | 100 | 50 |
+| `R1` | Round 1 (quarterfinal exit) | 50 | 25 |
 
-## Оптимизация и Производительность
+- **Baseline Season**: 25/26 (Multiplier = 1.0).
+- **Historical Multipliers**: 24/25 = 0.8, 23/24 = 0.5, 22/23 = 0.3, 21/22 = 0.2.
 
-1.  **Проблема N+1 запросов:** При массовом чтении связанных объектов обязательно использовать `joinedload`. Это внедрено в методах `get_managers`.
-2.  **Типизация (Type Hints):** Код проекта имеет 100% покрытие аннотациями типов в ключевых сервисах и blueprint-ах. Любой новый код ОБЯЗАН содержать type hints.
+## 2. Infrastructure & Tech Stack
 
-## Бизнес-логика и Рейтинги
+- **Core**: Flask 3.1+ (Application Factory pattern in `app.py`).
+- **Database**: SQLite (`dev.db`) + SQLAlchemy 2.0. Migrations via Alembic.
+- **Admin**: Flask-Admin + AJAX-powered achievement management in `services/admin.py`.
+- **Asset Resolution**: Centralized icon pathing in `AchievementType.get_icon_url()`. Flags normalized to uppercase (e.g., `RUS.png`).
 
-1.  **Формула расчета:** `Рейтинг = Базовые_очки(лига, тип) × Множитель_сезона`.
-2.  **Лиги:** Поддерживаются элитная (L1) и вторая (L2) лиги. Очки в L1 значительно выше для подчеркивания статуса дивизиона.
-3.  **Множители сезонов:** Чем старее достижение, тем ниже его вес (дисконт 5% за каждый год).
-4.  **Автоматизация:** Очки за достижения рассчитываются автоматически через SQLAlchemy триггеры (`before_insert`, `before_update`).
-5.  **Тандемы:** Поддерживается учет работы двух менеджеров как одной команды (`is_tandem`).
+## 3. Development Standards
+
+- **Type Hints**: 100% coverage mandatory for all new code.
+- **Testing**: Target ≥87% coverage. Run via `make test` or `venv/bin/pytest`.
+- **Audit**: All admin actions logged to `AuditLog`. Snapshots taken before deletion.
+  - **Known gap (B9, 2026-04-28):** the `after_flush` listener in `services/audit_service.py` early-returns unless `g.current_user_id` is set, and `set_current_user_for_audit()` is currently only called from tests — production admin mutations are not actually being logged. Fix tracked separately.
+- **Memory Bank**: Keep `docs/activeContext.md` and `docs/progress.md` updated.
+
+## 4. Automation & Seeding
+
+- `seed_db.py` handles idempotent data population.
+- `--force` flag clears the database for a clean reseed (destructive). Note: this re-issues season `id` values starting at 1 (21/22) — hard-coded `?season=N` URLs may need updating after a `--force` reseed.
+- Mapping for legacy seed names (`BEST_REG` → `BEST`, `HOCKEY_STICKS_AND_PUCK` → `R3`/`R1`) is handled in `SeedService`.
+
+## 5. Testing
+
+- **Unit / integration**: `pytest --ignore=tests/e2e` — currently 388 passing (3 pre-existing failures unrelated to current branch).
+- **Smoke e2e**: `tests/e2e/test_smoke.py` (Playwright). Run manually against a live dev server: `BASE_URL=http://127.0.0.1:5000 E2E_ADMIN_USER=e2e_admin E2E_ADMIN_PASS=... ./venv/bin/python tests/e2e/test_smoke.py`. Excluded from `pytest` auto-collection via `tests/e2e/conftest.py`.
+- **Cache key partitioning**: any `@cache.cached` view that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`); a static prefix shares the bucket across `?season=` variants.
+
+---
+_Last updated: 2026-04-28_

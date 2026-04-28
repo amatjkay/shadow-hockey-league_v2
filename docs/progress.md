@@ -1,58 +1,152 @@
-# Progress Log — Shadow Hockey League v2
+# Progress — Shadow Hockey League v2
 
-> **Purpose:** Living document tracking completed work, in-progress tasks, and blockers.
-> All agents MUST update this before ending their turn.
-
-## 2026-04-23: Stability & Data Integrity Audit
-
-### Completed
-- [x] Created `scripts/benchmark.py` — verified ~0.86ms leaderboard generation time
-- [x] Created `scripts/audit_data.py` — verified 100% data integrity and formula consistency
-- [x] Updated `Makefile` with `make audit` and `make benchmark`
-- [x] User successfully applied `9a30d278d31d` migration
-- [x] Host environment updated with Google Chrome for future UI automation
-- [x] Verified all core services and blueprints remain stable and fully typed
-- [x] Populated `docs/projectbrief.md` with comprehensive business rules and formulas
-
-### In Progress
-- [ ] CI/CD pipeline verification on a real PR (Requires GitHub action run)
-
-### Blockers
-- [!] CI/CD pipeline on GitHub will fail until `requirements-dev.txt` tools are available or installed in the Actions runner (should be handled by the updated workflow automatically).
+> **Purpose:** Tracking long-term project milestones and feature progress.
 
 ---
 
-## 2026-04-23: Agent Architecture Setup
+## Completed (Stabilization Phase)
 
-### Completed
-- [x] Created `AGENTS.md` — project constitution
-- [x] Created Memory Bank files (`docs/projectbrief.md`, `techContext.md`, `activeContext.md`, `decisionLog.md`)
-- [x] Created subagent definitions (`.agents/agents/architect.md`, `coder.md`, `reviewer.md`)
-- [x] Created skill workflows (`.agents/skills/db-migration/`, `feature-research/`, `linear-sync/`)
+- [x] Create dedicated development branch `fix`.
+- [x] Reset primary admin account (`s3ifer`).
+- [x] Standardize flag filenames to uppercase (`RUS.png`) for Linux compatibility.
+- [x] Synchronize `SeedService` and `RatingService` point calculations.
+- [x] Isolate Flask-Admin monkey-patches to `utils/patches.py`.
+- [x] Externalize Admin Panel JavaScript to `static/js/admin/autofill.js`.
+- [x] Fix cache contamination in E2E tests.
+- [x] Verify 100% test pass rate (383+ tests).
+- [x] Update documentation in NotebookLM and Linear.
+- [x] Final manual verification of Admin Panel and Leaderboard.
+- [x] Fix database seeding logic and reference data population.
+- [x] Case-insensitive flag image resolution (Linux fix).
+- [x] Synchronize point system between database and app logic.
+- [x] Stabilize environment (Health checks, SQLite concurrency fixes).
+- [x] Fix Audit Logging (before_flush/after_flush pattern).
+- [x] Implement **[TIK-23]** Real-time duplicate validation for achievements.
 
-### In Progress
-- [x] Initial documentation phase completed
-
-### Blockers
-_None_
+- [x] Fix Admin Achievement Management (UI consolidation + auto-calculation).
+- [x] Resolve duplicate class definitions in `services/admin.py`.
+- [x] Implement integration tests for achievements.
+- [x] Finalize icon path resolution and API synchronization.
+- [x] Resolve Admin Template recursion (`shl_master.html` fix).
+- [x] Standardize Admin endpoints (`admin.login`, `admin.logout`).
+- [x] Implement `flush_cache` admin action.
+- [x] Synchronize 800/400 point system across all tests and UI.
+- [x] Verify 100% test pass rate for all modules (69+ integration tests).
+- [x] Merge `fix` into `feature/admin-enhancement` (Stabilization complete).
+- [x] Implement and Optimize **Historical Season View**.
+- [x] Resolve Admin critical bugs (CSRF protection, UnboundLocalError).
+- [x] Consolidate database (removed redundant `instance/dev.db`).
+- [x] Perform comprehensive E2E verification of Leaderboard and Admin Panel.
 
 ---
 
-## 2026-04-22: Optimization & Type Hints (Session 2)
+## Feature Roadmap
 
-### Completed
-- [x] Type hints added to `services/admin.py`
-- [x] Type hints added to `blueprints/admin_api.py`
-- [x] N+1 query fix in `get_managers()` — added `joinedload(Manager.country)`
-- [x] All 383 tests passing
-- [x] `PROJECT_KNOWLEDGE.md` updated with optimization section
+### Priority 1 — Admin Integrity
+- [x] Add historical season view.
+- [x] **[TIK-23]** Real-time duplicate validation for achievements (prevent same manager+type+season+league).
+
+### Priority 2 — Leaderboard UX
+- [x] **[TIK-24]** Player search on leaderboard (client-side, real-time).
+- [x] **[TIK-25]** Advanced filtering: by country and achievement type.
+
+### Priority 3 — Admin Tools
+- [x] **[TIK-26]** Enhanced audit log visualization.
 
 ---
 
-## 2026-04-22: Optimization & Type Hints (Session 1)
+## Project Metrics (as of 2026-04-28)
 
-### Completed
-- [x] Created `PROJECT_KNOWLEDGE.md`
-- [x] Type hints added to `app.py`
-- [x] Type hints added to `services/rating_service.py`
-- [x] Type hints added to `services/api_auth.py`
+- **Total Tests:** 388 unit/integration passing (3 pre-existing failures unchanged) +
+  42-scenario Playwright e2e smoke + 23/27 deep-probe checks (2 real bugs found,
+  see Known Open Issues below).
+- **Code Coverage:** ~87% (target threshold).
+- **Linting:** Configured (`.flake8`, `mypy` via `pyproject.toml`).
+- **Architecture:** Application Factory + blueprints + services. External static assets.
+
+---
+
+## Recent Bugfixes (Diagnostic Pass on `feature/admin-enhancement`)
+
+Driven by manual user verification of `/?season=N` failing on the live dev server.
+All bundled in **PR #19** (`devin/1777326827-e2e-bugfixes`):
+
+- **[TIK-27]** B1 — `blueprints/main.py` missing `request` import → homepage 500.
+- **[TIK-27]** B2 — `services/admin.py` form_args used unsupported `query_factory`
+  on FK fields → Achievement create/edit form 500.
+- **[TIK-27]** B3 — `dev.db` `icon_path` referenced `/static/img/icons/...`,
+  files lived under `/static/img/cups/...` → trophy 404s on leaderboard.
+- **[TIK-27]** B4 — `@cache.cached(key_prefix='leaderboard')` was a static
+  string, so `?season=` variants shared a cache bucket. Switched to a callable
+  key + `cache.clear()` on invalidation.
+- **[TIK-28]** B6 — `RatingService.build_leaderboard()` accepted `season_id`
+  but never filtered on it; the dropdown looked broken even after B1/B4.
+- **[TIK-29]** B7 — `templates/index.html` season dropdown was hard-coded to
+  three seasons; replaced with dynamic rendering from the `Season` table.
+- **[TIK-29]** B8 — `dev.db` shipped with only 18 of 49 achievements (no
+  BEST_REG, no HOCKEY_STICKS_AND_PUCK). Re-seeded from the canonical
+  `data/seed/achievements.json`.
+
+Follow-up data-only PR **#20**:
+
+- **[TIK-30]** Add 9 Shadow 1 league (Elite) 24/25 awards. Prod was missing the
+  same data; user dictated the winners (TOP1 Vyacheslav Shamanov, TOP2/BEST
+  whiplash 92, TOP3 Сергей Стрельченко, R3 Павел Роевнев, R1 Nurzhan
+  Yessengaliev / AleX TiiKii / Igor Kadzayev / Oleg Karandashov).
+
+Tooling PR **#21**:
+
+- **[TIK-31]** Playwright e2e smoke suite (`tests/e2e/test_smoke.py`). Manual
+  run against a live dev server: 42-scenario walk through public pages, REST
+  API auth contract, every Flask-Admin model view (list / new / first-row
+  edit), admin extras, and a console-error budget. `tests/e2e/conftest.py`
+  excludes the script from `pytest` auto-collection so CI is unaffected.
+
+Tooling rollup PR **#22**:
+
+- **[TIK-32]** B5 — jQuery race in `templates/admin/shl_master.html`: removed
+  the dead Select2 locale-init script from `head_meta` (it ran before parent
+  template's jQuery, throwing `$ is not defined` in console). Functionality
+  was unaffected; this is purely cleanup. Console errors on admin pages
+  dropped from 2 to 0.
+
+Rollup PR **#23**:
+
+- Cherry-pick of TIK-30/31/32 onto `feature/admin-enhancement` (the original
+  PR stack #20/#21/#22 each merged into PR #19's staging branch instead of
+  `feature/admin-enhancement`, leaving the contents stranded). PR #23 is the
+  single merge commit that brings them in.
+
+## Known Open Issues
+
+### From deep-probe e2e (2026-04-28, /tmp/e2e_artifacts/deep/BUGS.md)
+
+- **B9 [P1]** — admin audit log is not actually written in production.
+  `services/audit_service.py:213-220` early-returns unless `g.current_user_id`
+  is set, and `set_current_user_for_audit()` is only called from tests — no
+  production code path populates it. `audit_logs` table is empty even after
+  multiple admin CRUD operations. Directly contradicts AGENTS.md §5 mandate
+  "All admin CRUD actions logged via `audit_service.log_action()`". Fix is
+  ~10 LoC (Flask-Login `before_request` hook).
+- **B10 [P2]** — `/health` blocks ~7s when Redis is unreachable. Caused by
+  `redis_client.ping()` in `blueprints/health.py:71-94` lacking a
+  `socket_timeout`; only `socket_connect_timeout=2` is set, but cumulative
+  retries push wall time well past that. Production unaffected (Redis is
+  available there); dev/staging/CI without Redis lose health-probe usefulness.
+- **B11 [P3]** — `app.py` startup banner advertises
+  `http_requests_total, http_request_duration_seconds` as default metrics,
+  but `/metrics` only emits the duration histogram. Either add the counter
+  or fix the banner string.
+
+### Carried over
+
+- **PR #15 / #16 / #17 / #18** — earlier integration-fix work (docs sync,
+  rate-limiter Redis storage, `base_points` unification, transaction-neutral
+  audit), open against `devin/integration-analyst-fixes`. Awaiting user
+  review/merge decision. PR #18 also has a known latent bug found by Devin
+  Review («flush() without SAVEPOINT after error leaves session in
+  needs-rollback state») that needs a follow-up commit before merge.
+
+---
+
+_Last updated: 2026-04-28_

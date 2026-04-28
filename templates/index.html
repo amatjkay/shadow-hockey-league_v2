@@ -102,13 +102,13 @@
               >Админ-панель</a
             >
             <a
-              href="{{ url_for('admin_logout.index') }}"
+              href="{{ url_for('admin.logout') }}"
               class="mobile-menu-link"
               >Выйти ({{ current_user.username }})</a
             >
             {% else %}
             <a
-              href="{{ url_for('admin_login.index') }}"
+              href="{{ url_for('admin.login') }}"
               class="mobile-menu-link"
               >Войти</a
             >
@@ -135,6 +135,16 @@
         aria-labelledby="league-heading"
       >
         <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
+
+        <div class="filters-bar" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+          <label for="season-filter" style="font-weight: 600;">Сезон:</label>
+          <select id="season-filter" class="form-control" style="max-width: 200px;" onchange="window.location.href='/?season=' + this.value">
+            <option value="" {% if not selected_season_id %}selected{% endif %}>Все сезоны (Lifetime)</option>
+            {% for s in seasons %}
+              <option value="{{ s.id }}" {% if selected_season_id == s.id %}selected{% endif %}>Сезон {{ s.code }}{% if s.is_active %} (Базовый){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
 
         {% if not rating_rows %}
         <div class="empty-state">
@@ -168,10 +178,11 @@
 
                         <h5>📊 Множители сезонов</h5>
                         <ul class="tooltip-list">
-                          <li><strong>s24/25</strong> ×1.00</li>
-                          <li><strong>s23/24</strong> ×0.95</li>
-                          <li><strong>s22/23</strong> ×0.90</li>
-                          <li><strong>s21/22</strong> ×0.85</li>
+                          <li><strong>s25/26</strong> ×1.00</li>
+                          <li><strong>s24/25</strong> ×0.80</li>
+                          <li><strong>s23/24</strong> ×0.50</li>
+                          <li><strong>s22/23</strong> ×0.30</li>
+                          <li><strong>s21/22</strong> ×0.20</li>
                         </ul>
 
                         <h5>🏆 Базовые очки</h5>
@@ -187,32 +198,32 @@
                             <tr>
                               <td>TOP1</td>
                               <td>800</td>
-                              <td>300</td>
+                              <td>400</td>
                             </tr>
                             <tr>
                               <td>TOP2</td>
-                              <td>550</td>
+                              <td>400</td>
                               <td>200</td>
                             </tr>
                             <tr>
                               <td>TOP3</td>
-                              <td>450</td>
+                              <td>200</td>
                               <td>100</td>
                             </tr>
                             <tr>
                               <td>Best regular</td>
-                              <td>50</td>
-                              <td>40</td>
+                              <td>200</td>
+                              <td>100</td>
                             </tr>
                             <tr>
                               <td>Round 3</td>
-                              <td>30</td>
-                              <td>20</td>
+                              <td>100</td>
+                              <td>50</td>
                             </tr>
                             <tr>
                               <td>Round 1</td>
-                              <td>10</td>
-                              <td>5</td>
+                              <td>50</td>
+                              <td>25</td>
                             </tr>
                           </tbody>
                         </table>
@@ -230,8 +241,9 @@
                 <td class="table-items manager-cell">
                   <img
                     src="{{ row.country }}"
-                    alt=""
+                    alt="{{ row.country_code }}"
                     class="table-row__countries"
+                    onerror="this.src='https://flagcdn.com/w40/un.png'"
                   />
                   <span class="manager-name">{{ row.display_name }}</span>
                   {% if row.is_tandem %}<span

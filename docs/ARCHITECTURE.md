@@ -1,7 +1,7 @@
 # 🏛️ Архитектура системы — Shadow Hockey League v2
 
-**Версия:** 2.6.0  
-**Дата:** 13 апреля 2026 г.  
+**Версия:** 2.6.0
+**Дата:** 13 апреля 2026 г.
 **Статус:** ✅ Production
 
 ---
@@ -17,7 +17,7 @@
 
 ## 🏗️ Архитектурная схема
 
-```
+```text
 ┌─────────────────┐
 │    Client       │
 │  (Web Browser)  │
@@ -59,7 +59,7 @@
 ## 📦 Технологический стек
 
 | Уровень | Технология | Назначение |
-|---------|-----------|------------|
+| :--- | :--- | :--- |
 | **Backend** | Python 3.10+, Flask 3.1+ | Web-фреймворк |
 | **ORM** | SQLAlchemy 2.0+, Alembic | БД и миграции |
 | **Caching** | Redis 6.0+ | Кэширование |
@@ -73,7 +73,7 @@
 
 ## 📁 Структура проекта
 
-```
+```text
 shadow-hockey-league_v2/
 ├── app.py                      # Application Factory
 ├── models.py                   # SQLAlchemy модели
@@ -115,7 +115,7 @@ shadow-hockey-league_v2/
 ### Основные таблицы
 
 | Таблица | Описание |
-|---------|----------|
+| :--- | :--- |
 | `countries` | Справочник стран (code, name, flag_path) |
 | `leagues` | Лиги (1, 2.1, 2.2) |
 | `seasons` | Сезоны с множителями |
@@ -136,11 +136,11 @@ shadow-hockey-league_v2/
 
 ## 🔌 API Архитектура
 
-**Base URL:** `/api/`  
+**Base URL:** `/api/`
 **Authentication:** API Key (`X-API-Key` header) с scopes: `read`, `write`, `admin`
 
 | Endpoint | Auth | Описание |
-|----------|------|----------|
+| :--- | :--- | :--- |
 | `GET /api/countries` | ❌ | Все страны |
 | `GET /api/managers` | ✅ | Менеджеры (пагинация) |
 | `GET /api/achievements` | ✅ | Достижения (пагинация) |
@@ -154,8 +154,8 @@ shadow-hockey-league_v2/
 
 ## 💾 Кэширование
 
-**Стратегия:** Redis → SimpleCache fallback  
-**TTL:** 5 минут (по умолчанию)  
+**Стратегия:** Redis → SimpleCache fallback
+**TTL:** 5 минут (по умолчанию)
 **Инвалидация:**
 - CREATE/UPDATE/DELETE в админке → leaderboard cache
 - API мутации → leaderboard cache
@@ -166,7 +166,7 @@ shadow-hockey-league_v2/
 ## 🔒 Безопасность
 
 | Механизм | Реализация |
-|----------|-----------|
+| :--- | :--- |
 | **Admin Auth** | Flask-Login (session-based) |
 | **API Auth** | API Key (SHA-256 hash в БД) |
 | **CSRF** | Flask-WTF для всех форм |
@@ -180,6 +180,7 @@ shadow-hockey-league_v2/
 ## 📊 Мониторинг
 
 ### Health Check (`/health`)
+
 ```json
 {
   "status": "healthy",
@@ -193,6 +194,7 @@ shadow-hockey-league_v2/
 ```
 
 ### Prometheus Metrics (`/metrics`)
+
 - `http_requests_total`
 - `http_request_duration_seconds`
 - `http_request_size_bytes`
@@ -203,7 +205,8 @@ shadow-hockey-league_v2/
 ## 🚀 Деплой
 
 ### CI/CD Pipeline
-```
+
+```text
 Push to main
     ↓
 GitHub Actions
@@ -224,6 +227,7 @@ Health Check → Success / Auto Rollback
 ```
 
 ### Ручной деплой
+
 ```bash
 ssh shleague@server
 cd /home/shleague/shadow-hockey-league_v2
@@ -236,6 +240,7 @@ systemctl restart shadow-hockey-league
 ```
 
 ### Backup Strategy
+
 - **Ежедневно:** 03:00 UTC (cron)
 - **Pre-deploy:** Перед каждым деплоем
 - **Retention:** 10 последних бэкапов
@@ -245,7 +250,7 @@ systemctl restart shadow-hockey-league
 ## 🧪 Тестирование
 
 | Метрика | Значение |
-|---------|----------|
+| :--- | :--- |
 | **Всего тестов** | 381 |
 | **E2E** | 15 тестов |
 | **Admin smoke** | 6 тестов |
@@ -268,14 +273,14 @@ make format    # Форматирование
 
 ## 📋 Формула расчёта очков
 
-```
+```text
 points = base_points(league, achievement_type) × season_multiplier
 ```
 
 ### Множители сезонов
 
 | Сезон | Множитель |
-|-------|-----------|
+| :--- | :--- |
 | 24/25 | ×1.00 |
 | 23/24 | ×0.95 |
 | 22/23 | ×0.90 |
@@ -283,4 +288,4 @@ points = base_points(league, achievement_type) × season_multiplier
 
 ---
 
-*Последнее обновление: 20 апреля 2026 г.*
+*Последнее обновление: 23 апреля 2026 г.*

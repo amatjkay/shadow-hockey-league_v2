@@ -39,7 +39,7 @@ def seeded_db_with_data(db_session):
     db.session.flush()
 
     # Create reference data
-    ach_type = AchievementType(code='TOP1', name='Top 1', base_points_l1=800, base_points_l2=300)
+    ach_type = AchievementType(code='TOP1', name='Top 1', base_points_l1=800, base_points_l2=400)
     league = League(code='1', name='League 1')
     season = Season(code='24/25', name='Season 24/25', multiplier=1.0, start_year=2024, end_year=2025)
     db.session.add_all([ach_type, league, season])
