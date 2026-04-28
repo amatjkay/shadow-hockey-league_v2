@@ -540,21 +540,25 @@ _login_attempts: dict[str, list[float]] = {}
 
 
 def _get_client_ip() -> str:
-    """Resolve the real client IP, honouring X-Forwarded-For.
+    """Return the client IP for rate-limit bucketing.
 
-    `request.remote_addr` is the proxy IP behind Nginx (see
-    docs/ARCHITECTURE.md § Production deployment). Without `ProxyFix`
-    that would bucket every client under one entry and turn the per-IP
-    rate-limit into a global lockout. We parse the leftmost value of
-    X-Forwarded-For ourselves so this works even if `ProxyFix` hasn't
-    been wired up yet.
+    `request.remote_addr` has already been resolved to the real client IP
+    by the ProxyFix middleware wired up in :func:`app.create_app` (see
+    `app.py` and `docs/ARCHITECTURE.md` § Production deployment), which
+    walks `X-Forwarded-For` from the right using the configured trusted-
+    proxy count.
+
+    We must **not** re-parse `X-Forwarded-For` ourselves. The leftmost
+    entry of that header is user-controllable, so trusting it would let
+    an attacker rotate the apparent IP on every login attempt and bypass
+    the per-IP rate-limit entirely.
+
+    For deployments that don't sit behind a proxy, set ``PROXY_FIX_X_FOR=0``
+    and ``request.remote_addr`` is the raw socket address, which is also
+    the correct rate-limit key.
     """
     from flask import request
 
-    forwarded = request.headers.get('X-Forwarded-For')
-    if forwarded:
-        # Leftmost token is the originating client.
-        return forwarded.split(',')[0].strip() or 'unknown'
     return request.remote_addr or 'unknown'
 
 
