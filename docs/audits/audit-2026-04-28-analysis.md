@@ -150,7 +150,7 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
    - **PR #16, #17** — **Status:** ⏳ остаются открытыми; реальные баг-фиксы. План — вариант (c): закрыть стек и пересоздать новыми PR'ами на base = `main` в отдельной фазе (Phase 2).
 4. **PR #28:** **Status:** ✅ done — закрыт без мерджа. Прод рабочий за nginx, `PROXY_FIX_X_FOR=1` default безопасен в текущей топологии (см. комментарий в PR #28).
 5. **TIK-12, TIK-18, TIK-19, TIK-16:** **Status:** ✅ done — см. §6 группа T-L и коммит `7758bd6`.
-6. **Cleanup веток (§5 аудита):** разрешаете удаление 13 уже-смерженных веток списком? ⏳ ToDo — ожидается ответ владельца репо (фаза cleanup).
+6. **Cleanup веток (§5 аудита):** **Status:** ✅ done — 16 смерженных веток удалены (см. §6 T-C-1/2).
 
 ---
 
@@ -204,8 +204,8 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
 
 ### Группа C — cleanup веток (после §5 решений)
 
-- **T-C-1** | `git push origin --delete <ветка>` для 13 смерженных веток из §5 аудита (`origin/devin/tik-35-test-fixes-followup`, …, `origin/tik-5/audit-deletion-logging`). **Зависимости:** §5.6 ответ. **Готовность:** `git branch -r` не содержит указанных.
-- **T-C-2** | По `origin/feature/tech-debt-and-rating-refactor` — diff vs `main`, решение «keep / archive / delete». **Зависимости:** §5.6 ответ. **Готовность:** ветка либо удалена, либо помечена комментарием в `docs/decisionLog.md`.
+- **T-C-1** | `git push origin --delete <ветка>` для смерженных веток. **Зависимости:** §5.6 ответ. **Готовность:** `git branch -r` не содержит указанных. **Status:** ✅ done — 16 веток удалены: `tik-5/audit-deletion-logging`, `devin/1777321539-remove-env-from-tracking`, `devin/1777322259-docs-sync`, `devin/1777324728-audit-transactional`, `devin/1777326827-e2e-bugfixes`, `devin/tik-30-data-add-shadow-1-league-2425-awards`, `devin/tik-31-test-add-playwright-e2e-smoke-suite`, `devin/tik-32-admin-fix-jqueryselect2-race-in-shl_masterhtml-b5`, `devin/post-pr19-rollup-tik-30-31-32`, `devin/tik-33-docs-refresh`, `devin/tik-34-pre-release-regressions`, `hotfix/tik-34-security-to-main`, `devin/tik-35-ci-lint-repair`, `devin/tik-35-test-fixes-followup`, `feature/tech-debt-and-rating-refactor`, `fix`. Оставлены: `feature/admin-enhancement` (история feature), `release/feature-admin-enhancement-to-main` (история релиза), ветки закрытых PR #15/#28 (обещали сохранить в комментариях), ветки открытых PR #16/#17.
+- **T-C-2** | По `origin/feature/tech-debt-and-rating-refactor` — diff vs `main`, решение «keep / archive / delete». **Зависимости:** §5.6 ответ. **Готовность:** ветка либо удалена, либо помечена комментарием в `docs/decisionLog.md`. **Status:** ✅ done — ветка удалена по решению владельца.
 
 ### Группа D — tech debt (отдельный roadmap, низкий приоритет)
 
