@@ -291,7 +291,7 @@ def register_error_handlers(app: Flask) -> None:
 if __name__ == "__main__":
     app = create_app()
     app.run(
-        host="0.0.0.0",
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
         port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
         debug=app.config.get("DEBUG", False),
         use_reloader=False,
