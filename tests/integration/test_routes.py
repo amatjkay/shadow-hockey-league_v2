@@ -458,7 +458,7 @@ class TestRatingCalculationIntegration(unittest.TestCase):
 
             manager_id = manager.id
 
-            # TOP1 s25/26: 800 x 1.00 = 800
+            # TOP1 L1 s25/26: 800 x 1.00 = 800
             db.session.add(
                 Achievement(
                     type_id=type_map["TOP1"].id,
@@ -470,7 +470,7 @@ class TestRatingCalculationIntegration(unittest.TestCase):
                 )
             )
 
-            # TOP2 s24/25: 400 x 0.95 = 522.5 -> 522 (banker's rounding)
+            # TOP2 L1 s24/25: 400 x 0.95 = 380.0
             db.session.add(
                 Achievement(
                     type_id=type_map["TOP2"].id,
@@ -488,7 +488,8 @@ class TestRatingCalculationIntegration(unittest.TestCase):
             leaderboard = build_leaderboard(db.session)
 
         test_entry = next(e for e in leaderboard if e["name"] == "Rating Test")
-        self.assertEqual(test_entry["total"], 1322)
+        # Total = 800 (TOP1 L1 s25/26 @ 1.00) + 380 (TOP2 L1 s24/25 @ 0.95) = 1180
+        self.assertEqual(test_entry["total"], 1180)
 
 
 class TestCascadeDelete(unittest.TestCase):
