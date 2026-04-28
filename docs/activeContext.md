@@ -62,7 +62,7 @@ Next milestone: deploy `feature/admin-enhancement` to `main` after a docs refres
 
 ## Notes for Next Agent
 
-- **Monkey-Patches**: Located in `utils/patches.py`, applied via `apply_patches()` in `app.py`.
+- **Flask-Admin compatibility**: Flask-Admin 2.0.2 ships with the `cls=self` fallback in `BaseView._run_view`, and WTForms 3.2.x no longer accepts `allow_blank` on the base `Field`. The previous `utils/patches.py` shim is therefore obsolete and was removed in TIK-34. If a future upgrade re-introduces the incompatibility, restore the patch and call it from `create_app()` before `init_admin(app)`.
 - **Admin JS**: Shared logic is in `static/js/admin/autofill.js`.
 - **Testing**:
   - Unit/integration: `venv/bin/pytest --ignore=tests/e2e`. ~1 minute, expect 388 pass / 3 pre-existing failures.
