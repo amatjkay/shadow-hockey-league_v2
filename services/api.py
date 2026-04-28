@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.api_auth import authenticate_api_key
 from services.cache_service import invalidate_leaderboard_cache
+from services.scoring_service import get_base_points
 from services.validation_service import (
     validate_achievement_data,
     validate_country_data,
@@ -643,8 +644,8 @@ def create_achievement() -> tuple[Any, int]:
     if not season:
         return jsonify({"error": f"Season '{season_code}' not found"}), 400
 
-    # Calculate points
-    base_points = ach_type.base_points_l1 if league.code == "1" else ach_type.base_points_l2
+    # Calculate points (league-aware: honours League.parent_code for subleagues)
+    base_points = get_base_points(ach_type, league)
     multiplier = season.multiplier
     final_points = base_points * multiplier
 
@@ -812,11 +813,7 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
         # Refresh relationships to get updated values
         db.session.refresh(achievement, attribute_names=["type", "league", "season"])
         if achievement.type and achievement.league and achievement.season:
-            achievement.base_points = float(
-                achievement.type.base_points_l1
-                if achievement.league.code == "1"
-                else achievement.type.base_points_l2
-            )
+            achievement.base_points = get_base_points(achievement.type, achievement.league)
             achievement.multiplier = float(achievement.season.multiplier)
             achievement.final_points = float(achievement.base_points * achievement.multiplier)
 

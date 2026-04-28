@@ -5,11 +5,17 @@ This module provides functions to validate data before inserting into database.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from models import Country, Manager
+
+# Format-only regex for league codes. Matches ``1``, ``2``, ``2.1``, ``3.5``, ``42``,
+# but rejects ``0``, ``01``, ``2.``, ``2.1.1``, etc. Existence of the league in the
+# database is checked separately (e.g. via ``League.query.filter_by(code=...)``).
+_LEAGUE_CODE_RE = re.compile(r"^[1-9]\d*(\.\d+)?$")
 
 
 class ValidationError(Exception):
@@ -103,8 +109,13 @@ def validate_achievement_data(
     if not achievement_type:
         errors.append("Achievement type is required")
 
-    if league not in ("1", "2"):
-        errors.append(f"League must be '1' or '2', got '{league}'")
+    if not _LEAGUE_CODE_RE.match(league or ""):
+        errors.append(
+            f"League must match format 'N' or 'N.M' (digits, no leading zeros), got '{league}'"
+        )
+    elif league.startswith("1."):
+        # L1 is a flat division — subleagues are reserved for L2+ per project rules.
+        errors.append(f"League 1 has no subleagues, got '{league}'")
 
     if not season:
         errors.append("Season is required")

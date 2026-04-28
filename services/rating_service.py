@@ -17,6 +17,7 @@ from typing import Any
 from sqlalchemy.orm import Session, joinedload
 
 from models import Achievement, AchievementType, League, Manager, Season
+from services.scoring_service import get_base_points
 
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
@@ -74,15 +75,16 @@ def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
     if not types:
         return BASE_POINTS  # Fallback to hardcoded
 
-    leagues = {l.code: l.code for l in session.query(League).all()}
+    leagues = session.query(League).all()
     if not leagues:
         return BASE_POINTS
 
     result: dict[tuple[str, str], int] = {}
     for ach_type in types:
-        for league_code in leagues:
-            points = ach_type.base_points_l1 if league_code == "1" else ach_type.base_points_l2
-            result[(league_code, ach_type.code)] = points
+        for league in leagues:
+            # get_base_points honours League.parent_code so subleagues like 2.1
+            # correctly inherit base_points_l2 from their parent.
+            result[(league.code, ach_type.code)] = int(get_base_points(ach_type, league))
 
     return result
 
@@ -315,9 +317,7 @@ def setup_rating_triggers() -> None:
                 season = session.get(Season, target.season_id)
 
         if ach_type and league and season:
-            target.base_points = float(
-                ach_type.base_points_l1 if league.code == "1" else ach_type.base_points_l2
-            )
+            target.base_points = get_base_points(ach_type, league)
             target.multiplier = float(season.multiplier)
             target.final_points = round(target.base_points * target.multiplier, 2)
 

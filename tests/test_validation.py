@@ -179,11 +179,25 @@ class TestAchievementValidation(unittest.TestCase):
         self.assertFalse(is_valid)
         self.assertIsNotNone(error)
 
-    def test_validate_achievement_data_invalid_league(self) -> None:
-        """Invalid league should fail."""
-        is_valid, error = validate_achievement_data("TOP1", "3", "24/25", "TOP1")
+    def test_validate_achievement_data_malformed_league_rejected(self) -> None:
+        """Malformed league code (non-numeric / leading zero / trailing dot) is rejected."""
+        for bad in ("abc", "01", "0", "2.", "2.1.1", ""):
+            is_valid, error = validate_achievement_data("TOP1", bad, "24/25", "TOP1")
+            self.assertFalse(is_valid, f"Expected '{bad}' to fail format validation")
+            self.assertIsNotNone(error)
+
+    def test_validate_achievement_data_l1_subleague_rejected(self) -> None:
+        """L1 has no subleagues per business rules — '1.1' must be rejected."""
+        is_valid, error = validate_achievement_data("TOP1", "1.1", "24/25", "TOP1")
         self.assertFalse(is_valid)
-        self.assertIsNotNone(error)
+        assert error is not None
+        self.assertIn("League 1 has no subleagues", error)
+
+    def test_validate_achievement_data_subleague_accepted(self) -> None:
+        """Subleagues for L2+ pass format validation (DB existence checked elsewhere)."""
+        for code in ("2", "2.1", "2.2", "3", "3.1", "10", "10.5"):
+            is_valid, error = validate_achievement_data("TOP1", code, "24/25", "TOP1")
+            self.assertTrue(is_valid, f"Expected '{code}' to pass format validation: {error}")
 
     def test_validate_achievement_data_invalid_season(self) -> None:
         """Invalid season format - currently passes validation (no season format check)."""
