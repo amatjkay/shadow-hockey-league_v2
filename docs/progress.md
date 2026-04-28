@@ -10,7 +10,7 @@
 - [x] Reset primary admin account (`s3ifer`).
 - [x] Standardize flag filenames to uppercase (`RUS.png`) for Linux compatibility.
 - [x] Synchronize `SeedService` and `RatingService` point calculations.
-- [x] Isolate Flask-Admin monkey-patches to `utils/patches.py`.
+- [x] Isolate Flask-Admin monkey-patches to `utils/patches.py` (later removed in TIK-34: Flask-Admin 2.0.2 + WTForms 3.2.x no longer require them).
 - [x] Externalize Admin Panel JavaScript to `static/js/admin/autofill.js`.
 - [x] Fix cache contamination in E2E tests.
 - [x] Verify 100% test pass rate (383+ tests).

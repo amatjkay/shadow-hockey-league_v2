@@ -17,7 +17,7 @@ from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.theme import Bootstrap4Theme
 from flask_admin.form import Select2Widget
-from flask_login import LoginManager, current_user, login_user, logout_user
+from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from wtforms import PasswordField, StringField, SelectField, HiddenField
 from wtforms.validators import DataRequired
 from sqlalchemy.orm import joinedload
@@ -78,34 +78,65 @@ class SHLAdminIndexView(AdminIndexView):
     def index(self) -> Any:
         if not current_user.is_authenticated:
             return redirect(url_for('.login'))
-        
-        # Get stats for dashboard
+
+        # Get stats for dashboard. Pass both the legacy flat names
+        # (manager_count, …) consumed by templates/admin/index.html and a
+        # combined `stats` dict for newer templates.
+        manager_count = db.session.query(Manager).count()
+        achievement_count = db.session.query(Achievement).count()
+        country_count = db.session.query(Country).count()
+        admin_count = db.session.query(AdminUser).count()
+        active_seasons = db.session.query(Season).filter_by(is_active=True).count()
+        last_audit = (
+            db.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).first()
+        )
+
         stats = {
-            'managers': db.session.query(Manager).count(),
-            'achievements': db.session.query(Achievement).count(),
-            'active_seasons': db.session.query(Season).filter_by(is_active=True).count(),
-            'last_audit': db.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).first()
+            'managers': manager_count,
+            'achievements': achievement_count,
+            'countries': country_count,
+            'admins': admin_count,
+            'active_seasons': active_seasons,
+            'last_audit': last_audit,
         }
-        
-        return self.render('admin/index.html', stats=stats)
+
+        return self.render(
+            'admin/index.html',
+            stats=stats,
+            manager_count=manager_count,
+            achievement_count=achievement_count,
+            country_count=country_count,
+            admin_count=admin_count,
+        )
 
     @expose('/login/', methods=['GET', 'POST'])
     def login(self) -> Any:
         if current_user.is_authenticated:
             return redirect(url_for('.index'))
-            
+
         if request.method == 'POST':
+            # Brute-force defence: 10 *failed* attempts / 60 s per client IP.
+            # Successful logins do not count toward the budget so that admins
+            # can't lock themselves out by repeatedly logging in/out.
+            if not _is_login_rate_limit_ok(max_attempts=10, window_seconds=60):
+                admin_logger.warning(
+                    f"Rate-limited login attempt from {_get_client_ip()}"
+                )
+                flash('Too many login attempts. Please wait 60 seconds.', 'error')
+                return self.render('admin/login.html')
+
             username = request.form.get('username')
             password = request.form.get('password')
-            
+
             user = db.session.query(AdminUser).filter_by(username=username).first()
             if user and user.check_password(password):
                 login_user(user)
                 admin_logger.info(f"Admin login: {username}")
                 return redirect(url_for('.index'))
             else:
+                _record_failed_login_attempt()
                 flash('Invalid username or password', 'error')
-                
+
         return self.render('admin/login.html')
 
     @expose('/logout/')
@@ -115,9 +146,13 @@ class SHLAdminIndexView(AdminIndexView):
         return redirect(url_for('.index'))
 
     @expose('/flush-cache/', methods=['POST'])
+    @login_required
     def flush_cache(self) -> Any:
-        """Invalidate all leaderboard caches."""
+        """Invalidate all leaderboard caches. Admin-only."""
         invalidate_leaderboard_cache()
+        admin_logger.info(
+            f"FLUSH_CACHE by {current_user.username if current_user.is_authenticated else 'unknown'}"
+        )
         flash('Leaderboard cache successfully flushed', 'success')
         return redirect(url_for('.index'))
 # ==================== Base View ====================
@@ -504,24 +539,67 @@ def invalidate_leaderboard_cache() -> None:
 _login_attempts: dict[str, list[float]] = {}
 
 
-def _check_login_rate_limit(max_attempts: int = 5, window_seconds: int = 300) -> bool:
-    """Basic in-memory rate limiting for login attempts."""
-    import time
+def _get_client_ip() -> str:
+    """Return the client IP for rate-limit bucketing.
+
+    `request.remote_addr` has already been resolved to the real client IP
+    by the ProxyFix middleware wired up in :func:`app.create_app` (see
+    `app.py` and `docs/ARCHITECTURE.md` § Production deployment), which
+    walks `X-Forwarded-For` from the right using the configured trusted-
+    proxy count.
+
+    We must **not** re-parse `X-Forwarded-For` ourselves. The leftmost
+    entry of that header is user-controllable, so trusting it would let
+    an attacker rotate the apparent IP on every login attempt and bypass
+    the per-IP rate-limit entirely.
+
+    For deployments that don't sit behind a proxy, set ``PROXY_FIX_X_FOR=0``
+    and ``request.remote_addr`` is the raw socket address, which is also
+    the correct rate-limit key.
+    """
     from flask import request
-    
-    ip = request.remote_addr or 'unknown'
+
+    return request.remote_addr or 'unknown'
+
+
+def _is_login_rate_limit_ok(max_attempts: int = 5, window_seconds: int = 300) -> bool:
+    """Return True iff the caller is *under* the failed-login budget.
+
+    Does NOT record an attempt - successful logins should not consume
+    the budget. Pair with :func:`_record_failed_login_attempt` on the
+    failure branch.
+    """
+    import time
+
+    ip = _get_client_ip()
     now = time.time()
-    
-    if ip not in _login_attempts:
-        _login_attempts[ip] = []
-        
-    # Remove old attempts
-    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < window_seconds]
-    
-    if len(_login_attempts[ip]) >= max_attempts:
+
+    bucket = _login_attempts.setdefault(ip, [])
+    # Drop attempts that have aged out of the window.
+    bucket[:] = [t for t in bucket if now - t < window_seconds]
+
+    return len(bucket) < max_attempts
+
+
+def _record_failed_login_attempt() -> None:
+    """Record a failed login for rate-limiting purposes."""
+    import time
+
+    ip = _get_client_ip()
+    _login_attempts.setdefault(ip, []).append(time.time())
+
+
+def _check_login_rate_limit(max_attempts: int = 5, window_seconds: int = 300) -> bool:
+    """Backward-compatible combined check + record.
+
+    Kept for any external callers; the admin login flow now uses the
+    split :func:`_is_login_rate_limit_ok` /
+    :func:`_record_failed_login_attempt` API so successful logins don't
+    consume the budget.
+    """
+    if not _is_login_rate_limit_ok(max_attempts, window_seconds):
         return False
-        
-    _login_attempts[ip].append(now)
+    _record_failed_login_attempt()
     return True
 
 # Alias for backward compatibility in tests

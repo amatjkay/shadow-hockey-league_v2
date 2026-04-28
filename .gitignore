@@ -1,5 +1,3 @@
-/home/tiki/dev/shadow-hockey-league_v2/.gitignore
-
 # Dependencies
 venv/
 node_modules/

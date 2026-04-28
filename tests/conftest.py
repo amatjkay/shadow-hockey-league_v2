@@ -90,6 +90,21 @@ def mock_redis():
     with patch("redis.Redis", return_value=fake), patch("redis.from_url", return_value=fake):
         yield fake
 
+
+@pytest.fixture(autouse=True)
+def _reset_admin_login_rate_limit():
+    """Clear in-memory admin login rate-limit state between tests.
+
+    Without this, repeated logins from `auth_client` fixtures across tests
+    exhaust the 10-attempts/60s budget and yield false 401s.
+    """
+    try:
+        from services.admin import _login_attempts
+        _login_attempts.clear()
+    except Exception:
+        pass
+    yield
+
 from app import create_app
 # Explicitly import ALL models so SQLAlchemy metadata knows about all tables
 # before db.create_all() is called. Without this, some tables (like

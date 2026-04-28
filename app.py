@@ -14,6 +14,7 @@ from typing import Any
 
 from flask import Flask
 from flask.logging import default_handler
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from models import db
 from services.admin import init_admin
@@ -50,6 +51,21 @@ def create_app(config_class: str | None = None) -> Flask:
 
     # Configure logging
     configure_logging(app)
+
+    # Trust the reverse proxy in front of Gunicorn (Nginx in production) so
+    # that `request.remote_addr` and Flask-Limiter see the real client IP
+    # via X-Forwarded-For. Without this, every per-IP feature (login
+    # rate-limit, API rate-limit, audit log IP) buckets every client under
+    # the proxy IP. See docs/ARCHITECTURE.md § Production deployment.
+    proxy_count = int(app.config.get("PROXY_FIX_X_FOR", os.environ.get("PROXY_FIX_X_FOR", "1")))
+    if proxy_count > 0:
+        app.wsgi_app = ProxyFix(  # type: ignore[method-assign]
+            app.wsgi_app,
+            x_for=proxy_count,
+            x_proto=proxy_count,
+            x_host=proxy_count,
+            x_prefix=proxy_count,
+        )
 
     # Register extensions
     register_extensions(app)
@@ -291,7 +307,7 @@ def register_error_handlers(app: Flask) -> None:
 if __name__ == "__main__":
     app = create_app()
     app.run(
-        host="0.0.0.0",
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
         port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
         debug=app.config.get("DEBUG", False),
         use_reloader=False,
