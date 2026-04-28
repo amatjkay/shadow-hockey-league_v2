@@ -7,6 +7,7 @@ Tests cover:
 """
 
 import unittest
+from unittest.mock import MagicMock, patch
 
 from app import create_app
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
@@ -143,6 +144,38 @@ class TestHealthBlueprint(unittest.TestCase):
         data = response.get_json()
         self.assertIn("countries_count", data)
         self.assertEqual(data["countries_count"], 1)
+
+    def test_health_endpoint_redis_client_uses_socket_timeout(self) -> None:
+        """Regression for B10/TIK-37: redis.Redis() must receive socket_timeout.
+
+        Without socket_timeout the read on .ping()/.info() can block on a
+        hung Redis until the system default (~5-7s), making /health unable
+        to fail-fast under degraded conditions.
+        """
+        fake_client = MagicMock()
+        fake_client.ping.return_value = True
+        fake_client.info.return_value = {"used_memory": 0}
+        fake_client.set.return_value = True
+        fake_client.get.return_value = "ok"
+
+        with patch("redis.Redis", return_value=fake_client) as mock_redis:
+            response = self.client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(mock_redis.called)
+        kwargs = mock_redis.call_args.kwargs
+        self.assertIn(
+            "socket_timeout",
+            kwargs,
+            "redis.Redis(...) must pass socket_timeout to bound read operations",
+        )
+        self.assertIsNotNone(kwargs["socket_timeout"])
+        self.assertLessEqual(
+            kwargs["socket_timeout"],
+            2.0,
+            "socket_timeout should be small (≤2s) so /health fails fast",
+        )
+        self.assertIn("socket_connect_timeout", kwargs)
 
 
 class TestMainBlueprint(unittest.TestCase):
