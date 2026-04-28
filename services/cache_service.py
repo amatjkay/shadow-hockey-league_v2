@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from flask_caching import Cache
 
 if TYPE_CHECKING:
-    from typing import Any
+    pass
 
 # Cache instance - to be initialized in create_app
 cache: Cache = Cache()
@@ -48,17 +48,17 @@ def invalidate_leaderboard_cache() -> bool:
 
 def get_cache_stats() -> dict:
     """Get cache statistics.
-    
+
     Returns:
         Dictionary with cache statistics
     """
     if cache is None:
         return {"status": "not_initialized"}
-    
+
     try:
         return {
             "status": "ok",
-            "cache_type": cache.config.get('CACHE_TYPE', 'unknown'),
+            "cache_type": cache.config.get("CACHE_TYPE", "unknown"),
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}

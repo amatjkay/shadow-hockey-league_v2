@@ -10,12 +10,12 @@
 7. Кэширование
 """
 
-import pytest
-from app import create_app
-from models import db, AdminUser, Manager, Country, Achievement, AuditLog
-from services.cache_service import cache
 import json
 import time
+
+import pytest
+
+from models import AuditLog
 
 
 class TestE2E_MainPage:
@@ -24,22 +24,22 @@ class TestE2E_MainPage:
     def test_main_page_loads(self, app, db_session):
         """E2E-001: Главная страница загружается."""
         with app.test_client() as client:
-            response = client.get('/')
+            response = client.get("/")
             assert response.status_code == 200
 
     def test_main_page_has_content(self, app, db_session):
         """E2E-002: Главная страница содержит контент."""
         with app.test_client() as client:
-            response = client.get('/')
-            html = response.data.decode('utf-8')
-            assert 'Shadow Hockey League' in html
+            response = client.get("/")
+            html = response.data.decode("utf-8")
+            assert "Shadow Hockey League" in html
             # Just check page loads with title, not specific content words
             assert response.status_code == 200
 
     def test_main_page_shows_managers(self, app, seeded_db):
         """E2E-003: Данные менеджером отображаются."""
         with app.test_client() as client:
-            response = client.get('/')
+            response = client.get("/")
             # Verify page loads (manager data might be empty or filtered)
             assert response.status_code == 200
 
@@ -50,11 +50,11 @@ class TestE2E_Health:
     def test_health_endpoint(self, app, db_session):
         """E2E-004: Health endpoint возвращает статус."""
         with app.test_client() as client:
-            response = client.get('/health')
+            response = client.get("/health")
             assert response.status_code == 200
             data = json.loads(response.data)
-            assert data['status'] == 'healthy'
-            assert data['database_status'] == 'connected'
+            assert data["status"] == "healthy"
+            assert data["database_status"] == "connected"
 
 
 class TestE2E_Metrics:
@@ -63,7 +63,7 @@ class TestE2E_Metrics:
     def test_metrics_endpoint(self, app, db_session):
         """E2E-005: Metrics endpoint возвращает Prometheus метрики."""
         with app.test_client() as client:
-            response = client.get('/metrics')
+            response = client.get("/metrics")
             # В тестовом режиме метрики могут быть отключены (404)
             # В production — 200
             assert response.status_code in [200, 404]
@@ -75,20 +75,20 @@ class TestE2E_Admin:
     def test_admin_page_loads(self, app, db_session):
         """E2E-006: Админка загружается."""
         with app.test_client() as client:
-            response = client.get('/admin/')
+            response = client.get("/admin/")
             assert response.status_code == 200
 
     def test_admin_login_page(self, app, db_session):
         """E2E-006: Страница входа в админку."""
         with app.test_client() as client:
-            response = client.get('/admin/login/')
+            response = client.get("/admin/login/")
             assert response.status_code == 200
 
     def test_admin_requires_login_for_crud(self, app, db_session):
         """E2E-007: Админка требует логин для CRUD."""
         with app.test_client() as client:
             # Попытка доступа к CRUD без логина должна редиректить
-            response = client.get('/admin/country/', follow_redirects=False)
+            response = client.get("/admin/country/", follow_redirects=False)
             assert response.status_code in [301, 302, 200]  # Redirect или login page
 
 
@@ -98,7 +98,7 @@ class TestE2E_API:
     def test_api_managers(self, app, db_session):
         """E2E-010: API менеджеров."""
         with app.test_client() as client:
-            response = client.get('/api/managers')
+            response = client.get("/api/managers")
             # Может быть 401 без API ключа или 200 если auth отключен
             assert response.status_code in [200, 401, 403]
 
@@ -109,21 +109,21 @@ class TestE2E_StaticFiles:
     def test_css_loads(self, app, db_session):
         """E2E-011: CSS файлы загружаются."""
         with app.test_client() as client:
-            response = client.get('/static/css/style.css')
+            response = client.get("/static/css/style.css")
             assert response.status_code in [200, 404]  # 404 если файл не найден
 
     def test_js_loads(self, app, db_session):
         """E2E-011: JS файлы загружаются."""
         with app.test_client() as client:
-            response = client.get('/static/js/main.js')
+            response = client.get("/static/js/main.js")
             assert response.status_code in [200, 404]
 
     def test_flag_images_exist(self, app, db_session):
         """E2E-011: Флаги существуют."""
         with app.test_client() as client:
-            flags = ['RUS.png', 'BLR.png', 'KAZ.png']
+            flags = ["RUS.png", "BLR.png", "KAZ.png"]
             for flag in flags:
-                response = client.get(f'/static/img/flags/{flag}')
+                response = client.get(f"/static/img/flags/{flag}")
                 assert response.status_code in [200, 404]
 
 
@@ -135,12 +135,12 @@ class TestE2E_Caching:
         with app.test_client() as client:
             # Первый запрос
             start1 = time.time()
-            response1 = client.get('/')
+            response1 = client.get("/")
             elapsed1 = time.time() - start1
 
             # Второй запрос (должен быть из кэша)
             start2 = time.time()
-            response2 = client.get('/')
+            response2 = client.get("/")
             elapsed2 = time.time() - start2
 
             assert response1.status_code == 200
@@ -168,10 +168,10 @@ class TestE2E_FlushCache:
         """E2E-009: Flush Cache endpoint существует."""
         with app.test_client() as client:
             # POST запрос должен существовать
-            response = client.post('/admin/flush-cache', follow_redirects=False)
+            response = client.post("/admin/flush-cache", follow_redirects=False)
             # Может редиректить на login или вернуть 401
             assert response.status_code in [301, 302, 401, 403]
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

@@ -6,14 +6,12 @@ Contains the leaderboard page (/) and rating redirect (/rating).
 from __future__ import annotations
 
 import time
-from typing import Any
 
 from flask import Blueprint, Response, redirect, render_template, request, url_for
 
-
 from models import Season, db
-from services.rating_service import build_leaderboard
 from services.cache_service import cache
+from services.rating_service import build_leaderboard
 
 main = Blueprint("main", __name__)
 
@@ -58,16 +56,13 @@ def index() -> str | tuple[str, int]:
         # 24/25, 25/26 — every other season silently disappeared from the
         # selector even though build_leaderboard happily filtered to it.
         # Newest season first matches the prod sort order.
-        seasons = (
-            db.session.query(Season)
-            .order_by(Season.code.desc())
-            .all()
-        )
+        seasons = db.session.query(Season).order_by(Season.code.desc()).all()
 
         elapsed_ms = round((time.time() - start_time) * 1000)
 
         # Store generation time for health check
         from flask import current_app
+
         current_app.config["LAST_LEADERBOARD_GEN_MS"] = elapsed_ms
 
         return render_template(
@@ -79,6 +74,7 @@ def index() -> str | tuple[str, int]:
 
     except Exception as e:
         import traceback as tb
+
         from flask import current_app
 
         error_traceback = tb.format_exc()

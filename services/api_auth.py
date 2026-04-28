@@ -53,6 +53,7 @@ def authenticate_api_key(required_scope: str = "read") -> Callable:
     Returns:
         Decorated function or error response
     """
+
     def decorator(f: Callable) -> Callable:
         @wraps(f)
         def decorated_function(*args: Any, **kwargs: Any) -> Any:
@@ -74,9 +75,14 @@ def authenticate_api_key(required_scope: str = "read") -> Callable:
                 return jsonify({"error": "API key has expired."}), 401
 
             if not api_key.has_scope(required_scope):
-                return jsonify({
-                    "error": f"Insufficient scope. Required: {required_scope}, has: {api_key.scope}"
-                }), 403
+                return (
+                    jsonify(
+                        {
+                            "error": f"Insufficient scope. Required: {required_scope}, has: {api_key.scope}"
+                        }
+                    ),
+                    403,
+                )
 
             # Update last used timestamp
             api_key.last_used_at = datetime.now(timezone.utc)
@@ -87,11 +93,15 @@ def authenticate_api_key(required_scope: str = "read") -> Callable:
             request.api_key_scope = api_key.scope
 
             return f(*args, **kwargs)
+
         return decorated_function
+
     return decorator
 
 
-def create_api_key(name: str, scope: str = "read", expires_in_days: int | None = None) -> tuple[str, ApiKey]:
+def create_api_key(
+    name: str, scope: str = "read", expires_in_days: int | None = None
+) -> tuple[str, ApiKey]:
     """Create a new API key.
 
     Args:

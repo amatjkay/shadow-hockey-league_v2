@@ -9,8 +9,7 @@ Focus on previously untested code paths:
 
 import pytest
 
-from models import Achievement, AchievementType, Country, League, Manager, Season, AdminUser, db
-
+from models import AchievementType, AdminUser, Country, League, Manager, Season, db
 
 # ==================== Fixtures ====================
 

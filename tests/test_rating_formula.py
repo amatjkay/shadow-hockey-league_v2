@@ -11,14 +11,14 @@ Tests verify that:
 import unittest
 
 from app import create_app
-from models import Achievement, Country, Manager, AchievementType, League, Season, db
+from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.rating_service import (
     BASE_POINTS,
     SEASON_MULTIPLIER,
-    calculate_achievement_points,
-    get_achievement_kind,
     _get_base_points_from_db,
     _get_season_multiplier_from_db,
+    calculate_achievement_points,
+    get_achievement_kind,
 )
 
 
@@ -37,7 +37,12 @@ def _seed_reference_data(include_leagues=None, include_seasons=None, include_typ
     season_map = {}
     multipliers = {"25/26": 1.00, "24/25": 0.80, "23/24": 0.50, "22/23": 0.30, "21/22": 0.20}
     for i, code in enumerate(seasons):
-        s = Season(code=code, name=f"Season {code}", multiplier=multipliers.get(code, 1.0), is_active=(i == 0))
+        s = Season(
+            code=code,
+            name=f"Season {code}",
+            multiplier=multipliers.get(code, 1.0),
+            is_active=(i == 0),
+        )
         db.session.add(s)
         season_map[code] = s
 
@@ -147,11 +152,13 @@ class TestBasePointsFromDB(unittest.TestCase):
     def test_read_from_db_when_tables_populated(self) -> None:
         """When reference tables have data, should read from DB."""
         # Seed reference tables
-        db.session.add_all([
-            League(code="1", name="League 1"),
-            League(code="2", name="League 2"),
-            AchievementType(code="TOP1", name="TOP1", base_points_l1=999, base_points_l2=888),
-        ])
+        db.session.add_all(
+            [
+                League(code="1", name="League 1"),
+                League(code="2", name="League 2"),
+                AchievementType(code="TOP1", name="TOP1", base_points_l1=999, base_points_l2=888),
+            ]
+        )
         db.session.commit()
 
         result = _get_base_points_from_db(db.session)
@@ -161,14 +168,18 @@ class TestBasePointsFromDB(unittest.TestCase):
     def test_base_points_l1_values(self) -> None:
         """Test all League 1 base points from DB."""
         db.session.add(League(code="1", name="League 1"))
-        db.session.add_all([
-            AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=400),
-            AchievementType(code="TOP2", name="TOP2", base_points_l1=400, base_points_l2=200),
-            AchievementType(code="TOP3", name="TOP3", base_points_l1=200, base_points_l2=100),
-            AchievementType(code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100),
-            AchievementType(code="R3", name="Round 3", base_points_l1=100, base_points_l2=50),
-            AchievementType(code="R1", name="Round 1", base_points_l1=50, base_points_l2=25),
-        ])
+        db.session.add_all(
+            [
+                AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=400),
+                AchievementType(code="TOP2", name="TOP2", base_points_l1=400, base_points_l2=200),
+                AchievementType(code="TOP3", name="TOP3", base_points_l1=200, base_points_l2=100),
+                AchievementType(
+                    code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100
+                ),
+                AchievementType(code="R3", name="Round 3", base_points_l1=100, base_points_l2=50),
+                AchievementType(code="R1", name="Round 1", base_points_l1=50, base_points_l2=25),
+            ]
+        )
         db.session.commit()
 
         result = _get_base_points_from_db(db.session)
@@ -182,14 +193,18 @@ class TestBasePointsFromDB(unittest.TestCase):
     def test_base_points_l2_values(self) -> None:
         """Test all League 2 base points from DB."""
         db.session.add(League(code="2", name="League 2"))
-        db.session.add_all([
-            AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=400),
-            AchievementType(code="TOP2", name="TOP2", base_points_l1=400, base_points_l2=200),
-            AchievementType(code="TOP3", name="TOP3", base_points_l1=200, base_points_l2=100),
-            AchievementType(code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100),
-            AchievementType(code="R3", name="Round 3", base_points_l1=100, base_points_l2=50),
-            AchievementType(code="R1", name="Round 1", base_points_l1=50, base_points_l2=25),
-        ])
+        db.session.add_all(
+            [
+                AchievementType(code="TOP1", name="TOP1", base_points_l1=800, base_points_l2=400),
+                AchievementType(code="TOP2", name="TOP2", base_points_l1=400, base_points_l2=200),
+                AchievementType(code="TOP3", name="TOP3", base_points_l1=200, base_points_l2=100),
+                AchievementType(
+                    code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100
+                ),
+                AchievementType(code="R3", name="Round 3", base_points_l1=100, base_points_l2=50),
+                AchievementType(code="R1", name="Round 1", base_points_l1=50, base_points_l2=25),
+            ]
+        )
         db.session.commit()
 
         result = _get_base_points_from_db(db.session)
@@ -230,13 +245,15 @@ class TestSeasonMultiplierFromDB(unittest.TestCase):
 
     def test_all_season_multipliers(self) -> None:
         """Test all season multipliers from DB."""
-        db.session.add_all([
-            Season(code="25/26", name="Season 2025/26", multiplier=1.00, is_active=True),
-            Season(code="24/25", name="Season 2024/25", multiplier=0.80, is_active=False),
-            Season(code="23/24", name="Season 2023/24", multiplier=0.50, is_active=False),
-            Season(code="22/23", name="Season 2022/23", multiplier=0.30, is_active=False),
-            Season(code="21/22", name="Season 2021/22", multiplier=0.20, is_active=False),
-        ])
+        db.session.add_all(
+            [
+                Season(code="25/26", name="Season 2025/26", multiplier=1.00, is_active=True),
+                Season(code="24/25", name="Season 2024/25", multiplier=0.80, is_active=False),
+                Season(code="23/24", name="Season 2023/24", multiplier=0.50, is_active=False),
+                Season(code="22/23", name="Season 2022/23", multiplier=0.30, is_active=False),
+                Season(code="21/22", name="Season 2021/22", multiplier=0.20, is_active=False),
+            ]
+        )
         db.session.commit()
 
         result = _get_season_multiplier_from_db(db.session)
@@ -274,7 +291,9 @@ class TestAchievementPointsCalculation(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def _create_achievement(self, ach_type: str, league: str, season: str, title: str) -> Achievement:
+    def _create_achievement(
+        self, ach_type: str, league: str, season: str, title: str
+    ) -> Achievement:
         ach = Achievement(
             type_id=self.type_map[ach_type].id,
             league_id=self.league_ids[league],
@@ -401,7 +420,9 @@ class TestPointsCalculationWithDBData(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def _create_achievement(self, ach_type: str, league: str, season: str, title: str) -> Achievement:
+    def _create_achievement(
+        self, ach_type: str, league: str, season: str, title: str
+    ) -> Achievement:
         ach = Achievement(
             type_id=self.type_map[ach_type].id,
             league_id=self.league_ids[league],

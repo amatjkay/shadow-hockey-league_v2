@@ -24,13 +24,17 @@ print(f"   Metrics instance: {'OK - Initialized' if metrics1 else 'FAIL - Not in
 app2 = create_app()
 metrics2 = get_metrics()
 print(f"\n2. Second app created:")
-print(f"   Metrics instance: {'OK - Reused singleton' if metrics2 is metrics1 else 'FAIL - New instance'}")
+print(
+    f"   Metrics instance: {'OK - Reused singleton' if metrics2 is metrics1 else 'FAIL - New instance'}"
+)
 
 # Third app creation
 app3 = create_app()
 metrics3 = get_metrics()
 print(f"\n3. Third app created:")
-print(f"   Metrics instance: {'OK - Reused singleton' if metrics3 is metrics1 else 'FAIL - New instance'}")
+print(
+    f"   Metrics instance: {'OK - Reused singleton' if metrics3 is metrics1 else 'FAIL - New instance'}"
+)
 
 print("\n" + "=" * 50)
 print("OK - No warnings about duplicate endpoints!")

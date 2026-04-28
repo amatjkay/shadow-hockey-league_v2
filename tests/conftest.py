@@ -6,9 +6,10 @@ and test data seeding.
 
 import os
 import tempfile
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
+
 
 # Global mock for Redis to prevent any network activity during tests
 class _FakeRedis:
@@ -21,7 +22,9 @@ class _FakeRedis:
         k = name if key is None else key
         return self._store.get(k)
 
-    def set(self, key=None, value=None, ex=None, px=None, nx=False, xx=False, keepttl=False, name=None):
+    def set(
+        self, key=None, value=None, ex=None, px=None, nx=False, xx=False, keepttl=False, name=None
+    ):
         k = name if key is None else key
         self._store[k] = value
         return True
@@ -100,18 +103,21 @@ def _reset_admin_login_rate_limit():
     """
     try:
         from services.admin import _login_attempts
+
         _login_attempts.clear()
     except Exception:
         pass
     yield
 
+
 from app import create_app
+
 # Explicitly import ALL models so SQLAlchemy metadata knows about all tables
 # before db.create_all() is called. Without this, some tables (like
 # achievement_types, audit_logs, leagues, seasons) will be missing in CI.
 from models import (
-    Achievement, AchievementType, AuditLog, Country, League, Season,
-    Manager, AdminUser, db
+    AdminUser,
+    db,
 )
 
 
@@ -149,7 +155,6 @@ def db_session(app, app_context):
     Explicitly imports all models to ensure db.create_all sees them.
     """
     # Explicitly import all models so db.create_all creates their tables
-    from models import Achievement, AchievementType, Country, League, Season, Manager, AdminUser, AuditLog
 
     with app.app_context():
         db.create_all()
@@ -165,7 +170,14 @@ def seeded_db(app, app_context):
     Seeds country, manager, and achievements.
     """
     # Explicitly import all models so db.create_all creates their tables
-    from models import Achievement, AchievementType, Country, League, Season, Manager, AdminUser, AuditLog
+    from models import (
+        Achievement,
+        AchievementType,
+        Country,
+        League,
+        Manager,
+        Season,
+    )
 
     with app.app_context():
         db.create_all()
@@ -181,8 +193,12 @@ def seeded_db(app, app_context):
         db.session.flush()
 
         # Create reference data for achievements
-        ach_type_top1 = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
-        ach_type_top2 = AchievementType(code="TOP2", name="Top 2", base_points_l1=400, base_points_l2=200)
+        ach_type_top1 = AchievementType(
+            code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400
+        )
+        ach_type_top2 = AchievementType(
+            code="TOP2", name="Top 2", base_points_l1=400, base_points_l2=200
+        )
         db.session.add_all([ach_type_top1, ach_type_top2])
         league = League(code="1", name="League 1")
         db.session.add(league)
@@ -257,14 +273,14 @@ def admin_user(app, app_context):
     """Create admin user for testing."""
     with app.app_context():
         db.create_all()  # Ensure tables exist
-        
+
         admin = AdminUser(username="testadmin", role=AdminUser.ROLE_SUPER_ADMIN)
         admin.set_password("testpass123")
         db.session.add(admin)
         db.session.commit()
-        
+
         yield admin
-        
+
         # Cleanup
         try:
             db.session.delete(admin)

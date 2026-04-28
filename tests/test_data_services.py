@@ -1,23 +1,20 @@
 """Tests for data services: export, seed, schemas, static_paths."""
 
 import json
-import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from data.export_service import ExportService
 from data.schemas import (
-    validate_countries,
-    validate_managers,
     validate_achievements,
     validate_all,
+    validate_countries,
+    validate_managers,
 )
-from data.seed_service import SeedService, SeedResult
-from data.static_paths import StaticPaths, resolve_flag, resolve_cup, get_flag_choices
-
+from data.seed_service import SeedResult, SeedService
+from data.static_paths import StaticPaths, resolve_cup, resolve_flag
 
 # ==================== StaticPaths Tests ====================
 
@@ -158,50 +155,58 @@ class TestValidateAchievements:
     """Test achievements schema validation."""
 
     def test_valid_achievements(self):
-        data = [{
-            "manager_name": "Test",
-            "type": "TOP1",
-            "league": "1",
-            "season": "24/25",
-            "title": "TOP1",
-            "icon_filename": "top1.svg",
-        }]
+        data = [
+            {
+                "manager_name": "Test",
+                "type": "TOP1",
+                "league": "1",
+                "season": "24/25",
+                "title": "TOP1",
+                "icon_filename": "top1.svg",
+            }
+        ]
         errors = validate_achievements(data)
         assert errors == []
 
     def test_invalid_type(self):
-        data = [{
-            "manager_name": "Test",
-            "type": "INVALID",
-            "league": "1",
-            "season": "24/25",
-            "title": "X",
-            "icon_filename": "top1.svg",
-        }]
+        data = [
+            {
+                "manager_name": "Test",
+                "type": "INVALID",
+                "league": "1",
+                "season": "24/25",
+                "title": "X",
+                "icon_filename": "top1.svg",
+            }
+        ]
         errors = validate_achievements(data)
         assert any("'type' must be one of" in e for e in errors)
 
     def test_invalid_season_format(self):
-        data = [{
-            "manager_name": "Test",
-            "type": "TOP1",
-            "league": "1",
-            "season": "2024",
-            "title": "X",
-            "icon_filename": "top1.svg",
-        }]
+        data = [
+            {
+                "manager_name": "Test",
+                "type": "TOP1",
+                "league": "1",
+                "season": "2024",
+                "title": "X",
+                "icon_filename": "top1.svg",
+            }
+        ]
         errors = validate_achievements(data)
         assert any("must be in format 'YY/YY'" in e for e in errors)
 
     def test_invalid_icon_extension(self):
-        data = [{
-            "manager_name": "Test",
-            "type": "TOP1",
-            "league": "1",
-            "season": "24/25",
-            "title": "X",
-            "icon_filename": "top1.txt",
-        }]
+        data = [
+            {
+                "manager_name": "Test",
+                "type": "TOP1",
+                "league": "1",
+                "season": "24/25",
+                "title": "X",
+                "icon_filename": "top1.txt",
+            }
+        ]
         errors = validate_achievements(data)
         assert any("must end with .svg or .png" in e for e in errors)
 

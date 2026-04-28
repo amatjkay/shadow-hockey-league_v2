@@ -339,9 +339,7 @@ def run_admin_views(page: Page) -> None:
             if not href:
                 continue
             edit_url = BASE_URL + href if href.startswith("/") else href
-            _check_admin_page(
-                page, edit_url, f"admin_edit_{name}", f"admin EDIT first row {name}"
-            )
+            _check_admin_page(page, edit_url, f"admin_edit_{name}", f"admin EDIT first row {name}")
         except Exception as e:
             arts = dump_failure(page, f"admin_edit_{name}_exc")
             record(f"admin EDIT first row {name}", False, f"{type(e).__name__}: {e}", arts)
@@ -382,9 +380,9 @@ def run_console_errors(page: Page) -> None:
     page.on("pageerror", lambda exc: errors.append(f"pageerror: {exc}"))
     page.on(
         "console",
-        lambda msg: errors.append(f"console.{msg.type}: {msg.text}")
-        if msg.type == "error"
-        else None,
+        lambda msg: (
+            errors.append(f"console.{msg.type}: {msg.text}") if msg.type == "error" else None
+        ),
     )
     try:
         page.goto(BASE_URL + "/", wait_until="networkidle", timeout=15000)
@@ -454,9 +452,7 @@ def main() -> int:
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    print(
-        f"\n=== {len(results) - len(failed)}/{len(results)} passed in {elapsed:.1f}s ==="
-    )
+    print(f"\n=== {len(results) - len(failed)}/{len(results)} passed in {elapsed:.1f}s ===")
     if failed:
         print("FAILURES:")
         for r in failed:

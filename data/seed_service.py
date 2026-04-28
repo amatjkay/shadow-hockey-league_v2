@@ -20,7 +20,7 @@ from typing import Any
 
 from data.schemas import validate_all
 from data.static_paths import StaticPaths
-from models import Achievement, AchievementType, Country, League, Manager, Season, AuditLog
+from models import Achievement, AchievementType, AuditLog, Country, League, Manager, Season
 
 logger = logging.getLogger(__name__)
 
@@ -220,12 +220,17 @@ class SeedService:
         if self.session.query(AchievementType).count() == 0:
             logger.info("Seeding default AchievementTypes...")
             types_data = [
-                {'code': 'TOP1', 'name': 'Top 1', 'base_points_l1': 800, 'base_points_l2': 400},
-                {'code': 'TOP2', 'name': 'Top 2', 'base_points_l1': 400, 'base_points_l2': 200},
-                {'code': 'TOP3', 'name': 'Top 3', 'base_points_l1': 200, 'base_points_l2': 100},
-                {'code': 'BEST', 'name': 'Best Regular', 'base_points_l1': 200, 'base_points_l2': 100},
-                {'code': 'R3', 'name': 'Round 3', 'base_points_l1': 100, 'base_points_l2': 50},
-                {'code': 'R1', 'name': 'Round 1', 'base_points_l1': 50, 'base_points_l2': 25},
+                {"code": "TOP1", "name": "Top 1", "base_points_l1": 800, "base_points_l2": 400},
+                {"code": "TOP2", "name": "Top 2", "base_points_l1": 400, "base_points_l2": 200},
+                {"code": "TOP3", "name": "Top 3", "base_points_l1": 200, "base_points_l2": 100},
+                {
+                    "code": "BEST",
+                    "name": "Best Regular",
+                    "base_points_l1": 200,
+                    "base_points_l2": 100,
+                },
+                {"code": "R3", "name": "Round 3", "base_points_l1": 100, "base_points_l2": 50},
+                {"code": "R1", "name": "Round 1", "base_points_l1": 50, "base_points_l2": 25},
             ]
             for data in types_data:
                 self.session.add(AchievementType(**data))
@@ -252,7 +257,9 @@ class SeedService:
                 ("25/26", "Season 2025/26", 1.00),
             ]
             for code, name, mult in seasons:
-                self.session.add(Season(code=code, name=name, multiplier=mult, is_active=(code == "25/26")))
+                self.session.add(
+                    Season(code=code, name=name, multiplier=mult, is_active=(code == "25/26"))
+                )
 
     def _seed_achievements(self, data: list[dict], result: SeedResult) -> None:
         """Seed achievements from JSON data."""
@@ -282,19 +289,28 @@ class SeedService:
 
             if not all([ach_type, league, season]):
                 missing = []
-                if not ach_type: missing.append(f"type:{ach_type_code}")
-                if not league: missing.append(f"league:{item['league']}")
-                if not season: missing.append(f"season:{item['season']}")
-                result.errors.append(f"Missing reference data for {manager_name}: {', '.join(missing)}")
+                if not ach_type:
+                    missing.append(f"type:{ach_type_code}")
+                if not league:
+                    missing.append(f"league:{item['league']}")
+                if not season:
+                    missing.append(f"season:{item['season']}")
+                result.errors.append(
+                    f"Missing reference data for {manager_name}: {', '.join(missing)}"
+                )
                 continue
 
             # Check unique constraint
-            existing = self.session.query(Achievement).filter_by(
-                manager_id=manager.id,
-                league_id=league.id,
-                season_id=season.id,
-                type_id=ach_type.id,
-            ).first()
+            existing = (
+                self.session.query(Achievement)
+                .filter_by(
+                    manager_id=manager.id,
+                    league_id=league.id,
+                    season_id=season.id,
+                    type_id=ach_type.id,
+                )
+                .first()
+            )
             if existing:
                 result.achievements_skipped += 1
                 continue

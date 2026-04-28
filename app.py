@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os
 import time
-import datetime
 from typing import Any
 
 from flask import Flask
@@ -140,21 +139,24 @@ def register_extensions(app: Flask) -> None:
     # Initialize CSRF protection (Этап 3.1)
     if not app.config.get("TESTING"):
         from flask_wtf.csrf import CSRFProtect
+
         csrf = CSRFProtect()
         csrf.init_app(app)
         app.logger.info("CSRF protection initialized")
     else:
         app.logger.info("CSRF protection skipped (TESTING mode)")
+
         # Add dummy csrf_token for Jinja templates to prevent UndefinedError
         @app.context_processor
         def dummy_csrf_token() -> dict[str, Any]:
-            return dict(csrf_token=lambda: 'dummy-token-for-tests')
+            return dict(csrf_token=lambda: "dummy-token-for-tests")
 
     # Initialize Rate Limiting (Этап 5)
     # Disable rate limiting in testing mode to speed up CI/CD and tests
     if not app.config.get("TESTING"):
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
+
         limiter = Limiter(
             key_func=get_remote_address,
             app=app,
@@ -187,7 +189,9 @@ def register_extensions(app: Flask) -> None:
             socket_connect_timeout=2,
         )
         redis_client.ping()
-        app.logger.info(f"Redis connection established: {cache_config['CACHE_REDIS_HOST']}:{cache_config['CACHE_REDIS_PORT']}")
+        app.logger.info(
+            f"Redis connection established: {cache_config['CACHE_REDIS_HOST']}:{cache_config['CACHE_REDIS_PORT']}"
+        )
     except (redis.ConnectionError, redis.TimeoutError, ImportError) as e:
         app.logger.warning(f"Redis not available, falling back to simple cache: {e}")
         cache_config["CACHE_TYPE"] = "SimpleCache"
@@ -195,6 +199,7 @@ def register_extensions(app: Flask) -> None:
     app.config.update(cache_config)
 
     from services.cache_service import cache
+
     cache.init_app(app)
 
     # Initialize Flask-Admin and Flask-Login within application context
@@ -205,11 +210,13 @@ def register_extensions(app: Flask) -> None:
 
             # Initialize audit events after admin is set up
             from services.audit_service import setup_audit_events
+
             setup_audit_events()
             app.logger.info("Audit event listeners initialized")
 
             # Initialize rating recalculation triggers
             from services.rating_service import setup_rating_triggers
+
             setup_rating_triggers()
             app.logger.info("Rating recalculation triggers initialized")
 
@@ -224,7 +231,9 @@ def register_extensions(app: Flask) -> None:
             metrics = get_metrics(app)
             if metrics is not None:
                 app.logger.info("Prometheus metrics enabled at /metrics")
-                app.logger.info("Default metrics: http_requests_total, http_request_duration_seconds")
+                app.logger.info(
+                    "Default metrics: http_requests_total, http_request_duration_seconds"
+                )
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
 
@@ -233,41 +242,45 @@ def register_blueprints(app: Flask) -> None:
     """Register Flask blueprints."""
     # Main blueprint (leaderboard page)
     from blueprints.main import main
+
     app.register_blueprint(main)
 
     # Health check blueprint
     from blueprints.health import health
+
     app.register_blueprint(health)
 
     # Admin API blueprint (for Select2 dropdowns and bulk operations)
     from blueprints.admin_api import admin_api_bp
+
     app.register_blueprint(admin_api_bp)
     # Exempt admin API from CSRF (uses Flask-Login auth)
-    if 'csrf' in app.extensions:
-        app.extensions['csrf'].exempt(admin_api_bp)
+    if "csrf" in app.extensions:
+        app.extensions["csrf"].exempt(admin_api_bp)
 
     # API blueprint (if enabled)
     if app.config.get("ENABLE_API"):
         from services.api import api
+
         app.register_blueprint(api)
         # Exempt API from CSRF (uses API Key auth instead)
-        if 'csrf' in app.extensions:
-            app.extensions['csrf'].exempt(api)
+        if "csrf" in app.extensions:
+            app.extensions["csrf"].exempt(api)
     else:
         app.logger.info("REST API is disabled in this environment (ENABLE_API=False)")
 
     # Exempt Flask-Admin from CSRF (has its own auth)
     try:
         # The admin blueprint is usually named 'admin'
-        admin_bp = app.blueprints.get('admin')
-        if admin_bp and 'csrf' in app.extensions:
-            app.extensions['csrf'].exempt(admin_bp)
-        
+        admin_bp = app.blueprints.get("admin")
+        if admin_bp and "csrf" in app.extensions:
+            app.extensions["csrf"].exempt(admin_bp)
+
         # Also exempt login/logout endpoints if they are separate
-        for bp_name in ['admin_login', 'admin_logout']:
+        for bp_name in ["admin_login", "admin_logout"]:
             bp = app.blueprints.get(bp_name)
-            if bp and 'csrf' in app.extensions:
-                app.extensions['csrf'].exempt(bp)
+            if bp and "csrf" in app.extensions:
+                app.extensions["csrf"].exempt(bp)
     except Exception as e:
         app.logger.warning(f"Could not exempt admin from CSRF: {e}")
 

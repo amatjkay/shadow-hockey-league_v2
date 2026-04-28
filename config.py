@@ -34,7 +34,9 @@ class Config:
 
     # CSRF Protection (Этап 3.1)
     WTF_CSRF_ENABLED = True
-    WTF_CSRF_SECRET_KEY = os.environ.get("WTF_CSRF_SECRET_KEY") or "csrf-dev-key-change-in-production"
+    WTF_CSRF_SECRET_KEY = (
+        os.environ.get("WTF_CSRF_SECRET_KEY") or "csrf-dev-key-change-in-production"
+    )
     WTF_CSRF_TIME_LIMIT = None  # No expiration for CSRF tokens
 
     # Logging
@@ -47,7 +49,7 @@ class Config:
     @classmethod
     def get_database_url(cls) -> str:
         """Get database URL with absolute path.
-        
+
         Returns:
             Absolute SQLite path (e.g., sqlite:///C:/project/dev.db)
         """
@@ -61,7 +63,7 @@ class Config:
                 absolute_path = cls.BASE_DIR / db_filename
                 return f"sqlite:///{absolute_path}"
             return env_db_url
-        
+
         # Default: absolute path to dev.db in project root
         default_db_path = cls.BASE_DIR / "dev.db"
         return f"sqlite:///{default_db_path}"
@@ -93,10 +95,10 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
     ENABLE_API = True  # Enable API for tests
     SESSION_TYPE = "filesystem"
-    
+
     # Faster caching for tests
     CACHE_TYPE = "SimpleCache"
-    
+
     # Enable foreign key constraints in SQLite for testing
     @classmethod
     def get_database_url(cls) -> str:

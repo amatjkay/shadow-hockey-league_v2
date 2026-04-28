@@ -18,8 +18,7 @@ from typing import Any
 
 from app import create_app
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
-from services.cache_service import cache, invalidate_leaderboard_cache
-from services.rating_service import build_leaderboard
+from services.cache_service import cache
 
 
 def _seed_reference_data():
@@ -33,13 +32,19 @@ def _seed_reference_data():
     seasons = {}
     multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
-        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        s = Season(
+            code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
+        )
         db.session.add(s)
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 400), "TOP2": (400, 200), "TOP3": (200, 100),
-        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+        "TOP1": (800, 400),
+        "TOP2": (400, 200),
+        "TOP3": (200, 100),
+        "BEST": (50, 40),
+        "R3": (30, 20),
+        "R1": (10, 5),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -76,8 +81,12 @@ class TestAPICacheInvalidation(unittest.TestCase):
 
             # Create reference data for Achievement (FK relationships)
             ach_type = type_map["TOP1"]
-            league = leagues["1"] if 'leagues' in dir() else League(code="1", name="League 1")
-            season = seasons["25/26"] if 'seasons' in dir() else Season(code="25/26", name="Season 25/26", multiplier=1.0)
+            league = leagues["1"] if "leagues" in dir() else League(code="1", name="League 1")
+            season = (
+                seasons["25/26"]
+                if "seasons" in dir()
+                else Season(code="25/26", name="Season 25/26", multiplier=1.0)
+            )
 
             # Create test achievement with FK relationships
             achievement = Achievement(
@@ -96,14 +105,17 @@ class TestAPICacheInvalidation(unittest.TestCase):
             self.achievement_id = achievement.id
 
             # Create API key
-            from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
+            from services.api_auth import generate_api_key, hash_api_key
+
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Test API Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Test API Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:
@@ -286,14 +298,17 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
             self.type_ids = {code: at.id for code, at in type_map.items()}
 
             # Create API key
-            from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
+            from services.api_auth import generate_api_key, hash_api_key
+
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Test API Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Test API Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:
@@ -430,14 +445,17 @@ class TestAPIAchievementUniquenessConstraint(unittest.TestCase):
             self.type_ids = {code: at.id for code, at in type_map.items()}
 
             # Create API key
-            from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
+            from services.api_auth import generate_api_key, hash_api_key
+
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Test API Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Test API Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:

@@ -14,9 +14,12 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
+from services.api_auth import authenticate_api_key
+from services.cache_service import invalidate_leaderboard_cache
 from services.validation_service import (
     validate_achievement_data,
     validate_country_data,
@@ -26,10 +29,6 @@ from services.validation_service import (
     validate_manager_exists,
     validate_manager_unique,
 )
-from services.cache_service import invalidate_leaderboard_cache
-from services.api_auth import authenticate_api_key
-
-from sqlalchemy.exc import IntegrityError
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -666,7 +665,12 @@ def create_achievement() -> tuple[Any, int]:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return jsonify({"error": "Achievement already exists for this manager, league, season, and type"}), 409
+        return (
+            jsonify(
+                {"error": "Achievement already exists for this manager, league, season, and type"}
+            ),
+            409,
+        )
 
     # Invalidate leaderboard cache
     invalidate_leaderboard_cache()
@@ -806,10 +810,11 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
     # Recalculate points if any FK field changed
     if type_code or league_code or season_code:
         # Refresh relationships to get updated values
-        db.session.refresh(achievement, attribute_names=['type', 'league', 'season'])
+        db.session.refresh(achievement, attribute_names=["type", "league", "season"])
         if achievement.type and achievement.league and achievement.season:
             achievement.base_points = float(
-                achievement.type.base_points_l1 if achievement.league.code == '1'
+                achievement.type.base_points_l1
+                if achievement.league.code == "1"
                 else achievement.type.base_points_l2
             )
             achievement.multiplier = float(achievement.season.multiplier)

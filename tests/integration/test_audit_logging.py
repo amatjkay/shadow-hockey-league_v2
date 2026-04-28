@@ -1,14 +1,11 @@
 """Integration tests for audit logging functionality."""
 
-import pytest
 import json
-import time
-from flask import Flask
-from models import db, AdminUser, Country, Manager, AuditLog
-from services.audit_service import log_action, get_audit_logs
-from services.admin import SecureModelView, CountryModelView
+
 from flask_login import login_user
-from werkzeug.datastructures import MultiDict
+
+from models import Country, db
+from services.audit_service import get_audit_logs, log_action
 
 
 class TestAuditLoggingIntegration:
@@ -20,22 +17,25 @@ class TestAuditLoggingIntegration:
             # Login admin user and set for audit
             login_user(admin_user)
             from services.audit_service import set_current_user_for_audit
+
             set_current_user_for_audit(admin_user.id)
 
             # Create a new country
-            country = Country(code="TST", name="Test Country", flag_path="/static/img/flags/test.png")
+            country = Country(
+                code="TST", name="Test Country", flag_path="/static/img/flags/test.png"
+            )
             db.session.add(country)
             db.session.commit()
 
             # Check audit log
-            logs = get_audit_logs(user_id=admin_user.id, action='CREATE', limit=10)
-            create_logs = [log for log in logs if log.target_model == 'Country']
+            logs = get_audit_logs(user_id=admin_user.id, action="CREATE", limit=10)
+            create_logs = [log for log in logs if log.target_model == "Country"]
 
             assert len(create_logs) > 0
             latest_create = create_logs[0]
             assert latest_create.user_id == admin_user.id
-            assert latest_create.action == 'CREATE'
-            assert latest_create.target_model == 'Country'
+            assert latest_create.action == "CREATE"
+            assert latest_create.target_model == "Country"
             assert latest_create.target_id == country.id
 
     def test_crud_update_logging(self, app, admin_user, seeded_db):
@@ -44,6 +44,7 @@ class TestAuditLoggingIntegration:
             # Login admin user
             login_user(admin_user)
             from services.audit_service import set_current_user_for_audit
+
             set_current_user_for_audit(admin_user.id)
 
             # Get existing country
@@ -53,6 +54,7 @@ class TestAuditLoggingIntegration:
 
             # Simulate SecureModelView update (which logs changes)
             from services.admin import CountryModelView
+
             view = CountryModelView(Country, db.session)
 
             # Create a mock form with proper field objects supporting .data access
@@ -63,12 +65,12 @@ class TestAuditLoggingIntegration:
             class MockForm:
                 def __init__(self):
                     self.code = MockField(country.code)
-                    self.name = MockField('Updated Name')
+                    self.name = MockField("Updated Name")
                     self.flag_path = MockField(country.flag_path)
 
                 def populate_obj(self, obj):
                     """Populate model object from form data."""
-                    for key in ['code', 'name', 'flag_path']:
+                    for key in ["code", "name", "flag_path"]:
                         if hasattr(obj, key):
                             setattr(obj, key, getattr(self, key).data)
 
@@ -76,23 +78,23 @@ class TestAuditLoggingIntegration:
             view.update_model(MockForm(), country)
 
             # Check audit log
-            logs = get_audit_logs(user_id=admin_user.id, action='UPDATE', limit=10)
-            update_logs = [log for log in logs if log.target_model == 'Country']
+            logs = get_audit_logs(user_id=admin_user.id, action="UPDATE", limit=10)
+            update_logs = [log for log in logs if log.target_model == "Country"]
 
             assert len(update_logs) > 0
             latest_update = update_logs[0]
             assert latest_update.user_id == admin_user.id
-            assert latest_update.action == 'UPDATE'
-            assert latest_update.target_model == 'Country'
+            assert latest_update.action == "UPDATE"
+            assert latest_update.target_model == "Country"
             assert latest_update.target_id == country_id
 
             # Check changes are recorded
             changes = json.loads(latest_update.changes)
-            assert 'name' in changes
-            assert changes['name']['old'] == original_name
+            assert "name" in changes
+            assert changes["name"]["old"] == original_name
             # Note: CountryModelView.on_model_change auto-fills name from code,
             # so "Updated Name" gets overwritten to "Russia" (RUS mapping)
-            assert changes['name']['new'] == "Russia"
+            assert changes["name"]["new"] == "Russia"
 
     def test_crud_delete_logging(self, app, admin_user, seeded_db):
         """Test that DELETE operations are logged correctly through SecureModelView."""
@@ -100,6 +102,7 @@ class TestAuditLoggingIntegration:
             # Login admin user
             login_user(admin_user)
             from services.audit_service import set_current_user_for_audit
+
             set_current_user_for_audit(admin_user.id)
 
             # Create a country to delete
@@ -110,18 +113,19 @@ class TestAuditLoggingIntegration:
 
             # Delete through SecureModelView (this triggers audit logging)
             from services.admin import CountryModelView
+
             view = CountryModelView(Country, db.session)
             view.delete_model(country)
 
             # Check audit log
-            logs = get_audit_logs(user_id=admin_user.id, action='DELETE', limit=10)
-            delete_logs = [log for log in logs if log.target_model == 'Country']
+            logs = get_audit_logs(user_id=admin_user.id, action="DELETE", limit=10)
+            delete_logs = [log for log in logs if log.target_model == "Country"]
 
             assert len(delete_logs) > 0
             latest_delete = delete_logs[0]
             assert latest_delete.user_id == admin_user.id
-            assert latest_delete.action == 'DELETE'
-            assert latest_delete.target_model == 'Country'
+            assert latest_delete.action == "DELETE"
+            assert latest_delete.target_model == "Country"
             assert latest_delete.target_id == country_id
 
     def test_login_logging(self, app, admin_user):
@@ -131,15 +135,15 @@ class TestAuditLoggingIntegration:
             login_user(admin_user)
 
             # Log login action (simulating LoginView behavior)
-            log_action(user_id=admin_user.id, action='LOGIN')
+            log_action(user_id=admin_user.id, action="LOGIN")
 
             # Check audit log
-            logs = get_audit_logs(user_id=admin_user.id, action='LOGIN', limit=10)
+            logs = get_audit_logs(user_id=admin_user.id, action="LOGIN", limit=10)
 
             assert len(logs) > 0
             latest_login = logs[0]
             assert latest_login.user_id == admin_user.id
-            assert latest_login.action == 'LOGIN'
+            assert latest_login.action == "LOGIN"
             assert latest_login.target_model is None
             assert latest_login.target_id is None
 
@@ -149,23 +153,36 @@ class TestAuditLoggingIntegration:
             # Check table exists
             inspector = db.inspect(db.engine)
             tables = inspector.get_table_names()
-            assert 'audit_logs' in tables
+            assert "audit_logs" in tables
 
             # Check columns
-            columns = inspector.get_columns('audit_logs')
-            column_names = [col['name'] for col in columns]
+            columns = inspector.get_columns("audit_logs")
+            column_names = [col["name"] for col in columns]
 
-            expected_columns = ['id', 'user_id', 'action', 'target_model', 'target_id', 'changes', 'timestamp']
+            expected_columns = [
+                "id",
+                "user_id",
+                "action",
+                "target_model",
+                "target_id",
+                "changes",
+                "timestamp",
+            ]
             for col in expected_columns:
                 assert col in column_names, f"Column {col} missing from audit_logs table"
 
             # Check indexes
-            indexes = inspector.get_indexes('audit_logs')
-            index_names = [idx['name'] for idx in indexes]
+            indexes = inspector.get_indexes("audit_logs")
+            index_names = [idx["name"] for idx in indexes]
 
-            expected_indexes = ['idx_audit_user_timestamp', 'ix_audit_logs_action',
-                               'ix_audit_logs_target_id', 'ix_audit_logs_target_model',
-                               'ix_audit_logs_timestamp', 'ix_audit_logs_user_id']
+            expected_indexes = [
+                "idx_audit_user_timestamp",
+                "ix_audit_logs_action",
+                "ix_audit_logs_target_id",
+                "ix_audit_logs_target_model",
+                "ix_audit_logs_timestamp",
+                "ix_audit_logs_user_id",
+            ]
             for idx in expected_indexes:
                 assert idx in index_names, f"Index {idx} missing from audit_logs table"
 
@@ -178,15 +195,16 @@ class TestAuditLoggingIntegration:
             with temp_app.app_context():
                 # Create tables
                 from models import db
+
                 db.create_all()
 
                 # Try to create audit log with non-existent user_id
                 # log_action handles this gracefully and returns None
                 result = log_action(
                     user_id=99999,  # Non-existent user
-                    action='CREATE',
-                    target_model='Country',
-                    target_id=1
+                    action="CREATE",
+                    target_model="Country",
+                    target_id=1,
                 )
 
                 # Should return None due to foreign key constraint failure
@@ -202,10 +220,7 @@ class TestAuditLoggingIntegration:
             # Create multiple audit entries
             for i in range(5):
                 log_action(
-                    user_id=admin_user.id,
-                    action='CREATE',
-                    target_model='TestModel',
-                    target_id=i
+                    user_id=admin_user.id, action="CREATE", target_model="TestModel", target_id=i
                 )
 
             # Query with timestamp ordering (should use index)
@@ -226,13 +241,14 @@ class TestAuditLoggingIntegration:
             try:
                 with app.app_context():
                     from services.audit_service import set_current_user_for_audit
+
                     set_current_user_for_audit(admin_user.id)
 
                     log_action(
                         user_id=admin_user.id,
-                        action='CREATE',
-                        target_model='ConcurrentTest',
-                        target_id=action_id
+                        action="CREATE",
+                        target_model="ConcurrentTest",
+                        target_id=action_id,
                     )
                     with lock:
                         results.append(f"success-{action_id}")
@@ -253,12 +269,12 @@ class TestAuditLoggingIntegration:
 
         # Check results — allow for some failures due to SQLite concurrent write limitations
         assert len(results) == 10
-        success_count = len([r for r in results if r.startswith('success-')])
+        success_count = len([r for r in results if r.startswith("success-")])
         # SQLite may reject some concurrent writes (busy database)
         # Accept at least 8 out of 10
         assert success_count >= 8, f"Only {success_count}/10 concurrent writes succeeded"
 
         # Verify entries were logged
         with app.app_context():
-            logs = get_audit_logs(user_id=admin_user.id, target_model='ConcurrentTest', limit=20)
+            logs = get_audit_logs(user_id=admin_user.id, target_model="ConcurrentTest", limit=20)
             assert len(logs) >= 8, f"Only {len(logs)} audit logs found"

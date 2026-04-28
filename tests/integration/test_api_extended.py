@@ -7,9 +7,8 @@ Covers previously untested lines:
 
 import pytest
 
-from models import Achievement, AchievementType, Country, League, Manager, Season, ApiKey, db
+from models import Achievement, AchievementType, ApiKey, Country, League, Manager, Season, db
 from services.api_auth import generate_api_key, hash_api_key
-
 
 # ==================== Fixtures ====================
 
