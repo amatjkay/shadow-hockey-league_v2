@@ -149,4 +149,42 @@ Rollup PR **#23**:
 
 ---
 
+## Audit 2026-04-28 — Analysis Pass (this PR #31)
+
+Analytical-only PR (no application code touched). Artifacts under `docs/audits/`:
+
+- `audit-2026-04-28-analysis.md` — validation of all external audit claims
+  against `main` HEAD `ff6bca0`, with file:line evidence; decomposition into
+  ≤1h tasks (groups V/A/B/L/C/D); resolved owner Q&A in §5.
+- `audit-2026-04-28-plan.md` — sequenced execution plan (Phase 2A → 2B →
+  2C → 3 → 4) with locked owner decisions and constraints.
+- `linear-actions-2026-04-28.md` — Linear MCP action script.
+
+**Done in this pass:**
+
+- Linear sync (commit `7758bd6`): TIK-12/18/19 → Cancelled, TIK-16 → Done,
+  TIK-36 (B9, P1), TIK-37 (B10), TIK-38 (B11) created.
+- PR triage (commit `5c47184`): #11, #15, #28 closed without merge per owner
+  decision (prod stays on existing `PROXY_FIX_X_FOR=1` default behind nginx).
+- Branch cleanup (commit `9e41cdc`): 16 stale merged branches deleted;
+  `feature/admin-enhancement`, `release/feature-admin-enhancement-to-main`,
+  and active PR branches (#16, #17) preserved.
+- Verifications T-V-2 (`League.base_points_field` subleague behavior) and
+  T-V-3 (real `/metrics` output vs banner) completed and folded into the
+  analysis doc.
+
+**Remaining work (per `audit-2026-04-28-plan.md`):**
+
+- Phase 2B — TIK-37 (`socket_timeout` in `/health`), TIK-38 (metrics banner).
+- Phase 2C — cherry-pick PR #16 (rate-limiter) and #17 (subleague scoring)
+  into new PRs on `main`; close stale #16/#17.
+- Phase 3 — TIK-36 (B9 audit log `before_request` wiring + e2e test +
+  AGENTS.md/decisionLog/activeContext sync).
+- Phase 4 — linter debt roadmap (T-D-1..D-4: mypy and flake8 inventory +
+  Linear epics).
+
+**New blockers:** none.
+
+---
+
 _Last updated: 2026-04-28_
