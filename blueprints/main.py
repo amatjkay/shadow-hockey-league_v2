@@ -11,7 +11,7 @@ from typing import Any
 from flask import Blueprint, Response, redirect, render_template, request, url_for
 
 
-from models import db
+from models import Season, db
 from services.rating_service import build_leaderboard
 from services.cache_service import cache
 
@@ -53,13 +53,18 @@ def index() -> str | tuple[str, int]:
 
         leaderboard_data = build_leaderboard(db.session, season_id=season_id)
 
-        elapsed_ms = round((time.time() - start_time) * 1000)
+        # Populate the season dropdown from the DB instead of hard-coding
+        # it in the template. The template previously listed only 23/24,
+        # 24/25, 25/26 — every other season silently disappeared from the
+        # selector even though build_leaderboard happily filtered to it.
+        # Newest season first matches the prod sort order.
+        seasons = (
+            db.session.query(Season)
+            .order_by(Season.code.desc())
+            .all()
+        )
 
-        # Handle empty database case
-        if len(leaderboard_data) == 0:
-            pass  # Empty leaderboard renders fine
-        else:
-            pass  # Normal case
+        elapsed_ms = round((time.time() - start_time) * 1000)
 
         # Store generation time for health check
         from flask import current_app
@@ -68,6 +73,8 @@ def index() -> str | tuple[str, int]:
         return render_template(
             "index.html",
             rating_rows=leaderboard_data,
+            seasons=seasons,
+            selected_season_id=season_id,
         )
 
     except Exception as e:
