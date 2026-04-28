@@ -57,11 +57,12 @@
 
 ## Project Metrics (as of 2026-04-28)
 
-- **Total Tests:** 388 unit/integration (3 pre-existing failures unchanged) +
-  42-scenario Playwright e2e smoke (manual run only, not auto-collected by pytest).
-- **Code Coverage:** ~94%
-- **Linting:** Configured (.flake8, mypy)
-- **Architecture:** Modular Python utilities + External static assets
+- **Total Tests:** 388 unit/integration passing (3 pre-existing failures unchanged) +
+  42-scenario Playwright e2e smoke + 23/27 deep-probe checks (2 real bugs found,
+  see Known Open Issues below).
+- **Code Coverage:** ~87% (target threshold).
+- **Linting:** Configured (`.flake8`, `mypy` via `pyproject.toml`).
+- **Architecture:** Application Factory + blueprints + services. External static assets.
 
 ---
 
@@ -101,16 +102,50 @@ Tooling PR **#21**:
   edit), admin extras, and a console-error budget. `tests/e2e/conftest.py`
   excludes the script from `pytest` auto-collection so CI is unaffected.
 
+Tooling rollup PR **#22**:
+
+- **[TIK-32]** B5 — jQuery race in `templates/admin/shl_master.html`: removed
+  the dead Select2 locale-init script from `head_meta` (it ran before parent
+  template's jQuery, throwing `$ is not defined` in console). Functionality
+  was unaffected; this is purely cleanup. Console errors on admin pages
+  dropped from 2 to 0.
+
+Rollup PR **#23**:
+
+- Cherry-pick of TIK-30/31/32 onto `feature/admin-enhancement` (the original
+  PR stack #20/#21/#22 each merged into PR #19's staging branch instead of
+  `feature/admin-enhancement`, leaving the contents stranded). PR #23 is the
+  single merge commit that brings them in.
+
 ## Known Open Issues
 
-- **B5** — jQuery race in `templates/admin/shl_master.html`: inline script
-  calls `$.fn.select2.defaults.set(...)` before the parent template's jQuery
-  loads. Surfaces as `pageerror: $ is not defined` in the browser console on
-  every admin page. Functionality is unaffected; Flask-Admin re-loads its
-  own select2 later. Tracked separately, will get a TIK ticket before fix.
-- **PR #15 / #16 / #17** — earlier integration-fix work (rate-limiter Redis
-  storage, `base_points` unification, MCP-config hygiene), open against
-  `devin/integration-analyst-fixes`. Awaiting user review/merge decision.
+### From deep-probe e2e (2026-04-28, /tmp/e2e_artifacts/deep/BUGS.md)
+
+- **B9 [P1]** — admin audit log is not actually written in production.
+  `services/audit_service.py:213-220` early-returns unless `g.current_user_id`
+  is set, and `set_current_user_for_audit()` is only called from tests — no
+  production code path populates it. `audit_logs` table is empty even after
+  multiple admin CRUD operations. Directly contradicts AGENTS.md §5 mandate
+  "All admin CRUD actions logged via `audit_service.log_action()`". Fix is
+  ~10 LoC (Flask-Login `before_request` hook).
+- **B10 [P2]** — `/health` blocks ~7s when Redis is unreachable. Caused by
+  `redis_client.ping()` in `blueprints/health.py:71-94` lacking a
+  `socket_timeout`; only `socket_connect_timeout=2` is set, but cumulative
+  retries push wall time well past that. Production unaffected (Redis is
+  available there); dev/staging/CI without Redis lose health-probe usefulness.
+- **B11 [P3]** — `app.py` startup banner advertises
+  `http_requests_total, http_request_duration_seconds` as default metrics,
+  but `/metrics` only emits the duration histogram. Either add the counter
+  or fix the banner string.
+
+### Carried over
+
+- **PR #15 / #16 / #17 / #18** — earlier integration-fix work (docs sync,
+  rate-limiter Redis storage, `base_points` unification, transaction-neutral
+  audit), open against `devin/integration-analyst-fixes`. Awaiting user
+  review/merge decision. PR #18 also has a known latent bug found by Devin
+  Review («flush() without SAVEPOINT after error leaves session in
+  needs-rollback state») that needs a follow-up commit before merge.
 
 ---
 

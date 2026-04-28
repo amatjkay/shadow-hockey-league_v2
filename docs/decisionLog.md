@@ -47,3 +47,78 @@
 - Fixes regression where custom icons were ignored in the Manager Edit modal.
 
 **Status**: Implemented and verified via integration tests.
+
+---
+
+## 2026-04-28: Cache key partitioning and Season filter contract
+
+**Context**: While diagnosing a homepage 500 reported by the user, three latent issues
+in the `?season=N` filter pipeline were uncovered:
+
+1. `blueprints/main.py` accepted `?season=N` from the dropdown but never read it
+   (`request` was not imported).
+2. `@cache.cached(key_prefix='leaderboard')` used a static prefix, so the cache
+   bucket was shared across `?season=` variants — even after fixing (1) the page
+   would always render the first cached variant.
+3. `RatingService.build_leaderboard(season_id=...)` accepted the parameter but
+   never filtered on it inside the loop.
+
+**Decision**:
+
+1. Read `season_id` from `request.args.get("season")` in `blueprints/main.py::index`.
+2. Replace the static `key_prefix` with a callable that includes the season id (e.g.
+   `key_prefix=lambda: f"leaderboard:{request.args.get('season') or 'lifetime'}"`).
+   `invalidate_leaderboard_cache()` now calls `cache.clear()` to flush all variants.
+3. In `build_leaderboard`, when `season_id is not None`, filter the achievements loop
+   so managers without a matching achievement still appear with `total=0` (consistent
+   with the lifetime view). Verified by 4 new regression tests in
+   `tests/test_rating_service.py`.
+
+**Rationale**:
+- Correctness — three-step fix was needed because each layer relied on a different
+  silent assumption.
+- Caching contract — any future `@cache.cached` decorator that varies by query string
+  must use a callable `key_prefix`. This rule is now in `PROJECT_KNOWLEDGE.md §5`.
+
+**Status**: Implemented in PR #19, verified on dev server and by 4 regression tests.
+
+---
+
+## 2026-04-28: Playwright e2e smoke suite
+
+**Context**: Manual user-driven smoke testing was the only safety net for this app.
+Subtle regressions (e.g. an admin form 500 or a leaderboard 404 spree) were only being
+caught after the fact.
+
+**Decision**: Add `tests/e2e/test_smoke.py` — a Playwright-based smoke walking 42 scenarios
+(public pages + REST API auth + every Flask-Admin model view + admin extras + console
+error budget). Excluded from `pytest` auto-collection via `tests/e2e/conftest.py` so CI
+remains unchanged. Suite is intentionally tolerant of business-data drift — it asserts
+on status codes and the absence of console errors, not on row counts.
+
+**Rationale**:
+- A live, exercising probe catches things that unit tests miss (template breakage,
+  missing static assets, FK form regressions).
+- Manual run only — adopting it as a CI gate would require a hosted dev server and
+  is left as a follow-up.
+
+**Status**: Implemented in PR #21, currently 42/42 passing.
+
+---
+
+## 2026-04-28: Audit log gap — known issue, no fix yet
+
+**Context**: Deep e2e probe revealed `audit_logs` table is empty after admin CRUD
+operations. Investigation found the SQLAlchemy `after_flush` listener in
+`services/audit_service.py` early-returns unless `g.current_user_id` is set, and the
+setter `set_current_user_for_audit()` is only called from tests.
+
+**Decision**: File the issue (B9, P1) in `docs/progress.md` and `PROJECT_KNOWLEDGE.md §3`.
+Do not fix in the docs PR — the fix is a behavioural change requiring its own ticket
+and regression test (assert that creating a Country yields a new `audit_logs` row).
+
+**Rationale**: The fix itself is small (~10 LoC, a Flask-Login `before_request` hook),
+but rolling it into a docs-only PR would mix concerns. Tracking the gap explicitly so
+nothing relies on audit-log data until it's wired up.
+
+**Status**: Documented; fix pending separate ticket.

@@ -115,7 +115,7 @@ Flask-Admin 2.0.2 has two known incompatibilities that are monkey-patched in `se
 ```bash
 make setup      # Install deps + init DB
 make run        # Dev server (port 5000)
-make test       # Run 383+ tests
+make test       # Run 388 unit/integration tests (excludes tests/e2e)
 make lint       # Flake8
 make format     # Black + isort
 make clean      # Remove temp files
@@ -139,4 +139,16 @@ make benchmark  # Performance latency check
 
 ---
 
-Last updated: 23 апреля 2026 г. (Post-Optimization Build)
+## Test Layout
+
+| Path | What | How to run |
+| :--- | :--- | :--- |
+| `tests/` (root) | Unit tests | `pytest --ignore=tests/e2e -q` |
+| `tests/integration/` | Integration tests against in-memory app | same |
+| `tests/e2e/test_smoke.py` | Playwright smoke (42 scenarios) | requires a live dev server, see `PROJECT_KNOWLEDGE.md` §5 |
+
+`tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]` so the smoke suite never runs under `pytest` auto-collection.
+
+---
+
+Last updated: 28 апреля 2026 г.
