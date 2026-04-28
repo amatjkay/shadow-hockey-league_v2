@@ -97,16 +97,22 @@
 
 ---
 
-## Known Compatibility Patches
+## Library Compatibility (Historical)
 
-Flask-Admin 2.0.2 has two known incompatibilities that are monkey-patched in `services/admin.py`:
+Earlier revisions carried a `utils/patches.py` shim that monkey-patched two
+Flask-Admin / WTForms quirks. **The shim was removed in TIK-34** because both
+upstream issues are now handled natively by the pinned versions:
 
-1. **`BaseView._run_view`** — Passes `cls=self` to view functions, but they don't accept it.
-   Patched to call `f(self, *args, **kwargs)` without the `cls` keyword.
-2. **`Field.__init__`** — Flask-Admin passes `allow_blank` to WTForms 3.x fields, which reject it.
-   Patched to strip `allow_blank` from kwargs before calling the original `__init__`.
+1. **`BaseView._run_view`** — Flask-Admin **2.0.2** ships with the `cls=self`
+   compatibility fallback in `flask_admin/base.py`. The custom patch was a
+   no-op against the current pin.
+2. **`Field.__init__`** — Flask-Admin no longer forwards `allow_blank` to
+   WTForms **3.2.x** base fields, so stripping the kwarg is unnecessary.
 
-> ⚠️ These patches are critical for admin panel stability. Do not remove without testing.
+If a future bump re-introduces either incompatibility, restore a small
+`utils/patches.py` and call `apply_patches()` from `create_app()` **before**
+`init_admin(app)`. The 42/42 Playwright smoke suite (`tests/e2e/test_smoke.py`)
+plus the 388 unit/integration tests are the regression net for this area.
 
 ---
 
