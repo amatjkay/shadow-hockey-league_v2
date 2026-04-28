@@ -390,5 +390,77 @@
     "season": "24/25",
     "title": "Round 1",
     "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Vyacheslav Shamanov",
+    "type": "TOP1",
+    "league": "1",
+    "season": "24/25",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "TOP2",
+    "league": "1",
+    "season": "24/25",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Сергей Стрельченко",
+    "type": "TOP3",
+    "league": "1",
+    "season": "24/25",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "BEST_REG",
+    "league": "1",
+    "season": "24/25",
+    "title": "Best regular player",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Павел Роевнев",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "24/25",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Nurzhan Yessengaliev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "AleX TiiKii",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Igor Kadzayev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Oleg Karandashov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
   }
 ]
