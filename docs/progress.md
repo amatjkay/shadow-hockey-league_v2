@@ -133,10 +133,10 @@ Rollup PR **#23**:
   `socket_timeout`; only `socket_connect_timeout=2` is set, but cumulative
   retries push wall time well past that. Production unaffected (Redis is
   available there); dev/staging/CI without Redis lose health-probe usefulness.
-- **B11 [P3]** — `app.py` startup banner advertises
-  `http_requests_total, http_request_duration_seconds` as default metrics,
-  but `/metrics` only emits the duration histogram. Either add the counter
-  or fix the banner string.
+- **B11 [P3]** ✅ FIXED (TIK-38 / Phase 2B audit-2026-04-28) — banner in
+  `app.py:233-245` now lists the four `shadow_hockey_league_*` metrics
+  that `prometheus_flask_exporter` actually emits (verified locally via
+  `curl /metrics`) plus a note about `prometheus_client` defaults.
 
 ### Carried over
 

@@ -231,8 +231,17 @@ def register_extensions(app: Flask) -> None:
             metrics = get_metrics(app)
             if metrics is not None:
                 app.logger.info("Prometheus metrics enabled at /metrics")
+                # Metric names below match what prometheus_flask_exporter
+                # actually emits with defaults_prefix="shadow_hockey_league"
+                # (see services/metrics_service.py). Keep this list in sync
+                # with the exporter configuration; change to a single source
+                # of truth (e.g. exporter introspection) if it drifts again.
                 app.logger.info(
-                    "Default metrics: http_requests_total, http_request_duration_seconds"
+                    "App metrics: shadow_hockey_league_http_request_total, "
+                    "shadow_hockey_league_http_request_duration_seconds, "
+                    "shadow_hockey_league_http_request_exceptions_total, "
+                    "shadow_hockey_league_exporter_info "
+                    "(plus prometheus_client defaults: process_*, python_*)"
                 )
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
