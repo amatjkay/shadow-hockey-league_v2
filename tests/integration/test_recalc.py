@@ -17,7 +17,6 @@ from services.recalc_service import (
     recalc_single_achievement_id,
 )
 
-
 # ==================== Fixtures ====================
 
 
@@ -171,7 +170,7 @@ class TestRecalcSingleAchievement:
         db.session.commit()
 
         success = recalc_single_achievement_id(achievement.id)
-        
+
         db.session.refresh(achievement)
         assert success is True
         assert achievement.base_points == 1200.0

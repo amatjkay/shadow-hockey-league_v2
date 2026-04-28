@@ -116,7 +116,7 @@ def get_achievement_kind(achievement: Achievement) -> str:
     """
     # Use the relationship to get the type code
     type_code = achievement.type.code if achievement.type else achievement.title.split()[0]
-    
+
     if type_code.startswith("TOP"):
         return type_code
     if "Best regular" in achievement.title:
@@ -150,7 +150,11 @@ def calculate_achievement_points(
     sm = season_multiplier if season_multiplier is not None else SEASON_MULTIPLIER
 
     # Get codes from relationships
-    league_code = achievement.league.code if achievement.league else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
+    league_code = (
+        achievement.league.code
+        if achievement.league
+        else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
+    )
     season_code = achievement.season.code if achievement.season else "24/25"
 
     # Calculate points: base × multiplier
@@ -206,7 +210,7 @@ def build_leaderboard(session: Session, season_id: int | None = None) -> list[di
             joinedload(Manager.achievements).joinedload(Achievement.type),
             joinedload(Manager.achievements).joinedload(Achievement.league),
             joinedload(Manager.achievements).joinedload(Achievement.season),
-            joinedload(Manager.country)
+            joinedload(Manager.country),
         )
         .order_by(Manager.name)
         .all()
@@ -312,25 +316,24 @@ def setup_rating_triggers() -> None:
 
         if ach_type and league and season:
             target.base_points = float(
-                ach_type.base_points_l1 if league.code == '1'
-                else ach_type.base_points_l2
+                ach_type.base_points_l1 if league.code == "1" else ach_type.base_points_l2
             )
             target.multiplier = float(season.multiplier)
             target.final_points = round(target.base_points * target.multiplier, 2)
 
-    @event.listens_for(Achievement, 'before_insert')
+    @event.listens_for(Achievement, "before_insert")
     def achievement_before_insert(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before insert."""
         _recalculate_points(target)
 
-    @event.listens_for(Achievement, 'before_update')
+    @event.listens_for(Achievement, "before_update")
     def achievement_before_update(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before update if relevant fields changed."""
         _recalculate_points(target)
 
-    @event.listens_for(Achievement, 'after_delete')
+    @event.listens_for(Achievement, "after_delete")
     def achievement_after_delete(mapper: Any, connection: Any, target: Achievement) -> None:
         """Invalidate leaderboard cache after achievement deletion."""
         from services.cache_service import invalidate_leaderboard_cache
-        invalidate_leaderboard_cache()
 
+        invalidate_leaderboard_cache()

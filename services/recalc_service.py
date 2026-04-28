@@ -51,7 +51,7 @@ def _recalc_single_achievement(achievement: Achievement) -> None:
 
     # Determine which base_points field to use based on league hierarchy
     root_code = league.parent_code or league.code
-    if root_code == '1':
+    if root_code == "1":
         achievement.base_points = float(ach_type.base_points_l1)
     else:
         achievement.base_points = float(ach_type.base_points_l2)
@@ -76,7 +76,7 @@ def recalc_by_achievement_type(type_id: int) -> dict[str, Any]:
     """
     ach_type = db.session.get(AchievementType, type_id)
     if not ach_type:
-        return {'affected': 0, 'errors': ['Achievement type not found']}
+        return {"affected": 0, "errors": ["Achievement type not found"]}
 
     # Store old values for audit log
     old_l1 = ach_type.base_points_l1
@@ -84,9 +84,9 @@ def recalc_by_achievement_type(type_id: int) -> dict[str, Any]:
 
     # Get all achievements for this type
     achievements = Achievement.query.filter_by(type_id=type_id).all()
-    
+
     if not achievements:
-        return {'affected': 0, 'errors': []}
+        return {"affected": 0, "errors": []}
 
     affected = 0
     errors = []
@@ -108,31 +108,35 @@ def recalc_by_achievement_type(type_id: int) -> dict[str, Any]:
             user_id = _get_user_id()
             if user_id:
                 from services.audit_service import log_action
+
                 log_action(
                     user_id=user_id,
-                    action='RECALCULATE_POINTS',
-                    target_model='AchievementType',
+                    action="RECALCULATE_POINTS",
+                    target_model="AchievementType",
                     target_id=type_id,
-                    changes=json.dumps({
-                        'affected_count': affected,
-                        'old_base_points_l1': old_l1,
-                        'new_base_points_l1': ach_type.base_points_l1,
-                        'old_base_points_l2': old_l2,
-                        'new_base_points_l2': ach_type.base_points_l2,
-                    })
+                    changes=json.dumps(
+                        {
+                            "affected_count": affected,
+                            "old_base_points_l1": old_l1,
+                            "new_base_points_l1": ach_type.base_points_l1,
+                            "old_base_points_l2": old_l2,
+                            "new_base_points_l2": ach_type.base_points_l2,
+                        }
+                    ),
                 )
 
             # Invalidate cache
             from services.cache_service import invalidate_leaderboard_cache
+
             invalidate_leaderboard_cache()
-            
+
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error committing recalculation for type {type_id}: {e}")
             errors.append(f"Commit failed: {str(e)}")
-            return {'affected': 0, 'errors': errors}
+            return {"affected": 0, "errors": errors}
 
-    return {'affected': affected, 'errors': errors}
+    return {"affected": affected, "errors": errors}
 
 
 def recalc_by_season(season_id: int) -> dict[str, Any]:
@@ -142,14 +146,14 @@ def recalc_by_season(season_id: int) -> dict[str, Any]:
     """
     season = db.session.get(Season, season_id)
     if not season:
-        return {'affected': 0, 'errors': ['Season not found']}
+        return {"affected": 0, "errors": ["Season not found"]}
 
     old_multiplier = season.multiplier
 
     achievements = Achievement.query.filter_by(season_id=season_id).all()
-    
+
     if not achievements:
-        return {'affected': 0, 'errors': []}
+        return {"affected": 0, "errors": []}
 
     affected = 0
     errors = []
@@ -170,29 +174,33 @@ def recalc_by_season(season_id: int) -> dict[str, Any]:
             user_id = _get_user_id()
             if user_id:
                 from services.audit_service import log_action
+
                 log_action(
                     user_id=user_id,
-                    action='RECALCULATE_POINTS',
-                    target_model='Season',
+                    action="RECALCULATE_POINTS",
+                    target_model="Season",
                     target_id=season_id,
-                    changes=json.dumps({
-                        'affected_count': affected,
-                        'old_multiplier': old_multiplier,
-                        'new_multiplier': season.multiplier,
-                    })
+                    changes=json.dumps(
+                        {
+                            "affected_count": affected,
+                            "old_multiplier": old_multiplier,
+                            "new_multiplier": season.multiplier,
+                        }
+                    ),
                 )
 
             # Invalidate cache
             from services.cache_service import invalidate_leaderboard_cache
+
             invalidate_leaderboard_cache()
 
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error committing recalculation for season {season_id}: {e}")
             errors.append(f"Commit failed: {str(e)}")
-            return {'affected': 0, 'errors': errors}
+            return {"affected": 0, "errors": errors}
 
-    return {'affected': affected, 'errors': errors}
+    return {"affected": affected, "errors": errors}
 
 
 def recalc_single_achievement_id(achievement_id: int) -> bool:

@@ -60,11 +60,13 @@ class ExportService:
         """
         countries = []
         for c in self.session.query(Country).all():
-            countries.append({
-                "code": c.code,
-                "name": c.name,
-                "flag_filename": c.flag_path.split("/")[-1],
-            })
+            countries.append(
+                {
+                    "code": c.code,
+                    "name": c.name,
+                    "flag_filename": c.flag_path.split("/")[-1],
+                }
+            )
 
         filepath = self.export_dir / "countries.json"
         with open(filepath, "w", encoding="utf-8") as f:
@@ -82,10 +84,12 @@ class ExportService:
         managers = []
         for m in self.session.query(Manager).all():
             country = self.session.get(Country, m.country_id)
-            managers.append({
-                "name": m.name,
-                "country_code": country.code if country else "???",
-            })
+            managers.append(
+                {
+                    "name": m.name,
+                    "country_code": country.code if country else "???",
+                }
+            )
 
         filepath = self.export_dir / "managers.json"
         with open(filepath, "w", encoding="utf-8") as f:
@@ -103,14 +107,16 @@ class ExportService:
         achievements = []
         for a in self.session.query(Achievement).all():
             manager = self.session.get(Manager, a.manager_id)
-            achievements.append({
-                "manager_name": manager.name if manager else "???",
-                "type": a.type.code if a.type else "",
-                "league": a.league.code if a.league else "",
-                "season": a.season.code if a.season else "",
-                "title": a.title,
-                "icon_filename": a.icon_path.split("/")[-1],
-            })
+            achievements.append(
+                {
+                    "manager_name": manager.name if manager else "???",
+                    "type": a.type.code if a.type else "",
+                    "league": a.league.code if a.league else "",
+                    "season": a.season.code if a.season else "",
+                    "title": a.title,
+                    "icon_filename": a.icon_path.split("/")[-1],
+                }
+            )
 
         filepath = self.export_dir / "achievements.json"
         with open(filepath, "w", encoding="utf-8") as f:

@@ -6,8 +6,8 @@ Migrated from tests_cache_and_admin.py
 import unittest
 
 from app import create_app
-from models import db, Country, Manager, Achievement, AdminUser
-from services.cache_service import cache, invalidate_leaderboard_cache, get_cache_stats
+from models import Achievement, Country, Manager, db
+from services.cache_service import cache, get_cache_stats, invalidate_leaderboard_cache
 
 
 class TestCacheService(unittest.TestCase):
@@ -71,8 +71,8 @@ class TestAdminAuthentication(unittest.TestCase):
 
     def test_admin_disabled_in_testing(self) -> None:
         """Test admin is accessible if enabled in testing mode.
-        
-        NOTE: Since we enabled it for 'current_user' in templates, 
+
+        NOTE: Since we enabled it for 'current_user' in templates,
         we expect 200 or 302 (redirect to login) instead of 404.
         """
         response = self.client.get("/admin/")
@@ -128,7 +128,9 @@ class TestCacheInvalidationOnModelChange(unittest.TestCase):
         db.session.commit()
 
         # Create reference data for achievement
-        ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=5.0)
+        ach_type = AchievementType(
+            code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=5.0
+        )
         db.session.add(ach_type)
         league = League(code="1", name="League 1")
         db.session.add(league)

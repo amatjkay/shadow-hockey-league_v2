@@ -9,16 +9,30 @@ exclude = '''
   | \.mypy_cache
   | \.tox
   | \.venv
+  | venv
   | _build
   | buck-out
   | build
   | dist
   | instance
+  | migrations
 )/
 '''
 
 [tool.isort]
 profile = "black"
 line_length = 100
-skip = ["instance", "__pycache__"]
+skip = ["instance", "__pycache__", "venv", ".venv", "migrations"]
 known_first_party = ["app", "data", "config", "models"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = [
+    "^venv/",
+    "^\\.venv/",
+    "^migrations/",
+    "^instance/",
+    "^build/",
+    "^dist/",
+]

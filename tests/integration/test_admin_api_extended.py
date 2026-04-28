@@ -6,8 +6,7 @@ Target: blueprints/admin_api.py coverage 54% → 80%+
 
 import pytest
 
-from models import Achievement, Country, League, Manager, Season, AchievementType, AdminUser, db
-
+from models import AchievementType, AdminUser, Country, League, Manager, Season, db
 
 # ==================== Fixtures ====================
 

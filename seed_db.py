@@ -11,13 +11,13 @@ Usage:
 """
 
 import argparse
-import sys
 import logging
+import sys
 
 from app import create_app
-from models import db
-from data.seed_service import SeedService
 from data.export_service import ExportService
+from data.seed_service import SeedService
+from models import db
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -25,29 +25,18 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Main entry point with argument parsing."""
-    parser = argparse.ArgumentParser(
-        description="Seed or export the database."
+    parser = argparse.ArgumentParser(description="Seed or export the database.")
+    parser.add_argument(
+        "--force", action="store_true", help="Clear all existing data before seeding (DESTRUCTIVE)"
     )
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Clear all existing data before seeding (DESTRUCTIVE)"
+        "--check", action="store_true", help="Only check database state, do not seed"
     )
     parser.add_argument(
-        "--check",
-        action="store_true",
-        help="Only check database state, do not seed"
+        "--export", action="store_true", help="Export current database to data/export/ directory"
     )
     parser.add_argument(
-        "--export",
-        action="store_true",
-        help="Export current database to data/export/ directory"
-    )
-    parser.add_argument(
-        "--seed-dir",
-        type=str,
-        default=None,
-        help="Custom seed directory (default: data/seed/)"
+        "--seed-dir", type=str, default=None, help="Custom seed directory (default: data/seed/)"
     )
 
     args = parser.parse_args()
@@ -63,7 +52,7 @@ def main():
             print(f"  Managers: {state['managers']}")
             print(f"  Achievements: {state['achievements']}")
 
-            if state['managers'] > 0:
+            if state["managers"] > 0:
                 print("[INFO] Database has data. Skip seeding (use --force to reseed).")
             else:
                 print("[INFO] Database is empty. Run without --check to seed.")

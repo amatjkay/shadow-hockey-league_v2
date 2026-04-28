@@ -10,19 +10,21 @@ Tests cover:
 """
 
 import unittest
-import re
-from werkzeug.security import generate_password_hash, check_password_hash
+
 from flask_login import login_user
 
 from app import create_app
 from models import (
-    db, AdminUser, Country, Manager, Achievement,
-    AchievementType, League, Season, ApiKey
+    Achievement,
+    AchievementType,
+    AdminUser,
+    Country,
+    League,
+    Manager,
+    Season,
+    db,
 )
-from services.admin import (
-    AchievementModelView, ApiKeyModelView,
-    ServerControlView
-)
+from services.admin import AchievementModelView, ServerControlView
 
 
 class TestAchievementModelView(unittest.TestCase):
@@ -175,10 +177,7 @@ class TestServerControlView(unittest.TestCase):
         db.create_all()
 
         # Create super admin
-        self.admin = AdminUser(
-            username="testadmin",
-            role=AdminUser.ROLE_SUPER_ADMIN
-        )
+        self.admin = AdminUser(username="testadmin", role=AdminUser.ROLE_SUPER_ADMIN)
         self.admin.set_password("testpass123")
         db.session.add(self.admin)
         db.session.commit()
@@ -244,7 +243,9 @@ class TestStatsAdminIndexView(unittest.TestCase):
         db.session.commit()
 
         # Verify counts
-        from models import Country as CountryModel, Manager as ManagerModel
+        from models import Country as CountryModel
+        from models import Manager as ManagerModel
+
         manager_count = db.session.query(ManagerModel).count()
         country_count = db.session.query(CountryModel).count()
         self.assertEqual(manager_count, 1)
@@ -261,10 +262,7 @@ class TestAdminHTTPIntegration(unittest.TestCase):
         # Create admin user
         with self.app.app_context():
             db.create_all()
-            admin = AdminUser(
-                username="testadmin",
-                role=AdminUser.ROLE_SUPER_ADMIN
-            )
+            admin = AdminUser(username="testadmin", role=AdminUser.ROLE_SUPER_ADMIN)
             admin.set_password("testpass123")
             db.session.add(admin)
             db.session.commit()
@@ -329,10 +327,7 @@ class TestAdminLoginLogoutCSRF(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            admin = AdminUser(
-                username="testadmin",
-                role=AdminUser.ROLE_SUPER_ADMIN
-            )
+            admin = AdminUser(username="testadmin", role=AdminUser.ROLE_SUPER_ADMIN)
             admin.set_password("testpass123")
             db.session.add(admin)
             db.session.commit()

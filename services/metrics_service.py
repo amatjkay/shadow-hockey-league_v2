@@ -5,6 +5,7 @@ duplicate endpoint registration when create_app() is called multiple times.
 """
 
 from typing import Optional
+
 from prometheus_flask_exporter import PrometheusMetrics
 
 # Singleton instance
@@ -31,8 +32,8 @@ def get_metrics(app=None) -> Optional[PrometheusMetrics]:
     try:
         _metrics_instance = PrometheusMetrics(
             app,
-            defaults_prefix='shadow_hockey_league',
-            excluded_endpoints=['/static', '/metrics', '/health']
+            defaults_prefix="shadow_hockey_league",
+            excluded_endpoints=["/static", "/metrics", "/health"],
         )
         return _metrics_instance
     except Exception:

@@ -26,13 +26,19 @@ def _seed_reference_data():
     seasons = {}
     multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
-        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        s = Season(
+            code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
+        )
         db.session.add(s)
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 400), "TOP2": (400, 200), "TOP3": (200, 100),
-        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+        "TOP1": (800, 400),
+        "TOP2": (400, 200),
+        "TOP3": (200, 100),
+        "BEST": (50, 40),
+        "R3": (30, 20),
+        "R1": (10, 5),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -83,43 +89,53 @@ class TestAPIAuthentication(unittest.TestCase):
 
             # Create API keys with different scopes
             self.admin_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.admin_key),
-                name="Admin Test Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.admin_key),
+                    name="Admin Test Key",
+                    scope="admin",
+                )
+            )
 
             self.write_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.write_key),
-                name="Write Test Key",
-                scope="write",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.write_key),
+                    name="Write Test Key",
+                    scope="write",
+                )
+            )
 
             self.read_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.read_key),
-                name="Read Test Key",
-                scope="read",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.read_key),
+                    name="Read Test Key",
+                    scope="read",
+                )
+            )
 
             # Create expired key
             self.expired_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.expired_key),
-                name="Expired Key",
-                scope="read",
-                expires_at=datetime.now(timezone.utc) - timedelta(days=1),
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.expired_key),
+                    name="Expired Key",
+                    scope="read",
+                    expires_at=datetime.now(timezone.utc) - timedelta(days=1),
+                )
+            )
 
             # Create revoked key
             self.revoked_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.revoked_key),
-                name="Revoked Key",
-                scope="read",
-                revoked=True,
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.revoked_key),
+                    name="Revoked Key",
+                    scope="read",
+                    revoked=True,
+                )
+            )
 
             db.session.commit()
 
@@ -226,11 +242,13 @@ class TestAPIPagination(unittest.TestCase):
 
             # Create API key
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Pagination Test Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Pagination Test Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:

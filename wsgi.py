@@ -2,8 +2,9 @@
 
 This file is used by PythonAnywhere to serve the Flask application.
 """
-import sys
+
 import os
+import sys
 
 # Add project root to Python path
 project_home = os.path.dirname(os.path.abspath(__file__))

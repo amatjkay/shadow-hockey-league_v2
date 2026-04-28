@@ -6,10 +6,11 @@ Database schema for storing managers, countries, achievements, and reference dat
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
+
 from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UniqueConstraint
+from werkzeug.security import check_password_hash, generate_password_hash
 
 db = SQLAlchemy()
 
@@ -23,8 +24,11 @@ class AdminUser(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(
-        db.String(20), nullable=False, default="moderator", index=True,
-        comment="super_admin: full access, admin: CRUD, moderator: view/edit only"
+        db.String(20),
+        nullable=False,
+        default="moderator",
+        index=True,
+        comment="super_admin: full access, admin: CRUD, moderator: view/edit only",
     )
 
     ROLE_SUPER_ADMIN = "super_admin"
@@ -52,7 +56,14 @@ class AdminUser(db.Model, UserMixin):
             self.ROLE_VIEWER: ["view"],
             self.ROLE_MODERATOR: ["view", "edit"],
             self.ROLE_ADMIN: ["view", "edit", "create", "delete"],
-            self.ROLE_SUPER_ADMIN: ["view", "edit", "create", "delete", "manage_users", "server_control"],
+            self.ROLE_SUPER_ADMIN: [
+                "view",
+                "edit",
+                "create",
+                "delete",
+                "manage_users",
+                "server_control",
+            ],
         }
         return permission in hierarchy.get(self.role, [])
 
@@ -135,7 +146,9 @@ class AchievementType(db.Model):
     __tablename__ = "achievement_types"
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(20), unique=True, nullable=False, index=True)  # TOP1, TOP2, BEST, R3, R1
+    code = db.Column(
+        db.String(20), unique=True, nullable=False, index=True
+    )  # TOP1, TOP2, BEST, R3, R1
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
     base_points_l1 = db.Column(db.Integer, nullable=False, default=0)  # Base points for League 1
     base_points_l2 = db.Column(db.Integer, nullable=False, default=0)  # Base points for League 2
@@ -149,7 +162,7 @@ class AchievementType(db.Model):
         """Return icon URL with fallback."""
         if self.icon_path:
             return self.icon_path
-        return f'/static/img/cups/{self.code.lower()}.svg'
+        return f"/static/img/cups/{self.code.lower()}.svg"
 
 
 class League(db.Model):
@@ -163,21 +176,22 @@ class League(db.Model):
     __tablename__ = "leagues"
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(10), unique=True, nullable=False, index=True)  # "1", "2", "2.1", "2.2"
+    code = db.Column(
+        db.String(10), unique=True, nullable=False, index=True
+    )  # "1", "2", "2.1", "2.2"
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
     parent_code = db.Column(
         db.String(10),
-        db.ForeignKey('leagues.code', ondelete='SET NULL'),
+        db.ForeignKey("leagues.code", ondelete="SET NULL"),
         nullable=True,
         index=True,
-        comment="Parent league code for subleagues (e.g. '2' for 2.1/2.2)"
+        comment="Parent league code for subleagues (e.g. '2' for 2.1/2.2)",
     )
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     # Self-referential relationship for parent
     parent = db.relationship(
-        'League', remote_side=[code], backref='subleagues',
-        foreign_keys=[parent_code]
+        "League", remote_side=[code], backref="subleagues", foreign_keys=[parent_code]
     )
 
     def __repr__(self) -> str:
@@ -187,7 +201,7 @@ class League(db.Model):
     def base_points_field(self) -> str:
         """Return which base_points field to use for this league."""
         root = self.parent_code or self.code
-        return 'base_points_l1' if root == '1' else 'base_points_l2'
+        return "base_points_l1" if root == "1" else "base_points_l2"
 
 
 class Season(db.Model):
@@ -201,7 +215,7 @@ class Season(db.Model):
     multiplier = db.Column(db.Float, nullable=False, default=1.0)  # Season multiplier for rating
     is_active = db.Column(db.Boolean, nullable=False, default=False)  # Current season flag
     start_year = db.Column(db.Integer, nullable=True)  # e.g. 2022 for "22/23"
-    end_year = db.Column(db.Integer, nullable=True)    # e.g. 2023 for "22/23"
+    end_year = db.Column(db.Integer, nullable=True)  # e.g. 2023 for "22/23"
 
     def __repr__(self) -> str:
         return f"<Season {self.code}>"
@@ -217,15 +231,15 @@ class Country(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(3), unique=True, nullable=False, index=True)
-    name = db.Column(db.String(100), nullable=False, default="Unknown")  # Название страны (например, "Russia")
+    name = db.Column(
+        db.String(100), nullable=False, default="Unknown"
+    )  # Название страны (например, "Russia")
     flag_path = db.Column(db.String(100), nullable=False)
     flag_source_type = db.Column(
-        db.String(20), nullable=False, default='local',
-        comment="Flag source type: 'local' or 'api'"
+        db.String(20), nullable=False, default="local", comment="Flag source type: 'local' or 'api'"
     )
     flag_url = db.Column(
-        db.String(200), nullable=True,
-        comment="Flag URL from API (e.g., FlagCDN) or custom URL"
+        db.String(200), nullable=True, comment="Flag URL from API (e.g., FlagCDN) or custom URL"
     )
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     managers = db.relationship("Manager", backref="country", lazy="select")
@@ -236,7 +250,7 @@ class Country(db.Model):
     @property
     def flag_display_url(self) -> str:
         """Resolved flag URL for display."""
-        if self.flag_source_type == 'api' and self.flag_url:
+        if self.flag_source_type == "api" and self.flag_url:
             return self.flag_url
         return self.flag_path or f"https://flagcdn.com/w320/{self.code.lower()}.png"
 
@@ -299,15 +313,20 @@ class Achievement(db.Model):
     __tablename__ = "achievements"
     __table_args__ = (
         UniqueConstraint(
-            "manager_id", "type_id", "league_id", "season_id",
-            name="uq_achievement_manager_league_season_type"
+            "manager_id",
+            "type_id",
+            "league_id",
+            "season_id",
+            name="uq_achievement_manager_league_season_type",
         ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
 
     # New Foreign Keys
-    type_id = db.Column(db.Integer, db.ForeignKey("achievement_types.id"), nullable=False, index=True)
+    type_id = db.Column(
+        db.Integer, db.ForeignKey("achievement_types.id"), nullable=False, index=True
+    )
     league_id = db.Column(db.Integer, db.ForeignKey("leagues.id"), nullable=False, index=True)
     season_id = db.Column(db.Integer, db.ForeignKey("seasons.id"), nullable=False, index=True)
 
@@ -322,7 +341,9 @@ class Achievement(db.Model):
 
     # Timestamps
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(), onupdate=db.func.now())
+    updated_at = db.Column(
+        db.DateTime, nullable=False, server_default=db.func.now(), onupdate=db.func.now()
+    )
 
     # Relationships
     manager_id = db.Column(
@@ -355,19 +376,20 @@ class AuditLog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(
-        db.Integer, db.ForeignKey("admin_users.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        db.Integer, db.ForeignKey("admin_users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    action = db.Column(db.String(50), nullable=False, index=True)  # CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
-    target_model = db.Column(db.String(50), nullable=True, index=True)  # Model name (e.g., 'Manager')
+    action = db.Column(
+        db.String(50), nullable=False, index=True
+    )  # CREATE, UPDATE, DELETE, LOGIN, FLUSH_CACHE
+    target_model = db.Column(
+        db.String(50), nullable=True, index=True
+    )  # Model name (e.g., 'Manager')
     target_id = db.Column(db.Integer, nullable=True, index=True)  # Primary key of target
     changes = db.Column(db.Text, nullable=True)  # JSON string of changes (for UPDATE)
     timestamp = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
 
     # Composite index for user+timestamp queries
-    __table_args__ = (
-        db.Index('idx_audit_user_timestamp', 'user_id', 'timestamp'),
-    )
+    __table_args__ = (db.Index("idx_audit_user_timestamp", "user_id", "timestamp"),)
 
     def __repr__(self) -> str:
         return f"<AuditLog {self.action} by {self.user_id} at {self.timestamp}>"
@@ -375,11 +397,11 @@ class AuditLog(db.Model):
     def to_dict(self) -> dict:
         """Convert audit log entry to dictionary for API responses."""
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'action': self.action,
-            'target_model': self.target_model,
-            'target_id': self.target_id,
-            'changes': self.changes,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+            "id": self.id,
+            "user_id": self.user_id,
+            "action": self.action,
+            "target_model": self.target_model,
+            "target_id": self.target_id,
+            "changes": self.changes,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
         }

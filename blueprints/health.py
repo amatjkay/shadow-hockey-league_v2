@@ -35,7 +35,9 @@ def health_check() -> dict[str, Any]:
     health_status: dict[str, Any] = {
         "status": "healthy",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "uptime_seconds": round(time.time() - current_app.config.get("APP_START_TIME", time.time())),
+        "uptime_seconds": round(
+            time.time() - current_app.config.get("APP_START_TIME", time.time())
+        ),
         "managers_count": 0,
         "achievements_count": 0,
         "countries_count": 0,
@@ -83,7 +85,9 @@ def health_check() -> dict[str, Any]:
         # Get Redis info
         redis_info = redis_client.info("memory")
         health_status["redis_used_memory_bytes"] = redis_info.get("used_memory", 0)
-        health_status["redis_used_memory_mb"] = round(redis_info.get("used_memory", 0) / 1024 / 1024, 2)
+        health_status["redis_used_memory_mb"] = round(
+            redis_info.get("used_memory", 0) / 1024 / 1024, 2
+        )
 
         # Check cache functionality
         cache.set("_health_check", "ok", timeout=5)

@@ -15,11 +15,10 @@ import unittest
 from app import create_app
 from models import Achievement, AdminUser, Country, Manager, db
 from services.admin import (
-    get_flag_choices,
     AchievementModelView,
-    AdminUserModelView,
     CountryModelView,
     ManagerModelView,
+    get_flag_choices,
 )
 from services.cache_service import cache, invalidate_leaderboard_cache
 
@@ -127,7 +126,9 @@ class TestCacheInvalidation(unittest.TestCase):
         from models import AchievementType, League, Season
 
         # Create reference data
-        ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=5.0)
+        ach_type = AchievementType(
+            code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=5.0
+        )
         db.session.add(ach_type)
         league = League(code="1", name="League 1")
         db.session.add(league)

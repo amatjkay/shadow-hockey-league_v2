@@ -28,13 +28,19 @@ def _seed_reference_data():
     seasons = {}
     multipliers = {"25/26": 1.0, "24/25": 0.8, "23/24": 0.5, "22/23": 0.3, "21/22": 0.2}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
-        s = Season(code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0))
+        s = Season(
+            code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
+        )
         db.session.add(s)
         seasons[code] = s
 
     type_points = {
-        "TOP1": (800, 400), "TOP2": (400, 200), "TOP3": (200, 100),
-        "BEST": (50, 40), "R3": (30, 20), "R1": (10, 5),
+        "TOP1": (800, 400),
+        "TOP2": (400, 200),
+        "TOP3": (200, 100),
+        "BEST": (50, 40),
+        "R3": (30, 20),
+        "R1": (10, 5),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -637,14 +643,17 @@ class TestAPIEndpoints(unittest.TestCase):
             self.achievement_id = achievement.id
 
             # Create API key for tests
-            from services.api_auth import generate_api_key, hash_api_key
             from models import ApiKey
+            from services.api_auth import generate_api_key, hash_api_key
+
             self.api_key = generate_api_key()
-            db.session.add(ApiKey(
-                key_hash=hash_api_key(self.api_key),
-                name="Test API Key",
-                scope="admin",
-            ))
+            db.session.add(
+                ApiKey(
+                    key_hash=hash_api_key(self.api_key),
+                    name="Test API Key",
+                    scope="admin",
+                )
+            )
             db.session.commit()
 
     def tearDown(self) -> None:
