@@ -182,7 +182,14 @@ def build_leaderboard(session: Session, season_id: int | None = None) -> list[di
     - Loads base points and season multipliers from reference tables (1 query each)
 
     Args:
-        session: SQLAlchemy database session
+        session: SQLAlchemy database session.
+        season_id: Optional ``Season.id``. When provided, only achievements
+            tied to that season contribute to the leaderboard rows — totals,
+            ranks, and the per-manager achievement list are all computed as
+            if no other seasons existed. Managers without any achievement
+            in the requested season are still returned (with ``total=0``)
+            so the dropdown does not silently hide active managers.
+            ``None`` means lifetime aggregate (all seasons).
 
     Returns:
         List of manager rating dictionaries, sorted by total points descending
@@ -216,9 +223,15 @@ def build_leaderboard(session: Session, season_id: int | None = None) -> list[di
         country_code = manager.country.code if manager.country else "???"
 
         for achievement in manager.achievements:
+            # Season filter: when the caller asked for one specific season,
+            # skip every achievement that does not belong to it. Passing
+            # season_id=None preserves the lifetime aggregate behaviour.
+            if season_id is not None and achievement.season_id != season_id:
+                continue
+
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)
-            
+
             # total_points should always be cumulative (Lifetime) to match production
             total_points += parsed["points"]
 
