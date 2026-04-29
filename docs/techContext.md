@@ -159,7 +159,7 @@ make benchmark  # Performance latency check
 
 `tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]` so the smoke suite never runs under `pytest` auto-collection.
 
-A full categorical inventory (unit / integration / regression / UI / e2e) lives at `docs/audits/test-inventory-2026-04-29.md` (post-audit testing campaign Phase C).
+A full categorical inventory (unit / integration / regression / UI / e2e) is planned at `docs/audits/test-inventory-2026-04-29.md` (post-audit testing campaign Phase C — not yet created; tracked by TIK-41).
 
 ---
 
