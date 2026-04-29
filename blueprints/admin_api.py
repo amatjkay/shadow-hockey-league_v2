@@ -16,6 +16,7 @@ from sqlalchemy.orm import joinedload
 
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.admin import invalidate_leaderboard_cache
+from services.scoring_service import get_base_points
 
 
 def admin_required(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -278,13 +279,9 @@ def get_achievement_points(type_id: int) -> Any:
         if not league:
             return jsonify({"error": "League not found"}), 404
 
-        # Determine base points based on league code
-        if league.code == "1":
-            base_points = ach_type.base_points_l1
-            points_source = "base_points_l1"
-        else:
-            base_points = ach_type.base_points_l2
-            points_source = "base_points_l2"
+        # Determine base points (league-aware via League.parent_code).
+        base_points = get_base_points(ach_type, league)
+        points_source = league.base_points_field
 
         return jsonify(
             {
@@ -358,13 +355,9 @@ def calculate_points() -> Any:
         if not season:
             return jsonify({"error": "Season not found"}), 404
 
-        # Calculate base points based on league code
-        if league.code == "1":
-            base_points = ach_type.base_points_l1
-            points_source = "base_points_l1"
-        else:
-            base_points = ach_type.base_points_l2
-            points_source = "base_points_l2"
+        # Calculate base points (league-aware via League.parent_code).
+        base_points = get_base_points(ach_type, league)
+        points_source = league.base_points_field
 
         # Calculate final points
         final_points = base_points * season.multiplier
@@ -489,11 +482,8 @@ def bulk_create_achievements() -> Any:
                 400,
             )
 
-        # Calculate points
-        if league.code == "1":
-            base_points = ach_type.base_points_l1
-        else:
-            base_points = ach_type.base_points_l2
+        # Calculate points (league-aware via League.parent_code).
+        base_points = get_base_points(ach_type, league)
         multiplier = season.multiplier
         final_points = round(base_points * multiplier, 2)
 
@@ -797,10 +787,8 @@ def bulk_add_achievements(manager_id: int) -> Any:
                 )
                 continue
 
-            # Calculate points
-            base_points = float(
-                ach_type.base_points_l1 if league.code == "1" else ach_type.base_points_l2
-            )
+            # Calculate points (league-aware via League.parent_code).
+            base_points = float(get_base_points(ach_type, league))
             multiplier = float(season.multiplier)
             final_points = round(base_points * multiplier, 2)
 

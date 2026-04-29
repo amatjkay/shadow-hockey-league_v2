@@ -333,11 +333,10 @@ class AchievementModelView(SHLModelView):
             # 2. Resolve Icon Path
             model.icon_path = model.type.get_icon_url()
 
-            # 3. Calculate Points
-            # Use base_points_l1 for League 1, l2 for others
-            base = (
-                model.type.base_points_l1 if model.league.code == "1" else model.type.base_points_l2
-            )
+            # 3. Calculate Points (league-aware via League.parent_code).
+            from services.scoring_service import get_base_points
+
+            base = get_base_points(model.type, model.league)
             mult = model.season.multiplier
 
             model.base_points = float(base)

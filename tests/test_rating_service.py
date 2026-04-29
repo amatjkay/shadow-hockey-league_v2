@@ -598,13 +598,16 @@ class TestValidationService(unittest.TestCase):
         self.assertTrue(is_valid)
         self.assertIsNone(error)
 
-    def test_validate_achievement_data_invalid_league(self) -> None:
-        """Test invalid league validation."""
+    def test_validate_achievement_data_malformed_league(self) -> None:
+        """Test malformed league code is rejected (format-only check)."""
         from services.validation_service import validate_achievement_data
 
-        is_valid, error = validate_achievement_data("TOP1", "3", "24/25", "TOP1")
-        self.assertFalse(is_valid)
-        self.assertIsNotNone(error)
+        # '3' is now a valid format (existence is checked separately against DB).
+        # Use truly malformed codes to assert the format check.
+        for bad in ("abc", "01", "0", "2.", "2.1.1", ""):
+            is_valid, error = validate_achievement_data("TOP1", bad, "24/25", "TOP1")
+            self.assertFalse(is_valid, f"Expected '{bad}' to fail format validation")
+            self.assertIsNotNone(error)
 
 
 class TestAPIEndpoints(unittest.TestCase):
