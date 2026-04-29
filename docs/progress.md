@@ -181,12 +181,14 @@ Rollup PR **#23**:
 
 ### Carried over
 
-- **PR #15 / #16 / #17 / #18** — earlier integration-fix work (docs sync,
-  rate-limiter Redis storage, `base_points` unification, transaction-neutral
-  audit), open against `devin/integration-analyst-fixes`. Awaiting user
-  review/merge decision. PR #18 also has a known latent bug found by Devin
-  Review («flush() without SAVEPOINT after error leaves session in
-  needs-rollback state») that needs a follow-up commit before merge.
+- **PR #15** closed (dev-cleanup, not needed).
+- **PR #16** closed → replaced by **PR #34** (rate-limiter, merged).
+- **PR #17** closed → replaced by **PR #35** (subleague scoring, merged).
+- **PR #18** (transactional audit) — still open against
+  `devin/integration-analyst-fixes`. Has a known latent bug found by
+  Devin Review («flush() without SAVEPOINT after error leaves session
+  in needs-rollback state») that needs a follow-up commit before merge.
+  Not blocking the audit-2026-04-28 closure.
 
 ---
 
@@ -201,19 +203,32 @@ Rollup PR **#23**:
 - **Branch cleanup:** 16 stale branches deleted.
 
 ### What's left
-- Phase 2B partially landed (TIK-37 / TIK-38 ✅ via PR #32, #33).
-- Phase 2C landed (rate-limiter via PR #34, subleague scoring via PR #35).
-- **Phase 3:** B9 (audit-log gap, TIK-36) — Flask-Login `before_request` hook
-  to populate `g.current_user_id` so `audit_service.log_action()` actually writes
-  to `audit_logs` for admin CRUD. Only remaining bug from the deep-probe e2e
-  triage; B10 and B11 are now resolved.
-- Phase 4: linter debt (mypy/flake8) — documentation + Linear epics, no code.
-- PR stack `devin/integration-analyst-fixes` (#16/#17): closed and replaced
-  by #34 / #35. PR #18 (transactional audit) still open.
+- **Phase 2B** ✅ landed (TIK-37 / TIK-38 via PR #32, #33).
+- **Phase 2C** ✅ landed (rate-limiter via PR #34, subleague scoring via PR #35).
+- **Phase 3** ✅ landed (TIK-36 audit-log wiring via PR #38). All B-bugs from
+  the deep-probe e2e triage are now resolved.
+- **Phase 4** ⏳ linter debt (mypy/flake8) — documentation + Linear epics, no code.
+  Tracked in `docs/audits/audit-2026-04-28-plan.md` Phase 4. This is the only
+  remaining audit work.
+
+### Post-audit testing campaign (started 2026-04-29)
+Owner-requested follow-up to validate the post-fix state:
+- **Phase A** docs sync (this update + audit-2026-04-28-plan.md update).
+- **Phase B** Linear sync — close TIK-36/37/38, create epic for the audit.
+- **Phase C** Test inventory — categorize every test by type
+  (`docs/audits/test-inventory-2026-04-29.md`).
+- **Phase D** Test optimization — dedupe fixtures, refactor slow tests,
+  fix flakies (touches only `tests/`).
+- **Phase E** Gap analysis — compare coverage vs B1–B11 + new sub-systems
+  (rate-limiter, scoring helper, audit hook); add missing regression tests.
+- **Phase F** Mass run — `pytest tests/` + `pytest tests/e2e` (Playwright)
+  on local Flask + Redis.
+- **Phase G** Linter debt (= audit Phase 4).
+- **Phase H** Issue capture — every problem found in C–G filed as Linear ticket.
 
 ### New blockers
 - None identified.
 
 ---
 
-_Last updated: 2026-04-29_
+_Last updated: 2026-04-29 — Phase A docs sync._

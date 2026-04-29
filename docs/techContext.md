@@ -14,15 +14,19 @@
 ├──────────────────────────────────────────────────────────────┤
 │  Flask 3.1+ Application (Application Factory Pattern)        │
 │                                                              │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐    │
-│  │ Blueprints  │  │   Services   │  │     Models       │    │
-│  │  main.py    │  │ rating_svc   │  │   models.py      │    │
-│  │  health.py  │  │ cache_svc    │  │ (SQLAlchemy 2.0) │    │
-│  │  admin_api  │  │ audit_svc    │  │                  │    │
-│  └─────────────┘  │ api_auth     │  └────────┬─────────┘    │
-│                   │ admin.py     │           │              │
-│                   │ recalc_svc   │           │              │
-│                   └──────────────┘           │              │
+│  ┌─────────────┐  ┌──────────────────┐  ┌──────────────┐    │
+│  │ Blueprints  │  │     Services     │  │    Models    │    │
+│  │  main.py    │  │ rating_svc       │  │   models.py  │    │
+│  │  health.py  │  │ cache_svc        │  │ (SA 2.0)     │    │
+│  │  admin_api  │  │ audit_svc        │  │              │    │
+│  └─────────────┘  │ api_auth         │  └──────┬───────┘    │
+│                   │ admin.py         │         │            │
+│                   │ recalc_svc       │         │            │
+│                   │ scoring_svc ★    │         │            │
+│                   │ extensions ★     │         │            │
+│                   │ metrics_svc      │         │            │
+│                   └──────────────────┘         │            │
+│           ★ = added/refactored in audit-2026-04-28          │
 ├──────────────────────────────────────────────┼──────────────┤
 │                                              ▼              │
 │  ┌──────────────┐                   ┌────────────────┐      │
@@ -155,6 +159,23 @@ make benchmark  # Performance latency check
 
 `tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]` so the smoke suite never runs under `pytest` auto-collection.
 
+A full categorical inventory (unit / integration / regression / UI / e2e) is planned at `docs/audits/test-inventory-2026-04-29.md` (post-audit testing campaign Phase C — not yet created; tracked by TIK-41).
+
 ---
 
-Last updated: 28 апреля 2026 г.
+## Audit-2026-04-28 — affected modules
+
+The following modules were touched (or added) during the audit remediation. Future agents should keep the contracts below stable; changes require a new audit entry.
+
+| Module | Why it matters | Owner of contract |
+| :--- | :--- | :--- |
+| `services/extensions.py` | Single shared `Limiter` instance. Both `app.py` and `services/api.py` import the same object — do **not** create another `Limiter()`. | PR #34 |
+| `services/scoring_service.py` | `get_base_points(ach_type, league)` is the only correct way to look up base points. It reads `League.base_points_field`, which honours `parent_code` so subleagues inherit from parent. **Never** compare `league.code == "1"`. | PR #35 |
+| `services/audit_service.py` | `register_audit_request_hook(app)` MUST be called from `app.py::register_extensions` after `init_admin`. Without it the `after_flush` listener silently drops audit rows. | PR #38 |
+| `services/metrics_service.py` | `METRICS_PREFIX` + `DEFAULT_METRIC_SUFFIXES` are the single source of truth for `/metrics` names. The startup banner derives from them — never hard-code metric names elsewhere. | PR #33 |
+| `blueprints/health.py` | `redis.Redis(...)` MUST pass both `socket_connect_timeout` and `socket_timeout`. Otherwise `/health` blocks for ~5–7s when Redis is degraded. | PR #32 |
+| `services/validation_service.py` | League-code validator: format regex `^[1-9]\d*(\.\d+)?$` plus business rule that L1 is flat (no `1.x`). | PR #35 |
+
+---
+
+Last updated: 29 апреля 2026 г.
