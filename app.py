@@ -226,13 +226,23 @@ def register_extensions(app: Flask) -> None:
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get("TESTING") is not True:
         try:
-            from services.metrics_service import get_metrics
+            from services.metrics_service import (
+                DEFAULT_METRIC_SUFFIXES,
+                METRICS_PREFIX,
+                get_metrics,
+            )
 
             metrics = get_metrics(app)
             if metrics is not None:
                 app.logger.info("Prometheus metrics enabled at /metrics")
+                # Build the banner from the same constants used to configure
+                # prometheus_flask_exporter so the two cannot drift (TIK-38).
+                metric_names = ", ".join(
+                    f"{METRICS_PREFIX}_{suffix}" for suffix in DEFAULT_METRIC_SUFFIXES
+                )
                 app.logger.info(
-                    "Default metrics: http_requests_total, http_request_duration_seconds"
+                    f"App metrics: {metric_names} "
+                    "(plus prometheus_client defaults: process_*, python_*)"
                 )
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
