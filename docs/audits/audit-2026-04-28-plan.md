@@ -84,7 +84,7 @@ Triggered by owner request: "Актуализируй документацию �
 |---|-------|-------|-------|
 | A | Docs sync | This file + `progress.md` + `techContext.md` + `activeContext.md` + `decisionLog.md` | ⏳ |
 | B | Linear sync | Close TIK-36/37/38; create epic for audit-2026-04-28; status updates on TIK-16/17 | ⏳ |
-| C | Test inventory | Categorize every test file as unit / integration / regression / UI / e2e → `docs/audits/test-inventory-2026-04-28.md` | ⏳ |
+| C | Test inventory | Categorize every test file as unit / integration / regression / UI / e2e → `docs/audits/test-inventory-2026-04-29.md` | ⏳ |
 | D | Test optimization | Dedupe fixtures, refactor slow tests, fix flakies; touches only `tests/` | ⏳ |
 | E | Gap analysis | Compare coverage vs B1–B11 + new sub-systems (rate-limiter, scoring helper, audit hook); add missing regression tests | ⏳ |
 | F | Mass run | `pytest tests/` (unit + integration + regression) and `pytest tests/e2e` (Playwright) on local Flask + Redis | ⏳ |

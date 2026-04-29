@@ -216,7 +216,7 @@ Owner-requested follow-up to validate the post-fix state:
 - **Phase A** docs sync (this update + audit-2026-04-28-plan.md update).
 - **Phase B** Linear sync — close TIK-36/37/38, create epic for the audit.
 - **Phase C** Test inventory — categorize every test by type
-  (`docs/audits/test-inventory-2026-04-28.md`).
+  (`docs/audits/test-inventory-2026-04-29.md`).
 - **Phase D** Test optimization — dedupe fixtures, refactor slow tests,
   fix flakies (touches only `tests/`).
 - **Phase E** Gap analysis — compare coverage vs B1–B11 + new sub-systems
