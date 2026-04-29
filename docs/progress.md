@@ -231,4 +231,28 @@ Owner-requested follow-up to validate the post-fix state:
 
 ---
 
-_Last updated: 2026-04-29 — Phase A docs sync._
+### Phase C — Test inventory complete (PR #40, this branch)
+
+- [x] `docs/audits/test-inventory-2026-04-29.md` created — full categorical
+  inventory (unit / integration / regression / UI / e2e / broken-script) for
+  all 24 auto-collectable test files.
+- [x] Baseline `pytest tests/ --ignore=tests/e2e` captured: **402 passed,
+  1916 warnings, 82.26s** wall-clock (slowest test 2.05s).
+- [x] 7 actionable findings (F-1..F-7) documented in §8 with phase
+  assignment and root-cause sketches:
+    - F-1..F-5 → Phase D (warning cleanup, dead-code removal, fixture cleanup)
+    - F-6, F-7 → Phase E (gap tests for `services/extensions.init_app` and
+      parametrised `get_base_points`)
+
+### What's left after Phase C
+
+- **Phase D** — implement F-1..F-5 fixes in tests/ + minimal `services/`
+  touches; expected outcome: warnings → 0, run time ~50s.
+- **Phase E** — add F-6 and F-7 regression tests and any further gaps
+  surfaced during Phase D.
+- **Phase F** — full Playwright run + the optimised pytest run on Flask + Redis.
+- **Phase G** — linter debt (mypy/flake8) docs + Linear epics
+  (already created as TIK-39 / TIK-40).
+- **Phase H** — file every Phase D–G finding as a Linear sub-task on TIK-41.
+
+_Last updated: 2026-04-29 — Phase C inventory committed._

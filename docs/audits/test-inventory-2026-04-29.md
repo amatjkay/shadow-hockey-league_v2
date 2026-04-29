@@ -11,14 +11,13 @@ Linear tracker: **TIK-41** (post-audit campaign 2026-04-29).
 ## 1. Counts at a glance
 
 | Type        | Files | Test fns | LOC   | Notes                                        |
-|-------------|-------|----------|-------|----------------------------------------------|
-| Unit        |    11 |      219 |  3236 | Pure-Python; no Flask app, no DB writes      |
-| Integration |    10 |      134 |  3264 | Real Flask app + SQLite/in-memory DB         |
-| Regression  |   (★) |       7  |  (mixed) | Tests that pin a specific audit/B-bug fix |
-| UI / smoke  |     1 |       15 |   178 | `tests/test_e2e.py` — Flask test-client only |
-| E2E (browser)|    1 |        1 |   464 | Playwright; opt-in, never auto-collected     |
-| Broken/script|    1 |        0 |    41 | `tests/test_metrics.py` — top-level prints   |
-| **Total (collectable)** | **22** | **368** | **6694** | parametrize fan-out yields **402 collected, 402 passed, 1916 warnings, 82s wall-clock** on baseline run 2026-04-29 (commit `8a57cdc`+) |
+|-------------|------:|---------:|------:|----------------------------------------------|
+| Unit (broad) |  14  |     268  |  3236 | All `tests/test_*.py` except `test_metrics.py`; **includes** `tests/test_e2e.py` which is actually a Flask test-client integration smoke (re-categorised in §2.3 / §4) |
+| Integration |   10  |     134  |  3264 | Real Flask app + SQLite/in-memory DB         |
+| Regression  |  (★) |       7  |  (mixed) | Tests that pin a specific audit/B-bug fix; counted once in their owning category and listed in §3 |
+| E2E (browser)|   1  |       0  |   464 | `tests/e2e/test_smoke.py` (Playwright, 42 scenarios). Opt-in only; **0 auto-collectable** because `tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]` |
+| Broken/script|   1  |       0  |    41 | `tests/test_metrics.py` — top-level prints, no test fns. Removed in Phase D. |
+| **Auto-collectable total** | **24** | **402** | **6694** | matches `pytest --collect-only -q tests/` and the 2026-04-29 baseline run: **402 passed, 1916 warnings, 82.26s** |
 
 (★) Regression tests live inside the Unit/Integration files; counted once
 in their owning category and listed separately in §3 below.
@@ -40,12 +39,12 @@ in their owning category and listed separately in §3 below.
 | `tests/test_blueprints.py`             |  18 | `blueprints/health.py` / main BP smoke | **B10 regression** (`socket_timeout`) |
 | `tests/test_cache_and_admin.py`        |   9 | `services/cache.py` `_FakeRedis` + admin auth | uses CDP-free flow |
 | `tests/test_data_services.py`          |  40 | `services/data/*` (export, seed, schemas) | parametrized |
-| `tests/test_e2e.py`                    |  15 | High-level page-render checks via Flask test-client | **mis-categorised**; not real e2e — see §4 |
+| `tests/test_e2e.py`                    |  15 | High-level page-render checks via Flask test-client | **mis-categorised**; really an integration smoke — see §2.3 / §4 |
 | `tests/test_rating_formula.py`         |  27 | Pure formula correctness (decay, multipliers, base points) | parametrized |
 | `tests/test_rating_service.py`         |  41 | `services/rating_service.py` (build_leaderboard, recalc) | largest file (768 LOC) |
 | `tests/test_scoring_service.py`        |   4 | `services/scoring_service.get_base_points` | **PR #35 regression** |
 | `tests/test_validation.py`             |  32 | `services/validation_service.py` (codes, dupes) | partial PR #35 regression |
-| **Subtotal**                           | **268** (sans `test_metrics.py`) | | |
+| **Subtotal**                           | **268** across **14** files (excludes `test_metrics.py`) | | |
 
 ### 2.2 Integration tests (Flask app + real ORM)
 
