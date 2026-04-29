@@ -157,13 +157,17 @@ Rollup PR **#23**:
 
 ### From deep-probe e2e (2026-04-28, /tmp/e2e_artifacts/deep/BUGS.md)
 
-- **B9 [P1]** — admin audit log is not actually written in production.
-  `services/audit_service.py:213-220` early-returns unless `g.current_user_id`
-  is set, and `set_current_user_for_audit()` is only called from tests — no
-  production code path populates it. `audit_logs` table is empty even after
-  multiple admin CRUD operations. Directly contradicts AGENTS.md §5 mandate
-  "All admin CRUD actions logged via `audit_service.log_action()`". Fix is
-  ~10 LoC (Flask-Login `before_request` hook).
+- **B9 [P1]** ✅ FIXED (TIK-36 / Phase 3 audit-2026-04-28) — added
+  `register_audit_request_hook(app)` in `services/audit_service.py` and
+  wired it from `app.py::register_extensions` right after `init_admin`.
+  The hook is a `@app.before_request` handler that reads
+  `flask_login.current_user` and forwards the authenticated admin's id
+  into `g.current_user_id`, so the existing `after_flush` listener now
+  actually writes to `audit_logs` for admin CRUD. Regression tests in
+  `tests/integration/test_audit_logging.py::TestAuditRequestHook` cover
+  (1) the hook is registered by `create_app`, (2) anonymous requests
+  leave `g.current_user_id` unset, and (3) `set_current_user_for_audit`
+  populates `g` correctly inside a request context.
 - **B10 [P2]** ✅ FIXED (TIK-37 / Phase 2B audit-2026-04-28) — added
   `socket_timeout=1.0` to `redis.Redis(...)` in `blueprints/health.py:81`
   with regression test

@@ -244,9 +244,16 @@ def register_extensions(app: Flask) -> None:
             app.logger.info("Flask-Admin and Flask-Login initialized")
 
             # Initialize audit events after admin is set up
-            from services.audit_service import setup_audit_events
+            from services.audit_service import (
+                register_audit_request_hook,
+                setup_audit_events,
+            )
 
             setup_audit_events()
+            # Wire flask_login.current_user → g.current_user_id so the
+            # after_flush listener actually writes audit rows for admin
+            # CRUD in production (B9 / TIK-36).
+            register_audit_request_hook(app)
             app.logger.info("Audit event listeners initialized")
 
             # Initialize rating recalculation triggers
