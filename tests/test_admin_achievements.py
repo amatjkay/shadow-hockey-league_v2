@@ -47,7 +47,7 @@ def test_achievement_auto_calculation(app, db_session):
     # Simulate on_model_change
     # In Flask-Admin, by the time on_model_change is called,
     # the model has its FKs and relationships assigned from the form.
-    view = AchievementModelView(Achievement, db.session)
+    view = AchievementModelView(Achievement, db)
 
     # Manually populate relationships if they aren't loaded
     achievement.type = ach_type
@@ -123,4 +123,4 @@ def test_api_delete_achievement(auth_client, seeded_db):
     assert resp.status_code == 200
 
     # Verify in DB
-    assert db.session.query(Achievement).get(ach_id) is None
+    assert db.session.get(Achievement, ach_id) is None

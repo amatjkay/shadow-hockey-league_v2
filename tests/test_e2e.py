@@ -111,13 +111,19 @@ class TestE2E_StaticFiles:
         """E2E-011: CSS файлы загружаются."""
         with app.test_client() as client:
             response = client.get("/static/css/style.css")
-            assert response.status_code in [200, 404]  # 404 если файл не найден
+            try:
+                assert response.status_code in [200, 404]  # 404 если файл не найден
+            finally:
+                response.close()
 
     def test_js_loads(self, app, db_session):
         """E2E-011: JS файлы загружаются."""
         with app.test_client() as client:
             response = client.get("/static/js/main.js")
-            assert response.status_code in [200, 404]
+            try:
+                assert response.status_code in [200, 404]
+            finally:
+                response.close()
 
     def test_flag_images_exist(self, app, db_session):
         """E2E-011: Флаги существуют."""
@@ -125,7 +131,10 @@ class TestE2E_StaticFiles:
             flags = ["RUS.png", "BLR.png", "KAZ.png"]
             for flag in flags:
                 response = client.get(f"/static/img/flags/{flag}")
-                assert response.status_code in [200, 404]
+                try:
+                    assert response.status_code in [200, 404]
+                finally:
+                    response.close()
 
 
 class TestE2E_Caching:

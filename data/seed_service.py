@@ -126,6 +126,10 @@ class SeedService:
                     self.session.query(Season).delete()
                     self.session.query(AuditLog).delete()
                     self.session.commit()
+                    # Drop identity-map entries left behind by `query.delete()`
+                    # so the next add() doesn't collide on stale primary keys
+                    # (otherwise SAWarning: "Identity map already had …").
+                    self.session.expunge_all()
                 except Exception as e:
                     self.session.rollback()
                     result.errors.append(f"Failed to clear data: {e}")
