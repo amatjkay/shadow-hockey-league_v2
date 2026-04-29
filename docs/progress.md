@@ -128,11 +128,12 @@ Rollup PR **#23**:
   multiple admin CRUD operations. Directly contradicts AGENTS.md §5 mandate
   "All admin CRUD actions logged via `audit_service.log_action()`". Fix is
   ~10 LoC (Flask-Login `before_request` hook).
-- **B10 [P2]** — `/health` blocks ~7s when Redis is unreachable. Caused by
-  `redis_client.ping()` in `blueprints/health.py:71-94` lacking a
-  `socket_timeout`; only `socket_connect_timeout=2` is set, but cumulative
-  retries push wall time well past that. Production unaffected (Redis is
-  available there); dev/staging/CI without Redis lose health-probe usefulness.
+- **B10 [P2]** ✅ FIXED (TIK-37 / Phase 2B audit-2026-04-28) — added
+  `socket_timeout=1.0` to `redis.Redis(...)` in `blueprints/health.py:81`
+  with regression test
+  `tests/test_blueprints.py::test_health_endpoint_redis_client_uses_socket_timeout`
+  asserting both `socket_timeout` and `socket_connect_timeout` are passed
+  with sensible bounds (≤2s).
 - **B11 [P3]** ✅ FIXED (TIK-38 / Phase 2B audit-2026-04-28) — banner in
   `app.py:233-245` now lists the four `shadow_hockey_league_*` metrics
   that `prometheus_flask_exporter` actually emits (verified locally via
@@ -146,6 +147,26 @@ Rollup PR **#23**:
   review/merge decision. PR #18 also has a known latent bug found by Devin
   Review («flush() without SAVEPOINT after error leaves session in
   needs-rollback state») that needs a follow-up commit before merge.
+
+---
+
+## Repo Audit & Triage (2026-04-28)
+
+### What was done
+- Created audit analysis document summarising repo state (branches, PRs, Linear tickets).
+- **Linear tickets created:** TIK-36, TIK-37, TIK-38.
+- **Linear tickets cancelled:** TIK-12, TIK-18, TIK-19 (obsolete / superseded).
+- **Linear ticket completed:** TIK-16 marked done.
+- **PRs closed:** #11, #15, #28 (stale or superseded).
+- **Branch cleanup:** 16 stale branches deleted.
+
+### What's left
+- Phases 2B through 4 per the plan (remaining implementation, testing, and deployment work).
+- Open issues B9 (audit-log gap), B10 (/health Redis timeout), B11 (metrics banner mismatch).
+- User decision still pending on `devin/integration-analyst-fixes` PR stack (#16/#17/#18).
+
+### New blockers
+- None identified.
 
 ---
 

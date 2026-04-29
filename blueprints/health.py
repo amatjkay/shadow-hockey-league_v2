@@ -78,6 +78,7 @@ def health_check() -> dict[str, Any]:
             host=os.environ.get("REDIS_HOST", "localhost"),
             port=int(os.environ.get("REDIS_PORT", 6379)),
             socket_connect_timeout=2,
+            socket_timeout=1.0,
         )
         redis_client.ping()
         health_status["redis_status"] = "connected"
