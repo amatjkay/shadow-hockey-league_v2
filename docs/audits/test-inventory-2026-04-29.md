@@ -18,7 +18,7 @@ Linear tracker: **TIK-41** (post-audit campaign 2026-04-29).
 | UI / smoke  |     1 |       15 |   178 | `tests/test_e2e.py` — Flask test-client only |
 | E2E (browser)|    1 |        1 |   464 | Playwright; opt-in, never auto-collected     |
 | Broken/script|    1 |        0 |    41 | `tests/test_metrics.py` — top-level prints   |
-| **Total (collectable)** | **22** | **368** | **6694** | matches CI-reported 402 incl. parametrize |
+| **Total (collectable)** | **22** | **368** | **6694** | parametrize fan-out yields **402 collected, 402 passed, 1916 warnings, 82s wall-clock** on baseline run 2026-04-29 (commit `8a57cdc`+) |
 
 (★) Regression tests live inside the Unit/Integration files; counted once
 in their owning category and listed separately in §3 below.
@@ -162,11 +162,33 @@ audit-2026-04-28 bugs from re-appearing.
 
 ## 8. Findings log (filled by Phases D–F)
 
-(To be populated during the test campaign. Each row maps to a Linear ticket.)
+Baseline `pytest tests/ --ignore=tests/e2e` (commit on `main` after PR #38, executed 2026-04-29 on the VM):
 
-| ID | Phase | Test / file | Symptom | Linear |
-|---|---|---|---|---|
-| _empty so far_ | | | | |
+```
+402 passed, 1916 warnings in 82.26s
+slowest call: tests/integration/test_routes.py::TestBulkLoadPerformance::test_leaderboard_load_performance — 2.05s
+```
+
+Warnings break down to 4 distinct sources but ~1900 occurrences:
+
+| F# | Phase | Source | Symptom | Severity | Linear |
+|---|---|---|---|---|---|
+| F-1 | D | `services/admin.py:63-73` (also `tests/integration/test_audit_logging.py:116,175`) | ~1850 `flask_admin.contrib.sqla.ModelView` `DeprecationWarning`: «Passing a session object directly is deprecated and will be removed in version 3.0. Please pass the SQLAlchemy db object instead.» | low (forward-compat, very loud) | TBD |
+| F-2 | D | `data/seed_service.py:159, 179, 200, 239, 249, 273` (only on `test_seed_all_force_clears_data`) | 9× `SAWarning: Identity map already had an identity for (...) replacing it with newly flushed object.` Suggests `force=True` truncates without flushing the session. | medium (real seed-bug smell, only one test exercises it) | TBD |
+| F-3 | D | `tests/test_e2e.py:127` + `_pytest/python.py:166` | `ResourceWarning: unclosed file <_io.BufferedReader …>` for static `.png`/`.css` reads. Fixture opens via `open()` without `with`. | low (clean-up only) | TBD |
+| F-4 | D | `tests/test_admin_achievements.py:126` | `LegacyAPIWarning: Query.get() considered legacy as of 1.x; use Session.get()`. | low (1 occurrence) | TBD |
+| F-5 | D | `tests/test_metrics.py` | 0 collectable tests; module is a `print()` script left over from migration. Adds noise to `pytest -q` output. | medium (dead code in tests dir) | TBD |
+| F-6 | E | `services/extensions.py::limiter` | No direct unit test for `init_app(app)` — only smoke-tested via API endpoints. | low (gap) | TBD |
+| F-7 | E | `services/scoring_service.get_base_points` | No parametrized test across leagues `1`, `2`, `2.1`, `2.2`, `3`, `3.1`. PR #35 invariants are pinned by 4 tests but not exhaustively. | medium (gap) | TBD |
+
+**Phase D action plan derived from this table:**
+
+1. F-1 — touch `services/admin.py` to pass `db` instead of `db.session`; verify Flask-Admin works; update tests if needed. Drops ~1850 warnings to 0.
+2. F-2 — investigate `seed_service.force=True` path; either fix the autoflush conflict or wrap in `no_autoflush`. Add explicit assertion that the identity map is empty after `_clear_all_tables`.
+3. F-3 — replace `open(path)` with `with open(path)` in `tests/test_e2e.py:127`.
+4. F-4 — replace `Query.get()` with `Session.get()` in the test.
+5. F-5 — delete `tests/test_metrics.py` (its assertions are duplicated by metrics-related integration tests in `test_blueprints.py`); or rewrite as `def test_metrics_singleton()`.
+6. F-6, F-7 — Phase E gap tests.
 
 ---
 
