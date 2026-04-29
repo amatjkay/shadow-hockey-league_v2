@@ -17,6 +17,12 @@
 - **Code Style**: Black for formatting, Flake8 for linting, isort for imports.
 - **Dependencies**: Do not add new packages to `requirements.txt` unless explicitly requested.
 - **Language**: Code, commits, variables and documentation in English. Chat/analysis in Russian.
+  - Files under `docs/audits/*-analysis.md` and `docs/audits/notes-*.md` are analyst free-form
+    artifacts and may be written in Russian.
+  - Files under `docs/audits/*-plan.md`, `docs/audits/*-actions-*.md`, and any docs intended
+    to be consumed/executed by another agent (root `docs/*.md` — README, `AGENTS.md`,
+    `activeContext.md`, `progress.md`, `decisionLog.md`, `techContext.md`,
+    `PROJECT_KNOWLEDGE.md`, `ARCHITECTURE.md`) MUST be in English.
 
 ## 3. Database & Models
 - All schema changes must have an Alembic migration. Provide the command to the user, do not run automatically.

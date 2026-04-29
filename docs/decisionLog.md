@@ -122,3 +122,47 @@ but rolling it into a docs-only PR would mix concerns. Tracking the gap explicit
 nothing relies on audit-log data until it's wired up.
 
 **Status**: Documented; fix pending separate ticket.
+
+---
+
+## 2026-04-28: Audit-2026-04-28 — strategy decisions
+
+**Context**: External audit document (`audit-2026-04-28.md`) was validated against `main`
+HEAD `ff6bca0` and decomposed into Phase 2A → 4 of work in
+`docs/audits/audit-2026-04-28-plan.md`. This entry records the seven strategic decisions
+captured in that plan's "Decisions" table, so they survive independently of the plan
+document.
+
+**Decisions**:
+
+1. **TIK-14 / TIK-15 / TIK-17 priority** — keep current; do **not** bump to P3.
+2. **PR #16 / #17 strategy** — close-and-replace via cherry-pick into fresh PRs on `main`
+   (Phase 2C of the plan), **not** rebase-onto-main of the existing branches. Reason:
+   avoid history rewrites on shared branches; existing branches may be deleted **after**
+   `archive/pr-*` tags are pushed (see plan §6.5).
+3. **B9 (audit-log wiring) phase** — Phase 3 (after the Phase 2 quick wins TIK-37 / TIK-38).
+   Reason: Phase 2B fixes are <1h each; the B9 fix needs an integration test plus an
+   AGENTS.md §5 rewrite that describes both audit mechanisms.
+4. **Linter debt (T-D-1..D-4)** — defer to Phase 4 (separate Linear epics for mypy and
+   flake8). Reason: non-blocking; tracked but not on the audit critical path.
+5. **Concurrent PRs in flight** — strictly one code PR at a time, sequential merges.
+   Reason: minimize merge-conflict and cherry-pick complexity in Phase 2C.
+6. **PR #28 / `PROXY_FIX_X_FOR=1`** — closed without merge; prod stays on the existing
+   default behind nginx. Reason: owner confirmed the nginx-fronted deployment makes the
+   existing default safe; merging #28 without a coordinated prod env change would have
+   broken per-IP rate limiting.
+7. **Branch `feature/admin-enhancement`** — keep (do **not** delete during cleanup).
+   Reason: kept as a readable history pointer to the late-April stabilization work that
+   landed in `main` via PR #25.
+
+**Implemented in**:
+- Linear sync (TIK-12 / TIK-18 / TIK-19 cancelled, TIK-16 done, TIK-36 / TIK-37 / TIK-38
+  created) — commit `7758bd6`.
+- PR triage (PR #11 / #15 / #28 closed) — commit `5c47184`.
+- Branch cleanup (16 stale merged branches deleted, source branches for PR #16 / #17
+  preserved) — commit `9e41cdc`.
+
+**Source of truth**: `docs/audits/audit-2026-04-28-plan.md` (Decisions table and Phase 2A
+through Phase 4 schedule).
+
+**Status**: Implemented for Phase 2A; Phases 2B → 4 outstanding.

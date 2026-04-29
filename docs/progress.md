@@ -155,10 +155,14 @@ Analytical-only PR (no application code touched). Artifacts under `docs/audits/`
 
 - `audit-2026-04-28-analysis.md` — validation of all external audit claims
   against `main` HEAD `ff6bca0`, with file:line evidence; decomposition into
-  ≤1h tasks (groups V/A/B/L/C/D); resolved owner Q&A in §5.
+  ≤1h tasks (groups V/A/B/L/C/D); resolved owner Q&A in §5. Frozen-artifact
+  banner added; line numbers pinned to `ff6bca0`.
 - `audit-2026-04-28-plan.md` — sequenced execution plan (Phase 2A → 2B →
-  2C → 3 → 4) with locked owner decisions and constraints.
-- `linear-actions-2026-04-28.md` — Linear MCP action script.
+  2C → 3 → 4) with locked owner decisions and constraints. Phase 2C now
+  includes an `archive/pr-*` tagging pre-condition so cherry-pick SHAs stay
+  reachable after eventual branch cleanup.
+- `linear-actions-2026-04-28.md` — Linear MCP action script (English-only;
+  preserved as a historical record of the executed Linear sync).
 
 **Done in this pass:**
 
@@ -172,12 +176,21 @@ Analytical-only PR (no application code touched). Artifacts under `docs/audits/`
 - Verifications T-V-2 (`League.base_points_field` subleague behavior) and
   T-V-3 (real `/metrics` output vs banner) completed and folded into the
   analysis doc.
+- Devin Review address pass (this update): fixed factual claim about
+  `audit_service.log_action()` (the function does exist — `services/audit_service.py:27` —
+  and is used by `services/recalc_service.py`; only the listener path is broken).
+  Refined I-8 / T-B9-3 so AGENTS.md §5 will describe both audit mechanisms
+  (explicit `log_action()` for non-CRUD events + `after_flush` listener for
+  Flask-Admin CRUD). Refreshed `docs/activeContext.md` Status / Active Blockers,
+  recorded the seven Phase-2A strategy decisions in `docs/decisionLog.md`,
+  and clarified `.antigravityrules` §2 language convention for `docs/audits/`.
 
 **Remaining work (per `audit-2026-04-28-plan.md`):**
 
 - Phase 2B — TIK-37 (`socket_timeout` in `/health`), TIK-38 (metrics banner).
 - Phase 2C — cherry-pick PR #16 (rate-limiter) and #17 (subleague scoring)
-  into new PRs on `main`; close stale #16/#17.
+  into new PRs on `main`; close stale #16/#17. Pre-condition: push
+  `archive/pr-16-rate-limiter` and `archive/pr-17-points-unification` tags.
 - Phase 3 — TIK-36 (B9 audit log `before_request` wiring + e2e test +
   AGENTS.md/decisionLog/activeContext sync).
 - Phase 4 — linter debt roadmap (T-D-1..D-4: mypy and flake8 inventory +
@@ -187,4 +200,4 @@ Analytical-only PR (no application code touched). Artifacts under `docs/audits/`
 
 ---
 
-_Last updated: 2026-04-28_
+_Last updated: 2026-04-29 (PR #31 follow-up — Devin Review address pass)_

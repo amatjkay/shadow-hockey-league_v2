@@ -43,11 +43,16 @@
 
 ### Phase 2C — Revive orphan stack via cherry-pick
 
-| # | Task | Source commit | Done? |
-|---|------|---------------|-------|
-| 7 | **PR #16 → new PR on `main`** rate-limiter consolidation (T-002, T-011) | `9e5c220` from `devin/1777322380-rate-limiter-fix` | ⏳ |
-| 8 | **PR #17 → new PR on `main`** subleague scoring unification (T-003, T-004, T-007, T-020) | head of `devin/1777323700-points-unification` | ⏳ |
-| | After both merged: close stale #16 / #17 with `replaced by #NN` comment. | — | ⏳ |
+Source SHAs in this section reference commits living **only** on the open PR branches.
+If those branches are deleted before the cherry-pick PRs are merged, the SHAs become
+unreachable. Therefore we tag them as `archive/pr-*` first, so SHAs survive any branch cleanup.
+
+| # | Task | Source commit | Archive tag | Done? |
+|---|------|---------------|-------------|-------|
+| 6.5 | **Pre-condition:** tag source commits before any branch cleanup. Commands:<br>`git fetch origin && git tag archive/pr-16-rate-limiter origin/devin/1777322380-rate-limiter-fix` <br>`git tag archive/pr-17-points-unification origin/devin/1777323700-points-unification` <br>`git push origin archive/pr-16-rate-limiter archive/pr-17-points-unification` | — | `archive/pr-16-rate-limiter`, `archive/pr-17-points-unification` | ⏳ |
+| 7 | **PR #16 → new PR on `main`** rate-limiter consolidation (T-002, T-011) | `9e5c220` from `devin/1777322380-rate-limiter-fix` (also `archive/pr-16-rate-limiter` after task 6.5) | `archive/pr-16-rate-limiter` | ⏳ |
+| 8 | **PR #17 → new PR on `main`** subleague scoring unification (T-003, T-004, T-007, T-020) | head of `devin/1777323700-points-unification` (also `archive/pr-17-points-unification` after task 6.5) | `archive/pr-17-points-unification` | ⏳ |
+| 8.5 | After both merged: close stale #16 / #17 with `replaced by #NN` comment. Branch deletion is OK because `archive/pr-*` tags keep the SHAs reachable. | — | — | ⏳ |
 
 ### Phase 3 — Audit log compliance fix
 
@@ -71,6 +76,11 @@
 - Do **not** run `git push --force` on `main` or shared branches.
 - Do **not** keep more than one in-flight code PR at a time — sequential merges only.
 - Do **not** modify tests to silence the 3 pre-existing failures (rating calc assertion, flush-cache redirect code, admin CRUD) — these are tracked separately.
+- Do **not** delete branches `devin/1777322380-rate-limiter-fix` or
+  `devin/1777323700-points-unification` until Phase 2C tasks 6.5 (archive tags) **and**
+  7 / 8 (cherry-pick PRs merged) are both complete. After tags are pushed AND the
+  cherry-picks are merged, the branches may be deleted: SHAs remain reachable from the
+  `archive/pr-*` tags.
 
 ## Done criteria for the whole audit
 

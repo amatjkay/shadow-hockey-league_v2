@@ -4,6 +4,17 @@
 **Целевой репозиторий:** `amatjkay/shadow-hockey-league_v2` @ `main` (HEAD `ff6bca0`).
 **Рабочая ветка анализа:** `devin/<ts>-audit-analysis` (этот PR — только аналитический артефакт, кода не меняет).
 
+> **Frozen artifact.** Все ссылки вида `file.py:NN` в этом документе жёстко привязаны к
+> `main` HEAD `ff6bca0` (таймстамп коммита — 2026-04-28). Они **будут расходиться**
+> с реальными линиями по мере эволюции файлов. Для повторной верификации:
+>
+> 1. `git checkout ff6bca0 -- <файл>` и перечитать нужные строки; либо
+> 2. открыть пермалинк `https://github.com/amatjkay/shadow-hockey-league_v2/blob/ff6bca0/<файл>#L<NN>`.
+>
+> **Не** перебивайте номера строк под будущие версии `main`. Если нужна свежая
+> картина репо — сделайте отдельный датированный анализ (`docs/audits/audit-YYYY-MM-DD-analysis.md`),
+> а этот оставьте как исторический снимок.
+
 > Документ построен по правилам: каждый тезис — с привязкой к файлу/строке; всё неподтверждённое маркируется как «гипотеза».
 
 ---
@@ -36,7 +47,25 @@
   - `docs/decisionLog.md:114`, `docs/progress.md:126`, `PROJECT_KNOWLEDGE.md:42` — упоминания самой проблемы.
 - `app.py` — нет `before_request`/Flask-Login-моста к `set_current_user_for_audit`.
 
-**Противоречие документации:** `AGENTS.md` §5 декларирует «All admin CRUD actions logged via `audit_service.log_action()`». В коде `audit_service.log_action` отсутствует (есть только листенер `after_flush` и helper `_log_model_change`). Это вторая проблема — расхождение API между AGENTS.md и реальностью.
+**Что есть в коде (две независимые механики аудита):**
+
+1. **Явный API** — `audit_service.log_action(user_id, action, target_model, target_id, changes)`
+   (`services/audit_service.py:27-94`). Используется в `services/recalc_service.py:110-112,176-178`
+   для журналирования событий пересчёта рейтинга. **Работает.**
+2. **SQLAlchemy listener** — `@event.listens_for(Session, "after_flush")` (`services/audit_service.py:209-216`).
+   Авто-логирует CREATE/UPDATE/DELETE для любых ORM-моделей, прошедших через flush.
+   Читает `g.current_user_id`, который выставляется setter'ом
+   `set_current_user_for_audit()` (`services/audit_service.py:286-288`).
+   **Сломан в проде**: `set_current_user_for_audit` нигде в production-коде
+   (`app.py`, `before_request`-хуки) не вызывается. CRUD из Flask-Admin проходит
+   через flush, но listener early-return'ит на пустом `g.current_user_id`.
+
+**Расхождение с документацией:** `AGENTS.md` §5 декларирует «All admin CRUD actions logged
+via `audit_service.log_action()`». Эта формулировка покрывает только механику №1 (и эта функция
+в коде реально есть), но CRUD из Flask-Admin реально завязан на №2 (listener),
+а не на №1. Таким образом, §5 одновременно (a) корректно ссылается на существующую
+функцию `log_action()` и (b) умалчивает listener-путь, на который опирается весь
+admin-CRUD. Это неполнота документации, см. P10 / I-8.
 
 ### 1.2. PR #16 — `api_limiter` инертен + memory storage ✅ ПОДТВЕРЖДЕНО
 
@@ -143,7 +172,7 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
 
 | Файл | Расхождение | Источник |
 |---|---|---|
-| `AGENTS.md` §5 | **Было:** «All admin CRUD actions logged via `audit_service.log_action()`» → **Стало (факт):** функции `log_action()` в `services/audit_service.py` не существует, листенер `after_flush` не получает `current_user_id` в продакшене (см. §1.1). | `services/audit_service.py:209-216`, `:286` |
+| `AGENTS.md` §5 | **Было:** «All admin CRUD actions logged via `audit_service.log_action()`» → **Реальность:** `log_action()` существует (`services/audit_service.py:27`) и применяется только для recalc-событий из `services/recalc_service.py`. CRUD из Flask-Admin завязан на отдельный listener `after_flush` (`services/audit_service.py:209-216`), который в проде не получает `g.current_user_id`. §5 описывает только явный API и не упоминает listener — отсюда «admin-CRUD не пишется» (см. §1.1). | `services/audit_service.py:27, 209-216, 286` |
 | `docs/activeContext.md` (раздел Status) | **Было:** «Branch: `feature/admin-enhancement` (HEAD `1da8d6d`, post PR #23 merge)» → **Стало (факт):** `feature/admin-enhancement` смержена в `main` через PR #25; текущий HEAD `main` = `ff6bca0` (PR #29, #30 — TIK-35). Активный branch для команды теперь `main`. | `git log --oneline -5` |
 | `docs/activeContext.md` Active Blockers | Заявлено «None». **Стало (факт):** есть открытый блокер B9 (P1) — это явное противоречие самому же файлу `progress.md:126` и `PROJECT_KNOWLEDGE.md:42`. | сравнение трёх файлов |
 | `Makefile` `check` target | Сейчас mypy закомментирован, flake8 — с `extend-ignore`. Аудит прав в §«Tech debt»: 84 mypy ошибок и 131 flake8 нарушений в ignore — это техдолг, а не «зелёный CI». Документировать как «degraded check». | `Makefile:38-50` |
@@ -163,7 +192,7 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
 | P7 | `app.py:235` | B11: баннер `Default metrics: http_requests_total, ...` ссылается на counter, который, судя по аудиту, не зарегистрирован. | P3 |
 | P8 | `Makefile:38-50` + `pyproject.toml:[tool.mypy]` | Tech debt: 84 mypy errors, 131 flake8 в `extend-ignore`. CI «зелёный» — потому что check относительно мягкий. | P3 |
 | P9 | `docs/activeContext.md` Status/Blockers | Внутренняя неконсистентность доков: `Active Blockers: None` соседствует с задокументированным P1-багом. | P3 (docs hygiene) |
-| P10 | `AGENTS.md` §5 | Доки описывают несуществующий API (`audit_service.log_action()`). | P3 (docs hygiene) |
+| P10 | `AGENTS.md` §5 | Доки описывают только явный API `log_action()` (он реально существует и используется для recalc-событий), но не упоминают listener-механизм `after_flush` + `set_current_user_for_audit()`, на который реально завязан Flask-Admin CRUD. Документация неполная, отсюда непонимание у будущих агентов. | P3 (docs hygiene) |
 
 ---
 
@@ -197,7 +226,14 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
 
 ### I-8. Docs sync (для P9/P10)
 - `docs/activeContext.md` — обновить раздел Status (HEAD/branch) и Blockers (внести B9 явно).
-- `AGENTS.md` §5 — заменить «logged via `audit_service.log_action()`» на актуальное описание (`after_flush` listener + `set_current_user_for_audit` setter).
+- `AGENTS.md` §5 — переписать пункт об audit-логировании, описав **обе** механики:
+  1. Явный API `audit_service.log_action(user_id, action, target_model, target_id, changes)` —
+     для не-CRUD событий (логин, flush_cache, recalc).
+  2. Listener `@event.listens_for(Session, "after_flush")` (`services/audit_service.py:209-216`) —
+     auto-CRUD; требует `set_current_user_for_audit(user_id)` в `before_request` (см. B9 / TIK-36).
+  **Не** удалять упоминание `log_action()` — функция рабочая. Переписываем
+  §5 в Phase 3 вместе с фиксом B9, чтобы не коммитить «silently no-op» одновременно с тем,
+  что этот no-op фиксится.
 
 ---
 
@@ -246,7 +282,7 @@ PR #28 предлагает дефолт `"0"`. Аудит корректно о
   ```
   **Зависимости:** нет. **Готовность:** локально admin создаёт Achievement → `SELECT COUNT(*) FROM audit_log WHERE action='CREATE'` увеличивается на 1.
 - **T-B9-2** | Добавить интеграционный тест `tests/integration/test_audit_logging_e2e.py`: логин под admin → POST на admin-endpoint → проверить наличие `AuditLog`-row. **Зависимости:** T-B9-1. **Готовность:** тест зелёный, в `make test` count `+1`.
-- **T-B9-3** | Обновить `AGENTS.md` §5 (заменить ссылку на `log_action()` на корректное описание listener'а), `docs/activeContext.md` (Status/Blockers), `docs/decisionLog.md` (decision: «B9 fixed in PR …»). **Зависимости:** T-B9-1. **Готовность:** docs-PR с тремя файлами.
+- **T-B9-3** | Обновить `AGENTS.md` §5 — описать **обе** механики аудит-логирования (явная `log_action()` для не-CRUD событий + listener-путь `after_flush` для CRUD из Flask-Admin, активируемый `set_current_user_for_audit()` в `before_request`). Не удалять упоминание `log_action()`. Также обновить `docs/activeContext.md` (Status/Blockers) и `docs/decisionLog.md` (decision: «B9 fixed in PR …»). **Зависимости:** T-B9-1. **Готовность:** docs-PR с тремя файлами.
 - **T-B10-1** | `blueprints/health.py:75-82` — добавить `socket_timeout=1.0` в `redis.Redis(...)`. **Зависимости:** нет. **Готовность:** локально без redis `/health` отвечает <1500ms (`time curl localhost:5000/health`).
 - **T-B11-1** | Запустить app локально, выписать фактический набор метрик с `/metrics`, синхронизировать строку `app.py:235` ИЛИ зарегистрировать недостающие counter'ы. **Зависимости:** T-V-3. **Готовность:** баннер в логе совпадает 1-в-1 с `/metrics`.
 
