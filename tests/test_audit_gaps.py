@@ -23,7 +23,6 @@ from app import create_app
 from models import AchievementType, League, db
 from services.scoring_service import get_base_points
 
-
 # ---------------------------------------------------------------------------
 # F-6 — extensions.limiter wiring
 # ---------------------------------------------------------------------------
