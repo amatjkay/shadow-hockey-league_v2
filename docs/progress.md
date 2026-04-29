@@ -197,13 +197,19 @@ Rollup PR **#23**:
 - **Branch cleanup:** 16 stale branches deleted.
 
 ### What's left
-- Phases 2B through 4 per the plan (remaining implementation, testing, and deployment work).
-- Open issues B9 (audit-log gap), B10 (/health Redis timeout), B11 (metrics banner mismatch).
-- User decision still pending on `devin/integration-analyst-fixes` PR stack (#16/#17/#18).
+- Phase 2B partially landed (TIK-37 / TIK-38 ✅ via PR #32, #33).
+- Phase 2C landed (rate-limiter via PR #34, subleague scoring via PR #35).
+- **Phase 3:** B9 (audit-log gap, TIK-36) — Flask-Login `before_request` hook
+  to populate `g.current_user_id` so `audit_service.log_action()` actually writes
+  to `audit_logs` for admin CRUD. Only remaining bug from the deep-probe e2e
+  triage; B10 and B11 are now resolved.
+- Phase 4: linter debt (mypy/flake8) — documentation + Linear epics, no code.
+- PR stack `devin/integration-analyst-fixes` (#16/#17): closed and replaced
+  by #34 / #35. PR #18 (transactional audit) still open.
 
 ### New blockers
 - None identified.
 
 ---
 
-_Last updated: 2026-04-28_
+_Last updated: 2026-04-29_
