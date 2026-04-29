@@ -226,21 +226,22 @@ def register_extensions(app: Flask) -> None:
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get("TESTING") is not True:
         try:
-            from services.metrics_service import get_metrics
+            from services.metrics_service import (
+                DEFAULT_METRIC_SUFFIXES,
+                METRICS_PREFIX,
+                get_metrics,
+            )
 
             metrics = get_metrics(app)
             if metrics is not None:
                 app.logger.info("Prometheus metrics enabled at /metrics")
-                # Metric names below match what prometheus_flask_exporter
-                # actually emits with defaults_prefix="shadow_hockey_league"
-                # (see services/metrics_service.py). Keep this list in sync
-                # with the exporter configuration; change to a single source
-                # of truth (e.g. exporter introspection) if it drifts again.
+                # Build the banner from the same constants used to configure
+                # prometheus_flask_exporter so the two cannot drift (TIK-38).
+                metric_names = ", ".join(
+                    f"{METRICS_PREFIX}_{suffix}" for suffix in DEFAULT_METRIC_SUFFIXES
+                )
                 app.logger.info(
-                    "App metrics: shadow_hockey_league_http_request_total, "
-                    "shadow_hockey_league_http_request_duration_seconds, "
-                    "shadow_hockey_league_http_request_exceptions_total, "
-                    "shadow_hockey_league_exporter_info "
+                    f"App metrics: {metric_names} "
                     "(plus prometheus_client defaults: process_*, python_*)"
                 )
         except Exception as e:
