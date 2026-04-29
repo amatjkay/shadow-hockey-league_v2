@@ -12,14 +12,13 @@ import math
 from typing import Any
 
 from flask import Blueprint, jsonify, request
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.api_auth import authenticate_api_key
 from services.cache_service import invalidate_leaderboard_cache
+from services.extensions import limiter
 from services.scoring_service import get_base_points
 from services.validation_service import (
     validate_achievement_data,
@@ -32,12 +31,6 @@ from services.validation_service import (
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
-
-# Rate limiter for API endpoints (100 requests per minute per key)
-api_limiter = Limiter(
-    key_func=lambda: request.headers.get("X-API-Key", get_remote_address()),
-    default_limits=["100 per minute"],
-)
 
 
 def get_session() -> Session:
@@ -90,7 +83,7 @@ def paginate_query(query, schema, default_per_page: int = 20, max_per_page: int 
 
 
 @api.route("/countries", methods=["GET"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 def get_countries() -> tuple[Any, int]:
     """Get all countries.
 
@@ -115,7 +108,7 @@ def get_countries() -> tuple[Any, int]:
 
 
 @api.route("/countries", methods=["POST"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("write")
 def create_country() -> tuple[Any, int]:
     """Create a new country.
@@ -169,7 +162,7 @@ def create_country() -> tuple[Any, int]:
 
 
 @api.route("/countries/<int:country_id>", methods=["GET"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 def get_country(country_id: int) -> tuple[Any, int]:
     """Get a specific country by ID.
 
@@ -197,7 +190,7 @@ def get_country(country_id: int) -> tuple[Any, int]:
 
 
 @api.route("/countries/<int:country_id>", methods=["PUT"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("write")
 def update_country(country_id: int) -> tuple[Any, int]:
     """Update a country.
@@ -254,7 +247,7 @@ def update_country(country_id: int) -> tuple[Any, int]:
 
 
 @api.route("/countries/<int:country_id>", methods=["DELETE"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("admin")
 def delete_country(country_id: int) -> tuple[Any, int]:
     """Delete a country.
@@ -288,7 +281,7 @@ def delete_country(country_id: int) -> tuple[Any, int]:
 
 
 @api.route("/managers", methods=["GET"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("read")
 def get_managers() -> tuple[Any, int]:
     """Get all managers with optional filtering and pagination.
@@ -330,7 +323,7 @@ def get_managers() -> tuple[Any, int]:
 
 
 @api.route("/managers", methods=["POST"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("write")
 def create_manager() -> tuple[Any, int]:
     """Create a new manager.
@@ -391,7 +384,7 @@ def create_manager() -> tuple[Any, int]:
 
 
 @api.route("/managers/<int:manager_id>", methods=["GET"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("read")
 def get_manager(manager_id: int) -> tuple[Any, int]:
     """Get a specific manager by ID with achievements.
@@ -437,7 +430,7 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
 
 
 @api.route("/managers/<int:manager_id>", methods=["PUT"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("write")
 def update_manager(manager_id: int) -> tuple[Any, int]:
     """Update a manager.
@@ -502,7 +495,7 @@ def update_manager(manager_id: int) -> tuple[Any, int]:
 
 
 @api.route("/managers/<int:manager_id>", methods=["DELETE"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("admin")
 def delete_manager(manager_id: int) -> tuple[Any, int]:
     """Delete a manager (and all achievements via CASCADE).
@@ -531,7 +524,7 @@ def delete_manager(manager_id: int) -> tuple[Any, int]:
 
 
 @api.route("/achievements", methods=["GET"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("read")
 def get_achievements() -> tuple[Any, int]:
     """Get all achievements with optional filtering and pagination.
@@ -590,7 +583,7 @@ def get_achievements() -> tuple[Any, int]:
 
 
 @api.route("/achievements", methods=["POST"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("write")
 def create_achievement() -> tuple[Any, int]:
     """Create a new achievement.
@@ -700,7 +693,7 @@ def create_achievement() -> tuple[Any, int]:
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["GET"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("read")
 def get_achievement(achievement_id: int) -> tuple[Any, int]:
     """Get a specific achievement by ID.
@@ -740,7 +733,7 @@ def get_achievement(achievement_id: int) -> tuple[Any, int]:
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["PUT"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("write")
 def update_achievement(achievement_id: int) -> tuple[Any, int]:
     """Update an achievement.
@@ -843,7 +836,7 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
 
 
 @api.route("/achievements/<int:achievement_id>", methods=["DELETE"])
-@api_limiter.limit("100 per minute")
+@limiter.limit("100 per minute")
 @authenticate_api_key("admin")
 def delete_achievement(achievement_id: int) -> tuple[Any, int]:
     """Delete an achievement.

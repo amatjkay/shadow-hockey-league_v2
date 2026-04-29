@@ -8,6 +8,20 @@ from typing import Optional
 
 from prometheus_flask_exporter import PrometheusMetrics
 
+# Single source of truth for the metrics prefix. Imported by app.py to
+# build the startup banner so the two never drift (see TIK-38 / B11).
+METRICS_PREFIX = "shadow_hockey_league"
+
+# Suffixes that prometheus_flask_exporter emits when configured with
+# defaults_prefix=METRICS_PREFIX. Kept here so the banner stays a thin
+# formatter over this list rather than duplicating literals.
+DEFAULT_METRIC_SUFFIXES = (
+    "http_request_total",
+    "http_request_duration_seconds",
+    "http_request_exceptions_total",
+    "exporter_info",
+)
+
 # Singleton instance
 _metrics_instance: Optional[PrometheusMetrics] = None
 
@@ -32,7 +46,7 @@ def get_metrics(app=None) -> Optional[PrometheusMetrics]:
     try:
         _metrics_instance = PrometheusMetrics(
             app,
-            defaults_prefix="shadow_hockey_league",
+            defaults_prefix=METRICS_PREFIX,
             excluded_endpoints=["/static", "/metrics", "/health"],
         )
         return _metrics_instance

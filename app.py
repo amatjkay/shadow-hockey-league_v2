@@ -131,6 +131,40 @@ def configure_logging(app: Flask) -> None:
     app.logger.setLevel(log_level)
 
 
+def _configure_rate_limiter(app: Flask) -> None:
+    """Set ``RATELIMIT_*`` config values before the limiter is initialised.
+
+    - ``RATELIMIT_STORAGE_URI`` is taken from ``REDIS_URL`` env when reachable
+      (so the limit is shared across Gunicorn workers in production); falls
+      back to ``memory://``.
+    - ``RATELIMIT_ENABLED`` is ``False`` for ``TESTING`` so tests don't trip 429
+      responses unrelated to the assertion under test.
+    """
+    if app.config.get("TESTING"):
+        app.config.setdefault("RATELIMIT_STORAGE_URI", "memory://")
+        # Tests can pre-set RATELIMIT_ENABLED=True (e.g. via a config subclass)
+        # to exercise the rate-limit path; otherwise it stays disabled for speed.
+        app.config.setdefault("RATELIMIT_ENABLED", False)
+        return
+
+    storage_uri = "memory://"
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        try:
+            import redis
+
+            client = redis.from_url(redis_url, socket_connect_timeout=2)
+            client.ping()
+            storage_uri = redis_url
+        except Exception as exc:  # noqa: BLE001 - logging fallback path
+            app.logger.warning(
+                "Rate limiter Redis unavailable (%s), falling back to memory://",
+                exc,
+            )
+    app.config.setdefault("RATELIMIT_STORAGE_URI", storage_uri)
+    app.config.setdefault("RATELIMIT_ENABLED", True)
+
+
 def register_extensions(app: Flask) -> None:
     """Initialize Flask extensions."""
     # Initialize SQLAlchemy with app
@@ -152,20 +186,21 @@ def register_extensions(app: Flask) -> None:
             return dict(csrf_token=lambda: "dummy-token-for-tests")
 
     # Initialize Rate Limiting (Этап 5)
-    # Disable rate limiting in testing mode to speed up CI/CD and tests
-    if not app.config.get("TESTING"):
-        from flask_limiter import Limiter
-        from flask_limiter.util import get_remote_address
+    # Single Limiter instance shared with services/api.py via services.extensions.
+    # Storage is Redis when REDIS_URL is reachable, memory:// otherwise. In TESTING
+    # mode the limiter is still bound (so decorators do not raise) but disabled
+    # via RATELIMIT_ENABLED=False so tests run at full speed.
+    _configure_rate_limiter(app)
+    from services.extensions import limiter
 
-        limiter = Limiter(
-            key_func=get_remote_address,
-            app=app,
-            default_limits=["200 per day", "50 per hour"],
-            storage_uri="memory://",
+    limiter.init_app(app)
+    if app.config.get("RATELIMIT_ENABLED", True):
+        app.logger.info(
+            "Rate limiting initialized (storage=%s)",
+            app.config.get("RATELIMIT_STORAGE_URI", "memory://"),
         )
-        app.logger.info("Rate limiting initialized")
     else:
-        app.logger.info("Rate limiting disabled (TESTING mode)")
+        app.logger.info("Rate limiting disabled (RATELIMIT_ENABLED=False)")
 
     # Initialize caching with Redis (or fallback to simple cache)
     cache_config = {
@@ -226,13 +261,23 @@ def register_extensions(app: Flask) -> None:
     # Initialize Prometheus metrics (only in non-testing environments)
     if app.config.get("TESTING") is not True:
         try:
-            from services.metrics_service import get_metrics
+            from services.metrics_service import (
+                DEFAULT_METRIC_SUFFIXES,
+                METRICS_PREFIX,
+                get_metrics,
+            )
 
             metrics = get_metrics(app)
             if metrics is not None:
                 app.logger.info("Prometheus metrics enabled at /metrics")
+                # Build the banner from the same constants used to configure
+                # prometheus_flask_exporter so the two cannot drift (TIK-38).
+                metric_names = ", ".join(
+                    f"{METRICS_PREFIX}_{suffix}" for suffix in DEFAULT_METRIC_SUFFIXES
+                )
                 app.logger.info(
-                    "Default metrics: http_requests_total, http_request_duration_seconds"
+                    f"App metrics: {metric_names} "
+                    "(plus prometheus_client defaults: process_*, python_*)"
                 )
         except Exception as e:
             app.logger.warning(f"Could not initialize Prometheus metrics: {e}")

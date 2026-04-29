@@ -1,6 +1,42 @@
 # Progress — Shadow Hockey League v2
 
-> **Purpose:** Tracking long-term project milestones and feature progress.
+> **Purpose:** Living document tracking completed work, in-progress tasks, and blockers.
+> All agents MUST update this before ending their turn.
+
+## 2026-04-27: Analyst Audit — Documentation & Security
+
+### Completed
+- [x] Full repo audit produced (artifact in Devin session). 20 decomposed tasks
+      (T-001..T-020) recorded.
+- [x] **T-001** — `.env` removed from git tracking; `.gitignore` cleaned of
+      stray markdown fences; `.env.example` updated (documented `GEMINI_API_KEY`,
+      removed Windows-only DB path). PR #13 → `devin/integration-analyst-fixes`.
+- [x] **T-005, T-006, T-018, T-019** — Documentation sync:
+      `README.md` season table corrected to `25/26..21/22`; test count `296 → 383`;
+      coverage badge dropped (was static, misleading); env-vars table refreshed.
+      `docs/ARCHITECTURE.md` test count `381 → 383`. ADR-005 added to
+      `docs/decisionLog.md` recording season baseline decision. PR #14 merged into
+      `devin/integration-analyst-fixes`.
+- [x] **T-002 + T-011** — Rate limiter unified into a single `services.extensions.limiter`
+      Flask-Limiter instance bound via `init_app`. Storage URI is read from
+      `REDIS_URL` (production) with `memory://` fallback; `RATELIMIT_ENABLED`
+      mirrors `TESTING` so test suite isn't slowed by 50/hour defaults.
+      `services/api.py` now uses `@limiter.limit("100 per minute")` for all
+      15 REST endpoints (was the dead `@api_limiter` instance). Added
+      `tests/test_api.py::TestAPIRateLimiting` proving the 101st request to
+      `/api/countries` returns 429 (test count `383 → 384`).
+
+### In Progress
+- [ ] **T-003 + T-004 + T-007 + T-020** — unify points calculation through
+      `League.base_points_field`; expand validation to support subleagues.
+- [ ] **T-009** — make `audit_service.log_action` transactionally neutral.
+- [ ] **T-008** — defer `ApiKey.last_used_at` writes off the request hot path.
+- [ ] **T-010** — drop `with db.session.begin()` in `blueprints/health.py`.
+
+### Blockers
+- [!] `GEMINI_API_KEY` and other publicly-committed secrets still live in git
+      history. PR #13 untracks the file but does **not** rewrite history. User
+      must rotate the Gemini key and decide on `git filter-repo` against `main`.
 
 ---
 
@@ -128,15 +164,16 @@ Rollup PR **#23**:
   multiple admin CRUD operations. Directly contradicts AGENTS.md §5 mandate
   "All admin CRUD actions logged via `audit_service.log_action()`". Fix is
   ~10 LoC (Flask-Login `before_request` hook).
-- **B10 [P2]** — `/health` blocks ~7s when Redis is unreachable. Caused by
-  `redis_client.ping()` in `blueprints/health.py:71-94` lacking a
-  `socket_timeout`; only `socket_connect_timeout=2` is set, but cumulative
-  retries push wall time well past that. Production unaffected (Redis is
-  available there); dev/staging/CI without Redis lose health-probe usefulness.
-- **B11 [P3]** — `app.py` startup banner advertises
-  `http_requests_total, http_request_duration_seconds` as default metrics,
-  but `/metrics` only emits the duration histogram. Either add the counter
-  or fix the banner string.
+- **B10 [P2]** ✅ FIXED (TIK-37 / Phase 2B audit-2026-04-28) — added
+  `socket_timeout=1.0` to `redis.Redis(...)` in `blueprints/health.py:81`
+  with regression test
+  `tests/test_blueprints.py::test_health_endpoint_redis_client_uses_socket_timeout`
+  asserting both `socket_timeout` and `socket_connect_timeout` are passed
+  with sensible bounds (≤2s).
+- **B11 [P3]** ✅ FIXED (TIK-38 / Phase 2B audit-2026-04-28) — banner in
+  `app.py:233-245` now lists the four `shadow_hockey_league_*` metrics
+  that `prometheus_flask_exporter` actually emits (verified locally via
+  `curl /metrics`) plus a note about `prometheus_client` defaults.
 
 ### Carried over
 
@@ -146,6 +183,26 @@ Rollup PR **#23**:
   review/merge decision. PR #18 also has a known latent bug found by Devin
   Review («flush() without SAVEPOINT after error leaves session in
   needs-rollback state») that needs a follow-up commit before merge.
+
+---
+
+## Repo Audit & Triage (2026-04-28)
+
+### What was done
+- Created audit analysis document summarising repo state (branches, PRs, Linear tickets).
+- **Linear tickets created:** TIK-36, TIK-37, TIK-38.
+- **Linear tickets cancelled:** TIK-12, TIK-18, TIK-19 (obsolete / superseded).
+- **Linear ticket completed:** TIK-16 marked done.
+- **PRs closed:** #11, #15, #28 (stale or superseded).
+- **Branch cleanup:** 16 stale branches deleted.
+
+### What's left
+- Phases 2B through 4 per the plan (remaining implementation, testing, and deployment work).
+- Open issues B9 (audit-log gap), B10 (/health Redis timeout), B11 (metrics banner mismatch).
+- User decision still pending on `devin/integration-analyst-fixes` PR stack (#16/#17/#18).
+
+### New blockers
+- None identified.
 
 ---
 
