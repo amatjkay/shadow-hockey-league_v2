@@ -128,11 +128,12 @@ Rollup PR **#23**:
   multiple admin CRUD operations. Directly contradicts AGENTS.md §5 mandate
   "All admin CRUD actions logged via `audit_service.log_action()`". Fix is
   ~10 LoC (Flask-Login `before_request` hook).
-- **B10 [P2]** — `/health` blocks ~7s when Redis is unreachable. Caused by
-  `redis_client.ping()` in `blueprints/health.py:71-94` lacking a
-  `socket_timeout`; only `socket_connect_timeout=2` is set, but cumulative
-  retries push wall time well past that. Production unaffected (Redis is
-  available there); dev/staging/CI without Redis lose health-probe usefulness.
+- **B10 [P2]** ✅ FIXED (TIK-37 / Phase 2B audit-2026-04-28) — added
+  `socket_timeout=1.0` to `redis.Redis(...)` in `blueprints/health.py:81`
+  with regression test
+  `tests/test_blueprints.py::test_health_endpoint_redis_client_uses_socket_timeout`
+  asserting both `socket_timeout` and `socket_connect_timeout` are passed
+  with sensible bounds (≤2s).
 - **B11 [P3]** — `app.py` startup banner advertises
   `http_requests_total, http_request_duration_seconds` as default metrics,
   but `/metrics` only emits the duration histogram. Either add the counter
