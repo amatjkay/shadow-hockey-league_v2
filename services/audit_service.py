@@ -286,3 +286,32 @@ def _log_model_change(session: Session, user_id: int, action: str, obj: Any) -> 
 def set_current_user_for_audit(user_id: Optional[int]) -> None:
     """Set current user ID for audit logging in Flask context."""
     g.current_user_id = user_id
+
+
+def register_audit_request_hook(app: Any) -> None:
+    """Wire ``set_current_user_for_audit`` into Flask's request lifecycle.
+
+    Without this hook ``g.current_user_id`` is only ever populated from the
+    test suite, so the ``after_flush`` listener in :func:`setup_audit_events`
+    short-circuits in production and ``audit_logs`` stays empty for every
+    admin CRUD action — see audit-2026-04-28 finding **B9 / TIK-36**.
+
+    The hook reads ``flask_login.current_user`` (already populated by
+    Flask-Login's own ``before_request`` handler) and forwards the
+    authenticated user's id into ``flask.g``. Anonymous requests are a no-op
+    so public read endpoints don't pay the cost of writing audit rows.
+
+    Args:
+        app: Flask application instance. Must have Flask-Login initialised
+            already (i.e. call this after ``init_admin``).
+    """
+    from flask_login import current_user
+
+    @app.before_request
+    def _populate_audit_user() -> None:
+        try:
+            if current_user.is_authenticated:
+                set_current_user_for_audit(int(current_user.get_id()))
+        except Exception as exc:
+            # Never let audit plumbing break a real request: log and move on.
+            logger.warning("Could not set audit user from current_user: %s", exc)
