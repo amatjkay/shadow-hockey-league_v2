@@ -1,5 +1,31 @@
 # Decision Log
 
+## 2026-04-29: Audit-2026-04-28 remediation completed (Phases 2A–3)
+
+**Context**: External audit on 2026-04-28 surfaced 11 deep-probe e2e bugs (B1–B11) plus stale PR/branch debt. Owner approved a phased remediation plan (`docs/audits/audit-2026-04-28-plan.md`) with sequential PRs (one in flight at a time, owner-merged via GitHub UI).
+
+**Decision** — implement and merge:
+
+1. **Phase 2B** (PR #32 / TIK-37 / B10) — `socket_timeout=1.0` on `redis.Redis()` in `blueprints/health.py` so `/health` cannot block for 5–7 s when Redis is degraded. Regression test in `tests/test_blueprints.py`.
+2. **Phase 2B** (PR #33 / TIK-38 / B11) — `/metrics` startup banner now derived from `services/metrics_service` constants (`METRICS_PREFIX` + `DEFAULT_METRIC_SUFFIXES`) so the announce-line cannot drift from `prometheus_flask_exporter`.
+3. **Phase 2C** (PR #34 / TIK-16) — replaces stale PR #16. Single shared `Limiter` instance in `services/extensions.py`, wired via `init_app(app)` with Redis storage in production / memory fallback in dev/test. All 15 API endpoints use `@limiter.limit(...)`. Devin Review caught a seed-data bug in `tests/test_api.py` (TOP1/TOP2/TOP3 base points) — fixed in commit `06dafeb`.
+4. **Phase 2C** (PR #35 / TIK-17) — replaces stale PR #17. New helper `services/scoring_service.py::get_base_points(ach_type, league)` is the only correct way to look up base points. Reads `League.base_points_field` (which honours `parent_code`) so subleagues inherit from parent. Tightened `validation_service` (format regex `^[1-9]\d*(\.\d+)?$` + business rule that L1 is flat).
+5. **Phase 3** (PR #38 / TIK-36 / B9) — `register_audit_request_hook(app)` in `services/audit_service.py`, wired from `app.py::register_extensions` after `init_admin`. The hook is a `@app.before_request` handler that copies `flask_login.current_user.id` into `g.current_user_id`, so the existing `after_flush` listener finally writes to `audit_logs` for admin CRUD. Three regression tests in `tests/integration/test_audit_logging.py::TestAuditRequestHook`.
+
+**Rationale**:
+- Each phase is a separate, sequentially-merged PR — minimises blast radius.
+- Old PR #16 and #17 cherry-picked rather than merged in-place because their base branch (`devin/integration-analyst-fixes`) was abandoned and full of unrelated noise.
+- Owner gates every merge via GitHub UI; agent only opens PRs.
+
+**Status**: All five PRs merged. Phase 4 (linter debt — mypy/flake8 documentation + Linear epics) still pending. See `docs/audits/audit-2026-04-28-plan.md` for full execution table.
+
+**Forward contracts** (do not regress):
+- `services/extensions.py::limiter` is the single Limiter instance for the whole app.
+- `services/scoring_service.py::get_base_points()` is the only entry point for base-points lookup. **Never compare `league.code == "1"` directly.**
+- `register_audit_request_hook(app)` MUST be called from `app.py::register_extensions` after `init_admin`. If removed, `audit_logs` silently stops being written.
+
+---
+
 ## 2026-04-24: Achievement Management Stabilization
 
 **Context**: The manager achievement management was broken due to duplicate UI sections, JS errors, and mandatory model fields missing from the form.

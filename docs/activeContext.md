@@ -7,56 +7,52 @@
 
 ## Current Focus
 
-**Phase:** Pre-prod hardening (post bugfix-pass)
-**Status:** Public pages and admin CRUD verified end-to-end. Three known issues filed (B9 audit-log gap [P1], B10 /health Redis timeout [P2], B11 metrics banner mismatch [P3]).
+**Phase:** Post-audit testing campaign (Phase A → H, started 2026-04-29).
+**Status:** Audit-2026-04-28 remediation Phases 2A/2B/2C/3 all merged. Only Phase 4 (linter debt) remains.
 
-Next milestone: deploy `feature/admin-enhancement` to `main` after a docs refresh, then schedule audit/optimization round to address B9/B10/B11 and the open `devin/integration-analyst-fixes` PR stack (#15/#16/#17/#18).
+Next milestone: complete the post-audit testing campaign (docs sync → Linear sync → test inventory → test optimization → gap analysis → mass run → linter debt → issue capture). Owner approved the full A→G scope plus running e2e (Playwright) on the local VM with Flask + Redis.
 
 ---
 
 ## Status
 
-- **Branch:** `feature/admin-enhancement` (HEAD `1da8d6d`, post PR #23 merge).
-- **Goal:** Land all stabilization work into `main`, then start audit/optimization phase.
-- **Seeding Status:** ✅ 58 achievements (post TIK-30), 42 managers, 5 seasons, baseline 25/26.
+- **Branch:** `main` (HEAD `8a57cdc`, post PR #38 merge).
+- **Goal:** Validate post-fix state via comprehensive testing; feed every finding into Linear.
+- **Seeding Status:** 58 achievements, 42 managers, 5 seasons, baseline 25/26.
 - **Live dev server (when running):** `http://127.0.0.1:5000`.
 
-## Recent Changes (2026-04-27 → 2026-04-28)
+## Recent Changes (2026-04-28 → 2026-04-29)
 
-- **PR #19 (TIK-27/28/29)** — fixed 6 production-impacting bugs found by the user on the live dev:
-  homepage 500 (missing `request` import), Achievement form 500 (`form_args` regression),
-  trophy 404s (`icon_path` pointed to `/icons/` instead of `/cups/`),
-  leaderboard cache key not partitioned by `?season=`, `RatingService.build_leaderboard()` ignored its
-  `season_id` parameter, hard-coded season dropdown.
-- **PR #20 (TIK-30)** — added the 9 missing Shadow 1 League 24/25 awards (Elite TOP1…R1)
-  to `data/seed/achievements.json`; reseeded `dev.db`. Brought lifetime total from 49 → 58.
-- **PR #21 (TIK-31)** — added Playwright smoke suite at `tests/e2e/test_smoke.py` (42 scenarios,
-  excluded from `pytest` auto-collection). Run command lives in PROJECT_KNOWLEDGE.md §5.
-- **PR #22 (TIK-32)** — removed dead jQuery-race-prone Select2 locale-init script
-  from `templates/admin/shl_master.html`; admin console errors now 0.
-- **PR #23** — single rollup of TIK-30/31/32 onto `feature/admin-enhancement` after a
-  stacked-PR base mismatch left the original PRs merging into PR #19's staging branch.
-- **Deep e2e probe (2026-04-28)** — added `/tmp/e2e_artifacts/deep/BUGS.md` documenting B9 (audit
-  log not written in prod), B10 (/health Redis blocking), B11 (metrics banner mismatch). All three
-  pre-existed this branch; surfaced now because the branch is otherwise clean.
+- **PR #31** docs(audit) — analysis + plan + Linear action script for the 2026-04-28 audit. Open; superseded by Phase A docs sync (this branch) which lifts the same artifacts onto current `main` and marks Phases 2A–3 as ✅.
+- **PR #32 (TIK-37 / B10)** ✅ merged — added `socket_timeout=1.0` to `redis.Redis(...)` in `blueprints/health.py:81` + regression test asserting both kwargs.
+- **PR #33 (TIK-38 / B11)** ✅ merged — startup banner now derived from `services/metrics_service` constants (`METRICS_PREFIX` + `DEFAULT_METRIC_SUFFIXES`) so the announce-line cannot drift from what `prometheus_flask_exporter` actually emits.
+- **PR #34 (TIK-16 / rate-limiter)** ✅ merged — replaces #16. Single shared `Limiter` instance in `services/extensions.py`, wired via `init_app(app)` with Redis storage in production and memory fallback in dev/test. All 15 API endpoints now use `@limiter.limit("100 per minute")`. Devin Review caught a seed-data bug in `tests/test_api.py` (TOP1/TOP2/TOP3 base points) — fixed in `06dafeb`.
+- **PR #35 (TIK-17 / scoring)** ✅ merged — replaces #17. New helper `services/scoring_service.py::get_base_points(ach_type, league)` is the single source of truth; reads `League.base_points_field` (which honours `parent_code`) so subleagues like `2.1` correctly inherit `base_points_l2` from the parent. Plus tightened `validation_service` (format regex `^[1-9]\d*(\.\d+)?$` + business rule that L1 is flat).
+- **PR #38 (TIK-36 / B9)** ✅ merged — added `register_audit_request_hook(app)` in `services/audit_service.py` and called it from `app.py::register_extensions` right after `init_admin`. The hook is a `@app.before_request` handler that reads `flask_login.current_user` and forwards the authenticated admin's id into `g.current_user_id`, so the existing `after_flush` listener now actually writes to `audit_logs` for admin CRUD. Three regression tests in `tests/integration/test_audit_logging.py::TestAuditRequestHook`.
+- **2026-04-29 testing campaign** — owner asked for: docs/Linear actualization, test optimization (unit/integration/regression/UI/e2e), mass test run, every issue → Linear. Phase A in flight.
 
 ---
 
 ## Immediate Next Steps
 
-- [x] **[TIK-23–26]** earlier feature roadmap items (duplicate validation, player search, advanced filtering, audit log viz).
-- [x] **[TIK-27–32]** post-PR #19 bugfix pass + e2e suite + Elite 24/25 data + admin Select2 cleanup.
-- [x] **[TIK-33]** docs refresh (this PR).
-- [ ] Merge `feature/admin-enhancement` → `main` (full diff review by user).
-- [ ] Audit / optimization round: address B9 (audit log), B10 (/health performance), B11 (metrics banner).
-- [ ] Decide fate of `devin/integration-analyst-fixes` PR stack (#15 docs sync, #16 Redis-Limiter, #17 base_points unification, #18 transaction-neutral audit) — merge as-is, rewrite onto current `feature/admin-enhancement`, or close.
+- [x] Phase 2A — analysis verifications (T-V-2, T-V-3) committed.
+- [x] Phase 2B — TIK-37 + TIK-38 merged.
+- [x] Phase 2C — rate-limiter (PR #34) + subleague scoring (PR #35) merged.
+- [x] Phase 3 — TIK-36 audit-log wiring merged.
+- [ ] **Phase A (in flight)** — actualize docs (this file + `progress.md` + `techContext.md` + `audit-2026-04-28-plan.md` + `decisionLog.md`).
+- [ ] **Phase B** — sync Linear (close TIK-36/37/38, create epic for the audit).
+- [ ] **Phase C** — test inventory → `docs/audits/test-inventory-2026-04-29.md`.
+- [ ] **Phase D** — test optimization (fixtures dedupe, slow tests, flakies).
+- [ ] **Phase E** — gap analysis vs B1–B11 + new sub-systems.
+- [ ] **Phase F** — mass run including e2e (Playwright on local Flask + Redis).
+- [ ] **Phase G** — linter debt (= audit Phase 4).
+- [ ] **Phase H** — every problem found → Linear ticket.
 
 ---
 
 ## Active Blockers
 
-- None for the docs refresh. Audit-round work (B9/B10/B11) is queued but unstarted, and a user decision is
-  outstanding on the `devin/integration-analyst-fixes` PR stack.
+- None. Phase 4 (linter debt) is the only remaining audit task; everything else is unblocked.
 
 ---
 
@@ -64,18 +60,15 @@ Next milestone: deploy `feature/admin-enhancement` to `main` after a docs refres
 
 - **Flask-Admin compatibility**: Flask-Admin 2.0.2 ships with the `cls=self` fallback in `BaseView._run_view`, and WTForms 3.2.x no longer accepts `allow_blank` on the base `Field`. The previous `utils/patches.py` shim is therefore obsolete and was removed in TIK-34. If a future upgrade re-introduces the incompatibility, restore the patch and call it from `create_app()` before `init_admin(app)`.
 - **Admin JS**: Shared logic is in `static/js/admin/autofill.js`.
+- **Rate limiting**: shared `Limiter` lives in `services/extensions.py`. Both `app.py` (`@app.before_request`-style protection of the admin login form) and `services/api.py` (15 API endpoints) use it. Storage is Redis in production, in-memory in dev/test.
+- **Subleague scoring**: always go through `services/scoring_service.py::get_base_points(ach_type, league)` — never compare `league.code == "1"` directly. The helper reads `League.base_points_field`, which respects `parent_code` so subleagues `2.1`/`2.2` inherit `base_points_l2` from parent `2`.
+- **Audit log**: `register_audit_request_hook(app)` is wired in `app.py::register_extensions`. It populates `g.current_user_id` from `flask_login.current_user` so the existing `after_flush` listener writes to `audit_logs` for admin CRUD. `audit_service.log_action()` is still the explicit API used by `services/recalc_service.py` for non-CRUD events.
 - **Testing**:
-  - Unit/integration: `venv/bin/pytest --ignore=tests/e2e`. ~1 minute, expect 388 pass / 3 pre-existing failures.
+  - Unit/integration: `venv/bin/pytest --ignore=tests/e2e`. ~70s, expect ~402 pass.
   - Smoke e2e: requires a running dev server; see PROJECT_KNOWLEDGE.md §5 for the exact command.
-  - Deep probe: `/tmp/deep_e2e.py` (one-shot diagnostic; not committed). Use as a template for new
-    audit checks.
-- **Database**: `dev.db` is the primary SQLite database; schema checks via the `sqlite` MCP server
-  are recommended before any mutation. After `seed_db.py --force` season `id`s start at 1 (21/22).
-- **Audit-log gap (B9)**: keep this in mind when working on admin features — currently no audit
-  rows are written from production code, even though the listener and tables are in place.
-- **Cache key**: any new `@cache.cached` decorator that varies by query-string MUST use a callable
-  `key_prefix` (see `blueprints/main.py::index`).
+- **Database**: `dev.db` is the primary SQLite database; schema checks via the `sqlite` MCP server are recommended before any mutation.
+- **Cache key**: any new `@cache.cached` decorator that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`).
 
 ---
 
-_Last updated: 2026-04-28_
+_Last updated: 2026-04-29 — Phase A docs sync._
