@@ -16,7 +16,7 @@ Linear tracker: **TIK-41** (post-audit campaign 2026-04-29).
 | Integration |   10  |     134  |  3264 | Real Flask app + SQLite/in-memory DB         |
 | Regression  |  (★) |       7  |  (mixed) | Tests that pin a specific audit/B-bug fix; counted once in their owning category and listed in §3 |
 | E2E (browser)|   1  |       0  |   464 | `tests/e2e/test_smoke.py` (Playwright, 42 scenarios). Opt-in only; **0 auto-collectable** because `tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]` |
-| Broken/script|   1  |       0  |    41 | `tests/test_metrics.py` — top-level prints, no test fns. Removed in Phase D. |
+| Broken/script|   1  |       0  |    41 | `tests/test_metrics.py` — top-level prints, no test fns. Rewritten as proper pytest module in Phase D (per AGENTS.md §2: never delete test files). |
 | **Auto-collectable total** | **24** | **402** | **6694** | matches `pytest --collect-only -q tests/` and the 2026-04-29 baseline run: **402 passed, 1916 warnings, 82.26s** |
 
 (★) Regression tests live inside the Unit/Integration files; counted once
@@ -73,7 +73,7 @@ in their owning category and listed separately in §3 below.
 
 | File | Symptom |
 |---|---|
-| `tests/test_metrics.py` | Top-level `print()` script style; **0 collected tests**. Should be deleted or rewritten as a proper pytest module. Tracked under Phase D. |
+| `tests/test_metrics.py` | Top-level `print()` script style; **0 collected tests**. Rewritten as a proper pytest module in Phase D (per AGENTS.md §2: never delete test files). |
 
 ---
 
@@ -102,7 +102,8 @@ audit-2026-04-28 bugs from re-appearing.
    Playwright opt-in run.
 2. **`tests/test_metrics.py` is not a test** — it's a `print()` script left over
    from migration. Yields 0 collectable tests, contributes to `pytest`
-   warnings. Either rewrite as `def test_metrics_singleton_*()` or delete.
+   warnings. Rewrite as `def test_metrics_singleton_*()` (per AGENTS.md §2:
+   never delete test files).
 3. **`tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]`** — the
    Playwright suite is intentionally hidden from auto-collection. Only `BASE_URL`
    + admin creds in env trigger it. This is by design (see `PROJECT_KNOWLEDGE.md`
@@ -126,7 +127,7 @@ audit-2026-04-28 bugs from re-appearing.
 
 ## 5. What Phase D will change (forward-looking)
 
-1. Delete or rewrite `tests/test_metrics.py`.
+1. Rewrite `tests/test_metrics.py` as a proper pytest module (e.g. `def test_metrics_singleton()`). Per AGENTS.md §2, do not delete the file.
 2. Move `tests/test_e2e.py` → `tests/integration/test_page_rendering.py` (rename,
    no logic change) and update imports.
 3. Consolidate `seeded_db` / `admin_user` / `app_context` fixtures into the
@@ -186,7 +187,7 @@ Warnings break down to 4 distinct sources but ~1900 occurrences:
 2. F-2 — investigate `seed_service.force=True` path; either fix the autoflush conflict or wrap in `no_autoflush`. Add explicit assertion that the identity map is empty after `_clear_all_tables`.
 3. F-3 — replace `open(path)` with `with open(path)` in `tests/test_e2e.py:127`.
 4. F-4 — replace `Query.get()` with `Session.get()` in the test.
-5. F-5 — delete `tests/test_metrics.py` (its assertions are duplicated by metrics-related integration tests in `test_blueprints.py`); or rewrite as `def test_metrics_singleton()`.
+5. F-5 — rewrite `tests/test_metrics.py` as `def test_metrics_singleton()` (its current `print()`-style assertions are duplicated by metrics-related integration tests in `test_blueprints.py`, but per AGENTS.md §2 the file must not be deleted).
 6. F-6, F-7 — Phase E gap tests.
 
 ---
