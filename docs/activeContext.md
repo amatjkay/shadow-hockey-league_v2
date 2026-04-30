@@ -7,8 +7,8 @@
 
 ## Current Focus
 
-**Phase:** Post-audit testing campaign (Phase A → H, started 2026-04-29).
-**Status:** Audit-2026-04-28 remediation Phases 2A/2B/2C/3 all merged. Only Phase 4 (linter debt) remains.
+**Phase:** Token-efficiency pass (2026-04-30) + post-audit testing campaign (Phase A → H, started 2026-04-29).
+**Status:** Audit-2026-04-28 remediation Phases 2A/2B/2C/3 all merged. Only Phase 4 (linter debt) remains. Token-efficiency PR open — see `docs/progress.md` for the changeset.
 
 Next milestone: complete the post-audit testing campaign (docs sync → Linear sync → test inventory → test optimization → gap analysis → mass run → linter debt → issue capture). Owner approved the full A→G scope plus running e2e (Playwright) on the local VM with Flask + Redis.
 

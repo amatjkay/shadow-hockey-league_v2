@@ -1,5 +1,54 @@
 # Decision Log
 
+## 2026-04-30: Token-efficiency pass
+
+**Context**: Owner asked to "make the system efficient and consume fewer tokens
+in requests/responses". The repo was loading 505 MB / 18 178 vendored MCP files
+into git and ~3 000 lines of duplicated agent-context docs into every AI
+session, and HTTP responses were uncompressed.
+
+**Decision**:
+
+1. **Stop tracking `mcp-servers/` in git** (already in `.gitignore`, was
+   committed before that). Cuts agent search/index noise drastically.
+2. **`AGENTS.md` becomes the single source of agent rules.** `.antigravityrules`
+   reduced to a thin pointer file. Docs split into "always-on / on-demand /
+   archive" via `docs/INDEX.md`. `docs/audits/*` and pre-2026-04-29 `progress.md`
+   sections moved under `docs/archive/`.
+3. **HTTP responses compressed at the framework level**: `Flask-Compress`
+   (br + gzip, level 6, ≥500 B) wired in `app.py::register_extensions`.
+   Skipped in `TESTING` so unit tests stay byte-comparable.
+4. **JSON minified in production**: `JSONIFY_PRETTYPRINT_REGULAR=False`,
+   `JSON_SORT_KEYS=False` on `ProductionConfig`.
+5. **Static assets cached for 1 year**: `SEND_FILE_MAX_AGE_DEFAULT=31_536_000`
+   on `ProductionConfig`. Bust by editing the asset path / hash.
+6. **Optional client-side field selection**: `?fields=id,name,...` on any
+   paginated `/api/*` listing endpoint. `id` is always preserved. Fully
+   opt-in (no default change).
+7. **N+1 fixes** on three hot listing endpoints (`/api/managers`,
+   `/api/managers/<id>`, `/api/achievements`) via `joinedload` /
+   `selectinload`.
+
+**Rationale**:
+- AI-agent context files and the 18 178-file `mcp-servers/` dump were the
+  largest hidden cost — every grep/list/index pulled them.
+- Framework-level HTTP compression beats per-endpoint shrinkage and is safe
+  to enable globally because the mimetype allow-list excludes already-compressed
+  formats.
+- `?fields=` is opt-in so existing clients are unaffected.
+- The N+1 fixes are pure performance; serialisation output is byte-identical.
+
+**Forward contracts** (do not regress):
+- `Flask-Compress` MUST stay disabled in `TESTING` (otherwise `response.data`
+  in test clients comes back as compressed bytes and assertions break).
+- `mcp-servers/` MUST remain in `.gitignore`. Don't `git add mcp-servers/`.
+- `paginate_query` is the canonical pagination helper. New listing endpoints
+  should go through it so they pick up `?fields=` for free.
+
+**Status**: PR open against `main`. CI must pass before merge.
+
+---
+
 ## 2026-04-29: Audit-2026-04-28 remediation completed (Phases 2A–3)
 
 **Context**: External audit on 2026-04-28 surfaced 11 deep-probe e2e bugs (B1–B11) plus stale PR/branch debt. Owner approved a phased remediation plan (`docs/audits/audit-2026-04-28-plan.md`) with sequential PRs (one in flight at a time, owner-merged via GitHub UI).
