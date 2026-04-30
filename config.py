@@ -32,6 +32,22 @@ class Config:
     TEMPLATES_FOLDER = "templates"
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
+    # Response payload optimisation (token-efficiency).
+    # Flask-Compress: gzip/brotli for HTML+JSON. Skip already-compressed types.
+    COMPRESS_MIMETYPES = [
+        "text/html",
+        "text/css",
+        "text/xml",
+        "text/plain",
+        "application/json",
+        "application/javascript",
+        "application/xml",
+        "image/svg+xml",
+    ]
+    COMPRESS_LEVEL = 6
+    COMPRESS_MIN_SIZE = 500  # don't bother compressing tiny responses
+    COMPRESS_ALGORITHM = ["br", "gzip"]
+
     # CSRF Protection (Этап 3.1)
     WTF_CSRF_ENABLED = True
     WTF_CSRF_SECRET_KEY = (
@@ -87,6 +103,16 @@ class ProductionConfig(Config):
     LOG_TO_FILE = True
     ENABLE_API = True  # Этап 5: API включено с аутентификацией
     API_KEY_SECRET = os.environ.get("API_KEY_SECRET") or "api-key-secret-change-in-production"
+
+    # Response-byte optimisation.
+    # 1. Strip pretty-print + spaces from JSON (default in dev for readability).
+    JSONIFY_PRETTYPRINT_REGULAR = False
+    JSON_SORT_KEYS = False
+    # 2. Allow Flask-Compress to produce smaller bodies (br > gzip).
+    COMPRESS_LEVEL = 6
+    # 3. Long-lived cache for /static (icons, CSS, JS): 1 year. Bust via
+    #    versioned/hashed URLs (or by editing the static file path).
+    SEND_FILE_MAX_AGE_DEFAULT = 31_536_000  # 1 year
 
 
 class TestingConfig(Config):

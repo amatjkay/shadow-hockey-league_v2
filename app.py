@@ -170,6 +170,22 @@ def register_extensions(app: Flask) -> None:
     # Initialize SQLAlchemy with app
     db.init_app(app)
 
+    # Response compression (gzip/brotli) — reduces JSON/HTML payload bytes.
+    # Disabled in TESTING so test_client responses stay byte-comparable.
+    if not app.config.get("TESTING"):
+        try:
+            from flask_compress import Compress
+
+            Compress(app)
+            app.logger.info(
+                "Flask-Compress initialized (algorithms=%s)",
+                app.config.get("COMPRESS_ALGORITHM", ["br", "gzip"]),
+            )
+        except ImportError:
+            app.logger.warning(
+                "Flask-Compress not installed; HTTP responses will not be compressed"
+            )
+
     # Initialize CSRF protection (Этап 3.1)
     if not app.config.get("TESTING"):
         from flask_wtf.csrf import CSRFProtect

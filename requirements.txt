@@ -32,6 +32,9 @@ WTForms>=3.0.0
 # API Authentication & Rate Limiting ( Этап 5 )
 Flask-Limiter>=3.5.0
 
+# HTTP Response Compression (gzip/brotli) — reduces JSON/HTML payload bytes
+Flask-Compress>=1.14
+
 # Testing ( Этап 6: Pytest for CI/CD )
 pytest>=7.0.0
 pytest-cov>=4.0.0
