@@ -113,7 +113,7 @@ class TestAuditLoggingIntegration:
             # Simulate SecureModelView update (which logs changes)
             from services.admin import CountryModelView
 
-            view = CountryModelView(Country, db.session)
+            view = CountryModelView(Country, db)
 
             # Create a mock form with proper field objects supporting .data access
             class MockField:
@@ -172,7 +172,7 @@ class TestAuditLoggingIntegration:
             # Delete through SecureModelView (this triggers audit logging)
             from services.admin import CountryModelView
 
-            view = CountryModelView(Country, db.session)
+            view = CountryModelView(Country, db)
             view.delete_model(country)
 
             # Check audit log

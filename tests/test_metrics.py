@@ -1,41 +1,53 @@
-#!/usr/bin/env python
-"""Test metrics service.
+"""Test metrics service singleton behaviour.
 
-Migrated from test_metrics.py
+Refactored from a module-level `print()` script into proper pytest tests.
+The original file executed `create_app()` three times at import time, which
+ran during pytest collection and polluted the test session. See PR #41
+(Phase D) for the cleanup context.
 """
+
+from __future__ import annotations
+
+import pytest
 
 from app import create_app
 from services.metrics_service import get_metrics, reset_metrics
 
-# Reset for clean test
-reset_metrics()
 
-print("=" * 50)
-print("METRICS SERVICE TEST")
-print("=" * 50)
+@pytest.fixture(autouse=True)
+def _reset_metrics_singleton():
+    """Ensure each test starts with a fresh metrics singleton."""
+    reset_metrics()
+    yield
+    reset_metrics()
 
-# First app creation
-app1 = create_app()
-metrics1 = get_metrics()
-print(f"\n1. First app created:")
-print(f"   Metrics instance: {'OK - Initialized' if metrics1 else 'FAIL - Not initialized'}")
 
-# Second app creation (should reuse singleton)
-app2 = create_app()
-metrics2 = get_metrics()
-print(f"\n2. Second app created:")
-print(
-    f"   Metrics instance: {'OK - Reused singleton' if metrics2 is metrics1 else 'FAIL - New instance'}"
-)
+class TestMetricsSingleton:
+    """Verify `get_metrics()` returns a singleton across `create_app()` calls."""
 
-# Third app creation
-app3 = create_app()
-metrics3 = get_metrics()
-print(f"\n3. Third app created:")
-print(
-    f"   Metrics instance: {'OK - Reused singleton' if metrics3 is metrics1 else 'FAIL - New instance'}"
-)
+    def test_first_app_initializes_metrics(self) -> None:
+        """First `create_app()` must initialize the metrics singleton."""
+        create_app("config.TestingConfig")
+        metrics = get_metrics()
+        assert metrics is not None, "Metrics singleton not initialized after first create_app()"
 
-print("\n" + "=" * 50)
-print("OK - No warnings about duplicate endpoints!")
-print("=" * 50)
+    def test_second_app_reuses_singleton(self) -> None:
+        """Second `create_app()` must reuse the same metrics instance."""
+        create_app("config.TestingConfig")
+        metrics1 = get_metrics()
+        create_app("config.TestingConfig")
+        metrics2 = get_metrics()
+        assert metrics2 is metrics1, "Second create_app() created a new metrics instance"
+
+    def test_third_app_reuses_singleton(self) -> None:
+        """Third `create_app()` must still reuse the original metrics instance.
+
+        Regression guard against the duplicate-endpoint warnings that motivated
+        the singleton pattern in `services/metrics_service.py`.
+        """
+        create_app("config.TestingConfig")
+        metrics1 = get_metrics()
+        create_app("config.TestingConfig")
+        create_app("config.TestingConfig")
+        metrics3 = get_metrics()
+        assert metrics3 is metrics1, "Third create_app() did not reuse the singleton"
