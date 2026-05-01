@@ -8,7 +8,6 @@ mcp-servers/
 .env.local
 instance/
 *.db
-!dev.db
 
 # Caching
 __pycache__/

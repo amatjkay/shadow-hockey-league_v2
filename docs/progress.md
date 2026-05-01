@@ -3,6 +3,25 @@
 > **Purpose:** Living document tracking completed work, in-progress tasks, and blockers.
 > All agents MUST update this before ending their turn.
 
+## 2026-05-01: Repo hygiene PR (token-efficiency follow-up)
+
+### Completed
+- [x] Untracked `mcp-servers/` (18 178 files) via `git rm -r --cached`. Files remain on disk; reinstate via new `make mcp-install` target.
+- [x] Untracked `dev.db` and `.env`; dropped the `!dev.db` exception from `.gitignore`.
+- [x] Added `make mcp-install` target to `Makefile` for reproducible MCP-server install.
+- [x] ADR appended to `docs/decisionLog.md` ("2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env").
+
+### In Progress
+- [ ] PR B (subagents + skills + `docs/INDEX.md`) — adds `token-auditor`, `doc-curator`, and skills `token-budget`, `doc-rotation`, `codebase-map`; commits prompt v2.0 + few-shot under `.agents/prompts/`.
+
+### Blockers
+- [!] **Secret rotation required** — values that lived in the tracked `.env` (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `GEMINI_API_KEY`, plus Redis host/port) are in public Git history. Untracking does not rewrite history. Owner must:
+  1. Rotate `GEMINI_API_KEY` at Google AI Studio.
+  2. Generate fresh `SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET` (any 32+ char random) and replace in the local `.env`.
+  3. Decide whether to run `git filter-repo` to scrub history (irreversible, breaks any open forks/PRs).
+
+---
+
 ## 2026-04-27: Analyst Audit — Documentation & Security
 
 ### Completed
