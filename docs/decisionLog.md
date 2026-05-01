@@ -1,5 +1,37 @@
 # Decision Log
 
+## 2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env
+
+**Context**: Despite `.gitignore` listing `mcp-servers/`, `*.db`, and `.env`, all three were still tracked in `main`:
+- `mcp-servers/` — 18 178 files / ~505 MB of Node dependencies committed in `cbf3f48`.
+- `dev.db` — 155 KB SQLite snapshot kept tracked via the explicit `!dev.db` exception in `.gitignore`.
+- `.env` — committed alongside the initial repo despite `.env` being gitignored on its own line.
+
+This contradicts the prior 2026-04-23 ADR ("Removal of mcp-servers from Git") and the 2026-04-21 commit `5ffe365` ("chore(security): untrack .env and vendored mcp-servers"). Both attempts left main in the same state — vendored deps + dev DB + `.env` tracked. Dangling commit `d1361f2` re-did the untrack on 2026-04-30 but never landed on `main`.
+
+**Decision**: One consolidated PR removes all three from version control via `git rm --cached` (files stay on disk for active dev environments), drops the `!dev.db` exception, and adds `make mcp-install` so contributors can reinstate `mcp-servers/` locally via `npm install`.
+
+**Rationale**:
+- `mcp-servers/` is `node_modules`-like — must be reproducible from a manifest, not vendored. Tracked vendoring inflates clone size, slows `git status`/`grep`/`find`, and pollutes every agent's context window.
+- `dev.db` is a local development artifact; reproducible from `make seed-db`.
+- `.env` is a secret store. Values currently in the file (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `GEMINI_API_KEY`, plus Redis host/port) MUST be treated as **compromised** since they have lived in public Git history since the initial commit. **Action required: rotate every secret in `.env` before/after this PR merges.** New values go into a fresh local `.env` (template lives in `.env.example`).
+
+**Implementation**:
+1. `git rm -r --cached mcp-servers/` (18 178 files removed from tracking; on-disk copies untouched).
+2. `git rm --cached dev.db .env`.
+3. `.gitignore`: drop `!dev.db` exception.
+4. `Makefile`: add `mcp-install` target that runs `npm install` inside `mcp-servers/` when a `package.json` exists.
+5. ADR (this entry) and `docs/progress.md` updated per Memory Bank protocol.
+
+**Status**: Implemented in PR `devin/<ts>-repo-hygiene`.
+
+**Forward contracts**:
+- Never re-add `mcp-servers/` to tracking. Reinstall via `make mcp-install` (or `cd mcp-servers && npm install`).
+- Never re-add `dev.db`. Recreate via `make init-db`.
+- Never commit `.env`. Use `.env.example` as the only template.
+
+---
+
 ## 2026-04-29: Audit-2026-04-28 remediation completed (Phases 2A–3)
 
 **Context**: External audit on 2026-04-28 surfaced 11 deep-probe e2e bugs (B1–B11) plus stale PR/branch debt. Owner approved a phased remediation plan (`docs/audits/audit-2026-04-28-plan.md`) with sequential PRs (one in flight at a time, owner-merged via GitHub UI).
