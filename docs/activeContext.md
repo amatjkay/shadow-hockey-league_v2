@@ -72,3 +72,14 @@ Next milestone: complete the post-audit testing campaign (docs sync → Linear s
 ---
 
 _Last updated: 2026-04-29 — Phase A docs sync._
+
+---
+
+## Next: agents+skills (PR B)
+
+After repo-hygiene PR lands, follow up with:
+- `.agents/agents/{token-auditor,doc-curator}.md`
+- `.agents/skills/{token-budget,doc-rotation,codebase-map}/SKILL.md`
+- `.agents/prompts/{shl-optimizer,shl-optimizer.fewshot}.md`
+- `docs/INDEX.md`
+- Update `AGENTS.md §3` to register the two new sub-agent roles.
