@@ -86,9 +86,7 @@
 
 ## Few-shot
 
-```
-@include .agents/prompts/shl-optimizer.fewshot.md
-```
+> Loaded lazily via `@include` in Instructions §4 above. Do not duplicate here.
 
 ## Input
 
