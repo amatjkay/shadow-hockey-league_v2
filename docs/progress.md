@@ -3,6 +3,27 @@
 > **Purpose:** Living document tracking completed work, in-progress tasks, and blockers.
 > All agents MUST update this before ending their turn.
 
+## 2026-05-01: Sub-agents + skills + prompt v2.0 (token-efficiency follow-up)
+
+### Completed
+- [x] `.agents/agents/token-auditor.md` — new sub-agent for finding token waste in repo, prompts, Memory Bank.
+- [x] `.agents/agents/doc-curator.md` — new sub-agent for `progress.md` / `decisionLog.md` rotation.
+- [x] `.agents/skills/token-budget/SKILL.md` — token-cost heuristics + lazy-load patterns.
+- [x] `.agents/skills/doc-rotation/SKILL.md` — quarterly archive workflow with safety rules.
+- [x] `.agents/skills/codebase-map/SKILL.md` — `grep -n` recipes for heavy files (admin_api, api, admin services).
+- [x] `.agents/prompts/shl-optimizer.prompt.md` — SHL-OPTIMIZER prompt v2.0 (parametrized via `{{PROJECT_FACTS}}`).
+- [x] `.agents/prompts/shl-optimizer.fewshot.md` — one example per role; loaded lazily on first activation.
+- [x] `docs/INDEX.md` — single read-trigger map for `docs/*` so agents avoid full-file reads.
+- [x] `AGENTS.md` §3 updated — new sub-agents registered with role-files, NOT-DO constraints, hand-off protocol entries; new "Skills" sub-section listing all 7 skills.
+
+### In Progress
+- [ ] None — awaiting owner review of PR B.
+
+### Blockers
+- [ ] None for this PR. (Secret-rotation blocker tracked in companion repo-hygiene PR #44.)
+
+---
+
 ## 2026-04-27: Analyst Audit — Documentation & Security
 
 ### Completed
