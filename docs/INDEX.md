@@ -23,8 +23,8 @@
 | `docs/AI_WORKFLOW.md` | Decomposing a complex multi-step task. |
 | `docs/GITHUB_CLI.md` | Need a less-common `gh` command. |
 | `docs/TROUBLESHOOTING.md` | Investigating a bug or environmental flake. |
-| `docs/decisionLog.md` | About to make (or look up) a non-trivial design decision. |
-| `docs/progress.md` | Need recent progress / open work items. |
+| `docs/decisionLog.md` | About to make (or look up) a non-trivial design decision. Use `tail -5` or grep by date — never read whole. |
+| `docs/progress.md` | Need recent progress / open work items. Use `tail -50` — never read whole. |
 
 ## Archive (do NOT auto-load)
 
@@ -32,6 +32,7 @@
 
 - `docs/archive/audits/` — past audit artefacts (analysis, plans, inventories).
   Reference only when explicitly asked.
+- `docs/archive/progress-pre-2026-04-29.md` — pre-cycle progress entries.
 
 ## Conventions
 
@@ -39,3 +40,8 @@
   under `docs/archive/<year-month>/...`.
 - Active docs (`activeContext.md`, `progress.md`) keep only the **current**
   cycle. Older sections are moved to `docs/archive/` as they age out.
+
+## Forbidden full-read
+
+`progress.md`, `decisionLog.md`, `API.md`, `mcp-servers/**` — never read whole;
+use `grep -n` + line ranges or the `codebase-map` / `token-budget` skills.

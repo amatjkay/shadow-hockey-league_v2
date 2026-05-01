@@ -49,6 +49,81 @@ session, and HTTP responses were uncompressed.
 
 ---
 
+## 2026-05-01: Sub-agents + skills + SHL-OPTIMIZER prompt v2.0
+
+**Context**: Token-economy audit of the project surfaced three structural sources of waste — heavy Memory Bank files read whole every turn (`docs/progress.md` 258 lines, `docs/decisionLog.md` 150 lines, `docs/API.md` 590 lines), the three biggest source modules read whole rather than indexed (`blueprints/admin_api.py` 893, `services/api.py` 861, `services/admin.py` 635), and duplicated coding-standards rules across `AGENTS.md` / `.antigravityrules` / `PROJECT_KNOWLEDGE.md` / `docs/techContext.md`. The pre-existing role topology (`architect`, `coder`, `reviewer`) had no role responsible for finding or fixing this waste, and no skill catalog covered "how to read a heavy file without reading the whole thing."
+
+**Decision** — implement all of:
+
+1. **Two new sub-agents** under `.agents/agents/`:
+   - `token-auditor` — finds token waste in repo, prompts, Memory Bank. Read-only with respect to source code; allowed edits limited to `.gitignore`, `Makefile`, `docs/INDEX.md`, Memory Bank, `.agents/prompts/`.
+   - `doc-curator` — rotates `progress.md` / `decisionLog.md` entries older than ~30 days into `docs/archive/<period>.md`. Verbatim move-only; no rewording or content deletion; preserves ADR forward-contracts.
+
+2. **Three new skills** under `.agents/skills/`:
+   - `token-budget` — token-cost heuristics (tokens/line per artefact type) + lazy-load patterns + per-call self-check before reading any file > 200 lines.
+   - `doc-rotation` — quarterly archive workflow with safety rules and rollback via `git revert`.
+   - `codebase-map` — `grep -n '^def\|^class'` recipes + `sed -n 'A,Bp'` read-window pattern; replaces full-file reads of the three heaviest modules.
+
+3. **SHL-OPTIMIZER prompt v2.0** under `.agents/prompts/`:
+   - `shl-optimizer.prompt.md` — single role-router with three robustness guards (empty/garbage input, unknown-task classification, multi-role requests). Parametrized via `{{PROJECT_FACTS}}` so the same skeleton applies to other Flask projects.
+   - `shl-optimizer.fewshot.md` — one example per role; loaded lazily on first activation per session via `@include` in Instructions §4 (NOT inlined into the system prompt every turn).
+
+4. **`docs/INDEX.md`** — single read-trigger map for `docs/*` plus the Memory Bank files. Tells agents which file to read for which trigger and the recommended `head`/`tail`/`grep` cap. The "forbidden full-read" list covers `progress.md`, `decisionLog.md`, `API.md`, and `mcp-servers/**`.
+
+5. **`AGENTS.md` §3 amendments** — roles table extended with the two new sub-agents and a "Detailed role file" column; NOT-DO constraints added; Handoff Protocol entries plug the new roles into the existing `architect → coder → reviewer` flow; new "Skills" sub-section listing all 7 skills (4 existing + 3 new).
+
+**Rationale**:
+
+- Two new roles instead of extending existing ones because both have *read-only-with-respect-to-source* constraints that don't fit the existing `coder`/`reviewer` mandate. Mixing them risks accidental source rewrites under "let coder also do token cleanup".
+- Lazy `@include` of fewshot (rather than inline) avoids paying the ~1.6k-token cost of fewshot examples on every turn when only one role is active.
+- Move-only rotation (no rewording) ensures historical record stays auditable; ADR forward-contracts can be referenced years later without "we summarised it" loss.
+- `docs/INDEX.md` as a read-trigger map is the smallest possible thing that lets agents avoid full-file reads of the heavy docs.
+- `{{PROJECT_FACTS}}` parametrization separates project-specific facts (stack, sources of truth, invariants) from the generic role-router skeleton, so the same prompt can be reused on other Flask projects with a single replacement.
+
+**Status**: Implemented in PR #45. Companion to PR #44 (repo-hygiene) but mergeable independently.
+
+**Forward contracts** (do not regress):
+
+- `shl-optimizer.fewshot.md` MUST be loaded only via `@include` from Instructions §4 of `shl-optimizer.prompt.md` — never inlined into the system prompt and never duplicated in the `## Few-shot` section of the prompt file.
+- `docs/archive/<period>.md` is the **only** destination for rotated `progress.md` / `decisionLog.md` entries. Never `git rm` historical records.
+- `docs/INDEX.md` MUST be updated whenever an archive file is added under `docs/archive/`.
+- `token-auditor` and `doc-curator` MUST NOT modify source code or test files. If a token-waste fix requires source/test changes, hand off to `coder`.
+- `progress.md`, `decisionLog.md`, `docs/API.md`, and `mcp-servers/**` are on the `forbidden_full_read` list — agents must use `grep -n` + section-only reads.
+
+---
+
+## 2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env
+
+**Context**: Despite `.gitignore` listing `mcp-servers/`, `*.db`, and `.env`, all three were still tracked in `main`:
+- `mcp-servers/` — 18 178 files / ~505 MB of Node dependencies committed in `cbf3f48`.
+- `dev.db` — 155 KB SQLite snapshot kept tracked via the explicit `!dev.db` exception in `.gitignore`.
+- `.env` — committed alongside the initial repo despite `.env` being gitignored on its own line.
+
+This contradicts the prior 2026-04-23 ADR ("Removal of mcp-servers from Git") and the 2026-04-21 commit `5ffe365` ("chore(security): untrack .env and vendored mcp-servers"). Both attempts left main in the same state — vendored deps + dev DB + `.env` tracked. Dangling commit `d1361f2` re-did the untrack on 2026-04-30 but never landed on `main`.
+
+**Decision**: One consolidated PR removes all three from version control via `git rm --cached` (files stay on disk for active dev environments), drops the `!dev.db` exception, and adds `make mcp-install` so contributors can reinstate `mcp-servers/` locally via `npm install`.
+
+**Rationale**:
+- `mcp-servers/` is `node_modules`-like — must be reproducible from a manifest, not vendored. Tracked vendoring inflates clone size, slows `git status`/`grep`/`find`, and pollutes every agent's context window.
+- `dev.db` is a local development artifact; reproducible from `make seed-db`.
+- `.env` is a secret store. Values currently in the file (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `GEMINI_API_KEY`, plus Redis host/port) MUST be treated as **compromised** since they have lived in public Git history since the initial commit. **Action required: rotate every secret in `.env` before/after this PR merges.** New values go into a fresh local `.env` (template lives in `.env.example`).
+
+**Implementation**:
+1. `git rm -r --cached mcp-servers/` (18 178 files removed from tracking; on-disk copies untouched).
+2. `git rm --cached dev.db .env`.
+3. `.gitignore`: drop `!dev.db` exception.
+4. `Makefile`: add `mcp-install` target that runs `npm install` inside `mcp-servers/` when a `package.json` exists.
+5. ADR (this entry) and `docs/progress.md` updated per Memory Bank protocol.
+
+**Status**: Implemented in PR `devin/<ts>-repo-hygiene`.
+
+**Forward contracts**:
+- Never re-add `mcp-servers/` to tracking. Reinstall via `make mcp-install` (or `cd mcp-servers && npm install`).
+- Never re-add `dev.db`. Recreate via `make init-db`.
+- Never commit `.env`. Use `.env.example` as the only template.
+
+---
+
 ## 2026-04-29: Audit-2026-04-28 remediation completed (Phases 2A–3)
 
 **Context**: External audit on 2026-04-28 surfaced 11 deep-probe e2e bugs (B1–B11) plus stale PR/branch debt. Owner approved a phased remediation plan (`docs/audits/audit-2026-04-28-plan.md`) with sequential PRs (one in flight at a time, owner-merged via GitHub UI).

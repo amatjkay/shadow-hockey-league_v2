@@ -60,17 +60,17 @@ def init_admin(app: Flask) -> None:
     )
 
     # Add model views
-    admin.add_view(CountryModelView(Country, db.session, category="Core"))
-    admin.add_view(ManagerModelView(Manager, db.session, category="Core"))
-    admin.add_view(AchievementModelView(Achievement, db.session, category="Data"))
+    admin.add_view(CountryModelView(Country, db, category="Core"))
+    admin.add_view(ManagerModelView(Manager, db, category="Core"))
+    admin.add_view(AchievementModelView(Achievement, db, category="Data"))
 
-    admin.add_view(AchievementTypeModelView(AchievementType, db.session, category="Reference"))
-    admin.add_view(LeagueModelView(League, db.session, category="Reference"))
-    admin.add_view(SeasonModelView(Season, db.session, category="Reference"))
+    admin.add_view(AchievementTypeModelView(AchievementType, db, category="Reference"))
+    admin.add_view(LeagueModelView(League, db, category="Reference"))
+    admin.add_view(SeasonModelView(Season, db, category="Reference"))
 
-    admin.add_view(AuditLogModelView(AuditLog, db.session, category="System"))
-    admin.add_view(ApiKeyModelView(ApiKey, db.session, category="System"))
-    admin.add_view(AdminUserModelView(AdminUser, db.session, category="System"))
+    admin.add_view(AuditLogModelView(AuditLog, db, category="System"))
+    admin.add_view(ApiKeyModelView(ApiKey, db, category="System"))
+    admin.add_view(AdminUserModelView(AdminUser, db, category="System"))
 
 
 # ==================== Auth & Index ====================

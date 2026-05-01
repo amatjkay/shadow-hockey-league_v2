@@ -1,4 +1,4 @@
-.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup
+.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install
 
 # ==============================================================================
 # INSTALLATION
@@ -14,6 +14,14 @@ install:
 # Install development dependencies
 dev: install
 	$(VENV_BIN)pip install -r requirements-dev.txt
+
+# Install MCP server packages locally (replaces vendored mcp-servers/ that used to be tracked)
+mcp-install:
+	@if [ ! -f mcp-servers/package.json ]; then \
+		echo "mcp-servers/package.json not found; skipping (run npm init -y in mcp-servers/ first)"; \
+		exit 0; \
+	fi
+	cd mcp-servers && npm install --no-audit --no-fund
 
 # ==============================================================================
 # TESTING

@@ -5,7 +5,47 @@
 >
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md`.
 
-## Token-efficiency pass (2026-04-30)
+## 2026-05-01: Sub-agents + skills + prompt v2.0 (token-efficiency follow-up)
+
+### Completed
+- [x] `.agents/agents/token-auditor.md` — new sub-agent for finding token waste in repo, prompts, Memory Bank.
+- [x] `.agents/agents/doc-curator.md` — new sub-agent for `progress.md` / `decisionLog.md` rotation.
+- [x] `.agents/skills/token-budget/SKILL.md` — token-cost heuristics + lazy-load patterns.
+- [x] `.agents/skills/doc-rotation/SKILL.md` — quarterly archive workflow with safety rules.
+- [x] `.agents/skills/codebase-map/SKILL.md` — `grep -n` recipes for heavy files (admin_api, api, admin services).
+- [x] `.agents/prompts/shl-optimizer.prompt.md` — SHL-OPTIMIZER prompt v2.0 (parametrized via `{{PROJECT_FACTS}}`).
+- [x] `.agents/prompts/shl-optimizer.fewshot.md` — one example per role; loaded lazily on first activation.
+- [x] `docs/INDEX.md` — single read-trigger map for `docs/*` so agents avoid full-file reads.
+- [x] `AGENTS.md` §3 updated — new sub-agents registered with role-files, NOT-DO constraints, hand-off protocol entries; new "Skills" sub-section listing all 7 skills.
+
+### In Progress
+- [ ] None — awaiting owner review of PR B.
+
+### Blockers
+- [ ] None for this PR. (Secret-rotation blocker tracked in companion repo-hygiene PR #44.)
+
+---
+
+## 2026-05-01: Repo hygiene PR (token-efficiency follow-up)
+
+### Completed
+- [x] Untracked `mcp-servers/` (18 178 files) via `git rm -r --cached`. Files remain on disk; reinstate via new `make mcp-install` target.
+- [x] Untracked `dev.db` and `.env`; dropped the `!dev.db` exception from `.gitignore`.
+- [x] Added `make mcp-install` target to `Makefile` for reproducible MCP-server install.
+- [x] ADR appended to `docs/decisionLog.md` ("2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env").
+
+### In Progress
+- [ ] PR B (subagents + skills + `docs/INDEX.md`) — adds `token-auditor`, `doc-curator`, and skills `token-budget`, `doc-rotation`, `codebase-map`; commits prompt v2.0 + few-shot under `.agents/prompts/`.
+
+### Blockers
+- [!] **Secret rotation required** — values that lived in the tracked `.env` (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `GEMINI_API_KEY`, plus Redis host/port) are in public Git history. Untracking does not rewrite history. Owner must:
+  1. Rotate `GEMINI_API_KEY` at Google AI Studio.
+  2. Generate fresh `SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET` (any 32+ char random) and replace in the local `.env`.
+  3. Decide whether to run `git filter-repo` to scrub history (irreversible, breaks any open forks/PRs).
+
+---
+
+## 2026-04-30: Token-efficiency pass
 
 ### Done
 
