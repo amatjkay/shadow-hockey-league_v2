@@ -170,6 +170,22 @@ def register_extensions(app: Flask) -> None:
     # Initialize SQLAlchemy with app
     db.init_app(app)
 
+    # Response compression (gzip/brotli) — reduces JSON/HTML payload bytes.
+    # Disabled in TESTING so test_client responses stay byte-comparable.
+    if not app.config.get("TESTING"):
+        try:
+            from flask_compress import Compress
+
+            Compress(app)
+            app.logger.info(
+                "Flask-Compress initialized (algorithms=%s)",
+                app.config.get("COMPRESS_ALGORITHM", ["br", "gzip"]),
+            )
+        except ImportError:
+            app.logger.warning(
+                "Flask-Compress not installed; HTTP responses will not be compressed"
+            )
+
     # Initialize CSRF protection (Этап 3.1)
     if not app.config.get("TESTING"):
         from flask_wtf.csrf import CSRFProtect
@@ -265,29 +281,30 @@ def register_extensions(app: Flask) -> None:
         except Exception as e:
             app.logger.warning(f"Could not initialize Flask-Admin/Login: {e}")
 
-    # Initialize Prometheus metrics (only in non-testing environments)
-    if app.config.get("TESTING") is not True:
-        try:
-            from services.metrics_service import (
-                DEFAULT_METRIC_SUFFIXES,
-                METRICS_PREFIX,
-                get_metrics,
-            )
+    # Initialize Prometheus metrics. Singleton in services.metrics_service
+    # prevents duplicate endpoint registration across repeated create_app()
+    # calls (e.g. in pytest), so this is safe in TESTING too.
+    try:
+        from services.metrics_service import (
+            DEFAULT_METRIC_SUFFIXES,
+            METRICS_PREFIX,
+            get_metrics,
+        )
 
-            metrics = get_metrics(app)
-            if metrics is not None:
-                app.logger.info("Prometheus metrics enabled at /metrics")
-                # Build the banner from the same constants used to configure
-                # prometheus_flask_exporter so the two cannot drift (TIK-38).
-                metric_names = ", ".join(
-                    f"{METRICS_PREFIX}_{suffix}" for suffix in DEFAULT_METRIC_SUFFIXES
-                )
-                app.logger.info(
-                    f"App metrics: {metric_names} "
-                    "(plus prometheus_client defaults: process_*, python_*)"
-                )
-        except Exception as e:
-            app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
+        metrics = get_metrics(app)
+        if metrics is not None:
+            app.logger.info("Prometheus metrics enabled at /metrics")
+            # Build the banner from the same constants used to configure
+            # prometheus_flask_exporter so the two cannot drift (TIK-38).
+            metric_names = ", ".join(
+                f"{METRICS_PREFIX}_{suffix}" for suffix in DEFAULT_METRIC_SUFFIXES
+            )
+            app.logger.info(
+                f"App metrics: {metric_names} "
+                "(plus prometheus_client defaults: process_*, python_*)"
+            )
+    except Exception as e:
+        app.logger.warning(f"Could not initialize Prometheus metrics: {e}")
 
 
 def register_blueprints(app: Flask) -> None:

@@ -1,48 +1,47 @@
-# docs/ Index — read-trigger map
+# Docs Index — when to load what
 
-> **Purpose:** агенты читают этот файл (≤ 60 строк) **вместо** обхода всего `docs/`. Колонка «триггер» подсказывает, когда грузить конкретный файл; колонка «лимит чтения» — что брать из файла, чтобы не читать его целиком.
+> Goal: keep AI-agent context small. Load **only the docs relevant to the
+> current task**, not every file under `docs/`.
 
-## Memory Bank (per AGENTS.md §1)
+## Always-on (read on session start, per `AGENTS.md`)
 
-| Файл | Триггер | Лимит чтения |
-|------|---------|--------------|
-| `activeContext.md` | старт любой задачи | `head -40` |
-| `techContext.md` | стек / БД / схема / зависимости | секцию через `grep -nE '^##? '` |
-| `decisionLog.md` | «почему так», поиск ADR | `tail -5` или конкретная дата через `grep` |
-| `progress.md` | статус задачи / прогресс / blockers | `tail -50`, **никогда целиком** |
-| `projectbrief.md` | вопросы про цели проекта | целиком (≤ 50 строк) |
-| `../PROJECT_KNOWLEDGE.md` | формула рейтинга, инварианты | секция через `grep` |
-| `../AGENTS.md` | правила субагентов, Memory Bank protocol | целиком — инжектится через rule-block |
-| `../.antigravityrules` | стандарты кода, бизнес-правила | целиком — инжектится через rule-block |
+| File | Purpose |
+| :--- | :--- |
+| `AGENTS.md` (repo root) | Single source of truth for rules, guardrails, MCP usage. Supersedes `.antigravityrules`. |
+| `PROJECT_KNOWLEDGE.md` (repo root) | Business rules: point formula, baselines, achievement codes. |
+| `docs/activeContext.md` | What's in flight right now + immediate next steps. |
+| `docs/techContext.md` | Stack/architecture diagram. Skim only the sections relevant to your task. |
 
-## Reference
+## On-demand (load only when working in that area)
 
-| Файл | Триггер | Лимит чтения |
-|------|---------|--------------|
-| `API.md` | новый эндпоинт / изменение API | `grep -n "<route>"` ± 30 строк |
-| `ARCHITECTURE.md` | новый модуль / cross-cutting concern | секция через `grep` |
-| `MIGRATIONS.md` | Alembic / новая таблица / индекс | целиком (≤ 100 строк) |
-| `ADMIN_RECALC.md` | recalc rating / ручная пересборка | целиком (≤ 50 строк) |
-| `TROUBLESHOOTING.md` | runtime-ошибки в проде / dev | секция через `grep` |
-| `GITHUB_CLI.md` | работа с PR/issues через `gh` | целиком (≤ 30 строк) |
-| `AI_WORKFLOW.md` | декомпозиция сложной задачи | целиком (≤ 80 строк) |
+| File | When to load |
+| :--- | :--- |
+| `docs/API.md` | Touching `services/api.py` or any `/api/*` endpoint. |
+| `docs/ARCHITECTURE.md` | Cross-cutting refactors, new service, or layout changes. |
+| `docs/MIGRATIONS.md` | Adding/changing an Alembic migration. |
+| `docs/ADMIN_RECALC.md` | Working on rating recalculation or admin recalc UI. |
+| `docs/AI_WORKFLOW.md` | Decomposing a complex multi-step task. |
+| `docs/GITHUB_CLI.md` | Need a less-common `gh` command. |
+| `docs/TROUBLESHOOTING.md` | Investigating a bug or environmental flake. |
+| `docs/decisionLog.md` | About to make (or look up) a non-trivial design decision. Use `tail -5` or grep by date — never read whole. |
+| `docs/progress.md` | Need recent progress / open work items. Use `tail -50` — never read whole. |
 
-## Audits
+## Archive (do NOT auto-load)
 
-| Файл | Триггер |
-|------|---------|
-| `audits/audit-2026-04-28-analysis.md` | контекст по 11 deep-probe багам B1–B11 |
-| `audits/audit-2026-04-28-plan.md` | план фаз 2A–4 |
-| `audits/test-inventory-2026-04-29.md` | инвентарь тестов (Phase C) |
-| `audits/linear-actions-2026-04-28.md` | сценарий синка с Linear |
+`docs/archive/` — historical material kept for traceability:
 
-## Archive (rotated by doc-curator)
+- `docs/archive/audits/` — past audit artefacts (analysis, plans, inventories).
+  Reference only when explicitly asked.
+- `docs/archive/progress-pre-2026-04-29.md` — pre-cycle progress entries.
 
-| Файл | Содержит |
-|------|----------|
-| `archive/2026-Q1.md` | (если создан) entries из `progress.md` / `decisionLog.md` старше 30 дней |
-| `archive/legacy-retrospectives.md` | (если создан) недатированные секции "Stabilization", "Feature Roadmap", "Known Open Issues" |
+## Conventions
+
+- New historical artefacts (audits, retros, point-in-time inventories) go
+  under `docs/archive/<year-month>/...`.
+- Active docs (`activeContext.md`, `progress.md`) keep only the **current**
+  cycle. Older sections are moved to `docs/archive/` as they age out.
 
 ## Forbidden full-read
 
-`progress.md`, `decisionLog.md`, `API.md`, `mcp-servers/**` — никогда не читать целиком; используй `grep` + диапазон строк или skill `codebase-map` / `token-budget`.
+`progress.md`, `decisionLog.md`, `API.md`, `mcp-servers/**` — never read whole;
+use `grep -n` + line ranges or the `codebase-map` / `token-budget` skills.

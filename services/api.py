@@ -13,7 +13,7 @@ from typing import Any
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.api_auth import authenticate_api_key
@@ -38,12 +38,45 @@ def get_session() -> Session:
     return db.session
 
 
+def _parse_fields_param() -> set[str] | None:
+    """Parse the optional ``?fields=`` query parameter.
+
+    Clients can request a subset of fields to minimise response size, e.g.
+    ``GET /api/managers?fields=id,name,country_code``. ``id`` is always kept
+    so callers can correlate items.
+
+    Returns:
+        Set of field names (lower-case, ``id`` injected) or ``None`` when the
+        parameter is absent / empty (in which case the caller emits the full
+        record).
+    """
+    raw = request.args.get("fields", "").strip()
+    if not raw:
+        return None
+    parts = {p.strip() for p in raw.split(",") if p.strip()}
+    if not parts:
+        return None
+    parts.add("id")
+    return parts
+
+
+def _project(record: dict, fields: set[str] | None) -> dict:
+    """Return ``record`` projected onto ``fields`` (no-op when ``fields`` is None)."""
+    if fields is None:
+        return record
+    return {k: v for k, v in record.items() if k in fields}
+
+
 def paginate_query(query, schema, default_per_page: int = 20, max_per_page: int = 100):
     """Apply offset/limit pagination to a query.
 
+    Honours the optional ``?fields=`` query parameter (see ``_parse_fields_param``)
+    so clients can request a slim subset of the schema and pay fewer response
+    bytes / parse fewer fields.
+
     Args:
         query: SQLAlchemy query object
-        schema: Schema function to serialize results
+        schema: Schema function to serialize results (must return a ``dict``)
         default_per_page: Default items per page
         max_per_page: Maximum allowed items per page
 
@@ -66,8 +99,10 @@ def paginate_query(query, schema, default_per_page: int = 20, max_per_page: int 
     offset = (page - 1) * per_page
     items = query.offset(offset).limit(per_page).all()
 
+    fields = _parse_fields_param()
+
     return {
-        "data": [schema(item) for item in items],
+        "data": [_project(schema(item), fields) for item in items],
         "pagination": {
             "page": page,
             "per_page": per_page,
@@ -295,7 +330,13 @@ def get_managers() -> tuple[Any, int]:
     Returns:
         JSON with paginated list of managers
     """
-    query = db.session.query(Manager).join(Country)
+    # Eager-load country and achievements to avoid N+1 (one query per manager
+    # for `m.country.code` and `len(m.achievements)`).
+    query = (
+        db.session.query(Manager)
+        .options(joinedload(Manager.country), selectinload(Manager.achievements))
+        .join(Country)
+    )
 
     # Apply filters
     country_id = request.args.get("country_id", type=int)
@@ -395,7 +436,19 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
     Returns:
         JSON with manager data and achievements
     """
-    manager = db.session.query(Manager).filter_by(id=manager_id).first()
+    # Eager-load country + the relationship chain used by serialisation so the
+    # endpoint runs in O(1) queries instead of O(achievements*3) + 1.
+    manager = (
+        db.session.query(Manager)
+        .options(
+            joinedload(Manager.country),
+            selectinload(Manager.achievements).joinedload(Achievement.type),
+            selectinload(Manager.achievements).joinedload(Achievement.league),
+            selectinload(Manager.achievements).joinedload(Achievement.season),
+        )
+        .filter_by(id=manager_id)
+        .first()
+    )
 
     if not manager:
         return jsonify({"error": f"Manager with ID {manager_id} not found"}), 404
@@ -540,7 +593,13 @@ def get_achievements() -> tuple[Any, int]:
     Returns:
         JSON with paginated list of achievements
     """
-    query = db.session.query(Achievement)
+    # Eager-load every relationship serialised below to avoid N+1.
+    query = db.session.query(Achievement).options(
+        joinedload(Achievement.type),
+        joinedload(Achievement.league),
+        joinedload(Achievement.season),
+        joinedload(Achievement.manager),
+    )
 
     # Apply filters
     manager_id = request.args.get("manager_id", type=int)
