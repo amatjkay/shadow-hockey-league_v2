@@ -53,11 +53,13 @@ All agents **MUST** follow this protocol at the start and end of every task:
 
 ### Role Separation
 
-| Agent | Primary Focus | Allowed MCP Servers |
-| :--- | :--- | :--- |
-| `architect` | System design, planning, analysis | `sequential-thinking`, `notebooklm`, `sqlite` (read-only) |
-| `coder` | Implementation, refactoring, features | `filesystem`, `github`, `context7`, `duckduckgo` |
-| `reviewer` | QA, security audit, code review | `filesystem`, `github` |
+| Agent | Primary Focus | Allowed MCP Servers | Detailed role file |
+| :--- | :--- | :--- | :--- |
+| `architect` | System design, planning, analysis | `sequential-thinking`, `notebooklm`, `sqlite` (read-only) | `.agents/agents/architect.md` |
+| `coder` | Implementation, refactoring, features | `filesystem`, `github`, `context7`, `duckduckgo` | `.agents/agents/coder.md` |
+| `reviewer` | QA, security audit, code review | `filesystem`, `github` | `.agents/agents/reviewer.md` |
+| `token-auditor` | Find token waste in repo, prompts, Memory Bank | `filesystem` | `.agents/agents/token-auditor.md` |
+| `doc-curator` | Rotate `progress.md` / `decisionLog.md`; maintain `docs/INDEX.md` | `filesystem` | `.agents/agents/doc-curator.md` |
 
 ### Role Constraints (NOT-DO)
 
@@ -70,6 +72,12 @@ All agents **MUST** follow this protocol at the start and end of every task:
 - **reviewer**:
     - **NEVER** approve a PR that decreases test coverage below 87%.
     - **NEVER** ignore `mypy` or `flake8` errors.
+- **token-auditor**:
+    - **NEVER** delete or rewrite source files. Only flags waste; coder/doc-curator execute changes.
+    - Allowed edits: `.gitignore`, `Makefile`, `docs/INDEX.md`, Memory Bank, `.agents/prompts/`.
+- **doc-curator**:
+    - **NEVER** delete or reword content — always move verbatim to `docs/archive/`.
+    - **NEVER** drop ADR forward-contracts; keep stub anchors for any cross-referenced entry.
 
 ### Handoff Protocol
 
@@ -78,6 +86,11 @@ All agents **MUST** follow this protocol at the start and end of every task:
 - When `coder` finishes implementation, it updates `docs/progress.md` with a
   `## Ready for Review` section for `reviewer`.
 - `reviewer` validates against this `AGENTS.md` and `.antigravityrules` before approving.
+- `token-auditor` writes its findings to a one-off report (chat or
+  `docs/audits/token-audit-YYYY-MM-DD.md`) and hands off to `doc-curator` for
+  rotation actions or to `coder` for `.gitignore` / `Makefile` / prompt edits.
+- `doc-curator` works in isolation; writes a short summary to `docs/progress.md`
+  and updates `docs/INDEX.md` if archive files were added.
 
 ---
 
@@ -93,6 +106,22 @@ All agents **MUST** follow this protocol at the start and end of every task:
 | `sequential-thinking` | Complex problem decomposition | Use for multi-file changes or architecture decisions |
 | `notebooklm` | Internal knowledge management | For research synthesis, not code generation |
 | `linear` | Task management | Read tasks; update status only with user approval |
+
+---
+
+### Skills (callable by name from any agent)
+
+| Skill | Purpose | When to invoke |
+| :--- | :--- | :--- |
+| `db-migration` | Safe Alembic migrations | new table / column / index |
+| `feature-research` | Cross-source research synthesis | unfamiliar library / API |
+| `linear-sync` | Read TIK-ID, update status with user approval | task tied to a Linear ticket |
+| `verification` | Pre-handoff QA (lint + type + tests) | before any `coder → reviewer` handoff |
+| `token-budget` | Estimate token cost; enforce lazy loading | before reading files > 200 lines |
+| `doc-rotation` | Move > 30-day entries to `docs/archive/<period>.md` | `progress.md` / `decisionLog.md` > 200 lines |
+| `codebase-map` | `grep -n` symbol index + read-window pattern | navigating heavy files (`blueprints/admin_api.py`, `services/api.py`, `services/admin.py`) |
+
+Full skill bodies live in `.agents/skills/<name>/SKILL.md`.
 
 ---
 
@@ -115,3 +144,4 @@ These are enforced by `.antigravityrules` and reiterated here for agent complian
 | Date | Change | Author |
 | :--- | :--- | :--- |
 | 2026-04-23 | Initial creation — Memory Bank + Subagents | AI |
+| 2026-05-01 | Add `token-auditor` + `doc-curator` sub-agents; add `token-budget`, `doc-rotation`, `codebase-map` skills; add `docs/INDEX.md`; commit SHL-OPTIMIZER prompt v2.0 to `.agents/prompts/` | AI |
