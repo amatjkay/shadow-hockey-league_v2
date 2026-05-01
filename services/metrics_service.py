@@ -59,7 +59,28 @@ def get_metrics(app=None) -> Optional[PrometheusMetrics]:
 def reset_metrics() -> None:
     """Reset metrics singleton (useful for testing).
 
+    Also unregisters any prometheus_client collectors that the previous
+    PrometheusMetrics instance had attached to the global REGISTRY, so a
+    subsequent ``get_metrics(app)`` call can re-register cleanly without
+    raising "Duplicated timeseries in CollectorRegistry".
+
     WARNING: Only use this in test environments!
     """
     global _metrics_instance
+
+    if _metrics_instance is not None:
+        try:
+            from prometheus_client import REGISTRY
+
+            # Snapshot first; unregistering mutates the underlying dict.
+            for collector in list(REGISTRY._collector_to_names):
+                module = getattr(type(collector), "__module__", "") or ""
+                if module.startswith("prometheus_flask_exporter"):
+                    try:
+                        REGISTRY.unregister(collector)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     _metrics_instance = None
