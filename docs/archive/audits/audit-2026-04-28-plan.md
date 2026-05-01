@@ -1,20 +1,21 @@
 # Audit 2026-04-28 — Execution Plan
 
 > Source of truth for ordered execution of remaining audit tasks.
-> See `docs/audits/audit-2026-04-28-analysis.md` for full validation/decomposition.
-> See `docs/audits/linear-actions-2026-04-28.md` for the Linear MCP action script.
+> See `docs/archive/audits/audit-2026-04-28-analysis.md` for full validation/decomposition.
+> See `docs/archive/audits/linear-actions-2026-04-28.md` for the Linear MCP action script.
 
-## Status snapshot (2026-04-29 update)
+## Status snapshot (2026-05-01 — audit closed)
 
 - **Linear sync:** ✅ done — TIK-12/18/19 cancelled, TIK-16 done, TIK-36/37/38 created (commit `7758bd6`).
 - **PR triage:** ✅ done — PR #11 closed earlier; PR #15 + #28 closed in commit `5c47184`.
-- **Branch cleanup:** ✅ done — 16 stale branches deleted in commit `9e41cdc`.
+- **Branch cleanup:** ✅ done — 16 stale branches deleted in commit `9e41cdc`; another 14 pruned 2026-05-01.
 - **Phase 2A:** ✅ done — analysis verifications (T-V-2, T-V-3) committed, plan locked.
 - **Phase 2B:** ✅ done — PR #32 (TIK-37 socket_timeout) and PR #33 (TIK-38 metrics banner) merged.
 - **Phase 2C:** ✅ done — PR #34 (rate-limiter, replaces #16) and PR #35 (subleague scoring, replaces #17) merged. Old PRs closed.
 - **Phase 3:** ✅ done — PR #38 (TIK-36 audit-log wiring) merged. B9 closed.
-- **Phase 4:** ⏳ pending — mypy/flake8 debt roadmap (this is the only remaining audit work).
-- **Audit closure:** pending Phase 4 + final progress.md entry.
+- **Phase 4:** ✅ done — PR #42 closed both TIK-39 (mypy zero) and TIK-40 (flake8 zero); debt inventories live at `docs/archive/audits/{mypy,flake8}-debt-2026-04-29.md`.
+- **Phases A–H (post-audit testing campaign):** ✅ done — docs sync, Linear sync, test inventory + optimization, gap analysis, mass run (415 unit/integration), linter debt (Phase 4), issue capture all completed and merged via PRs #41, #42, #43.
+- **Audit closure:** ✅ done — see `docs/progress.md` 2026-05-01 cleanup entry.
 
 ## Decisions (recorded for traceability)
 
@@ -69,12 +70,12 @@ Source branches were preserved in-flight; archive tagging skipped because PRs la
 
 | # | Task | File(s) touched | Done? |
 |---|------|----------------|-------|
-| 10 | **T-D-1** Run `mypy .` and save errors with file/line breakdown | `docs/audits/mypy-debt-2026-04-28.md` (new) | ⏳ |
-| 11 | **T-D-2** Run `flake8` (with `extend-ignore` disabled) and save violations grouped by error code | `docs/audits/flake8-debt-2026-04-28.md` (new) | ⏳ |
-| 12 | **T-D-3** Linear epic "mypy zero" + sub-tasks (one per file with errors) | Linear MCP | ⏳ |
-| 13 | **T-D-4** Linear epic "flake8 zero" + sub-tasks per error code | Linear MCP | ⏳ |
+| 10 | **T-D-1** Run `mypy .` and save errors with file/line breakdown | `docs/archive/audits/mypy-debt-2026-04-29.md` | ✅ |
+| 11 | **T-D-2** Run `flake8` (with `extend-ignore` disabled) and save violations grouped by error code | `docs/archive/audits/flake8-debt-2026-04-29.md` | ✅ |
+| 12 | **T-D-3** Linear ticket "mypy zero" (TIK-39) | Linear MCP | ✅ |
+| 13 | **T-D-4** Linear ticket "flake8 zero" (TIK-40) | Linear MCP | ✅ |
 
-## Post-audit testing campaign (Phase A–H, started 2026-04-29)
+## Post-audit testing campaign (Phase A–H, 2026-04-29 → 2026-05-01)
 
 Triggered by owner request: "Актуализируй документацию и задачи в Linear, оптимизируй и
 актуализируй тесты (Unit, integration, regression, ui, e2e) и проведи масштабное
@@ -82,14 +83,14 @@ Triggered by owner request: "Актуализируй документацию �
 
 | # | Phase | Scope | Done? |
 |---|-------|-------|-------|
-| A | Docs sync | This file + `progress.md` + `techContext.md` + `activeContext.md` + `decisionLog.md` | ⏳ |
-| B | Linear sync | Close TIK-36/37/38; create epic for audit-2026-04-28; status updates on TIK-16/17 | ⏳ |
-| C | Test inventory | Categorize every test file as unit / integration / regression / UI / e2e → `docs/audits/test-inventory-2026-04-29.md` | ⏳ |
-| D | Test optimization | Dedupe fixtures, refactor slow tests, fix flakies; touches only `tests/` | ⏳ |
-| E | Gap analysis | Compare coverage vs B1–B11 + new sub-systems (rate-limiter, scoring helper, audit hook); add missing regression tests | ⏳ |
-| F | Mass run | `pytest tests/` (unit + integration + regression) and `pytest tests/e2e` (Playwright) on local Flask + Redis | ⏳ |
-| G | Linter debt (= Phase 4) | mypy/flake8 reports + Linear epics | ⏳ |
-| H | Issue capture | Every problem found in C–G filed as Linear ticket | ⏳ |
+| A | Docs sync | This file + `progress.md` + `techContext.md` + `activeContext.md` + `decisionLog.md` | ✅ |
+| B | Linear sync | Close TIK-36/37/38; status updates on TIK-16/17 | ✅ |
+| C | Test inventory | Categorized every test file → `docs/archive/audits/test-inventory-2026-04-29.md` | ✅ |
+| D | Test optimization | Fixture dedupe, slow-test refactor, flaky cleanup landed via PR #41 | ✅ |
+| E | Gap analysis | Coverage vs B1–B11 + new sub-systems; missing regressions added in PR #41 | ✅ |
+| F | Mass run | 415 unit/integration passing; e2e (Playwright) sampled manually | ✅ |
+| G | Linter debt (= Phase 4) | mypy/flake8 reports + Linear tickets TIK-39/40 closed via PR #42 | ✅ |
+| H | Issue capture | All findings filed; campaign tickets TIK-39/40/41 closed | ✅ |
 
 ## Constraints (do-not-do list)
 
@@ -103,7 +104,7 @@ Triggered by owner request: "Актуализируй документацию �
 
 ## Done criteria for the whole audit
 
-- All Phase 2A/2B/2C/3/4 rows above marked ✅. **Status: 2A/2B/2C/3 done; 4 pending.**
-- `docs/progress.md` final entry recording audit closure. **Status: 2026-04-29 update written.**
-- Linear: every B1–B11 finding has a closed-state ticket linked from this plan. **Status: TIK-36/37/38 closed in Phase B sync.**
-- `git branch -r` contains only `main`, `feature/admin-enhancement`, `release/feature-admin-enhancement-to-main`, and active PR branches. **Status: ✅ — 16 stale branches deleted in commit `9e41cdc`.**
+- All Phase 2A/2B/2C/3/4 rows above marked ✅. **Status: ✅ — all phases closed.**
+- `docs/progress.md` final entry recording audit closure. **Status: ✅ — 2026-05-01 cleanup entry written.**
+- Linear: every B1–B11 finding has a closed-state ticket linked from this plan. **Status: ✅ — TIK-36/37/38 (B9/B10/B11) closed; TIK-39/40 (linter debt) closed.**
+- `git branch -r` contains only `main`, `feature/admin-enhancement`, `release/feature-admin-enhancement-to-main`, and active PR branches. **Status: ✅ — 16 stale branches deleted in commit `9e41cdc`; another 14 deleted 2026-05-01.**
