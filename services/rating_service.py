@@ -322,17 +322,17 @@ def setup_rating_triggers() -> None:
             target.final_points = round(target.base_points * target.multiplier, 2)
 
     @event.listens_for(Achievement, "before_insert")
-    def achievement_before_insert(mapper: Any, connection: Any, target: Achievement) -> None:
+    def achievement_before_insert(_mapper: Any, _connection: Any, target: Achievement) -> None:
         """Auto-calculate points before insert."""
         _recalculate_points(target)
 
     @event.listens_for(Achievement, "before_update")
-    def achievement_before_update(mapper: Any, connection: Any, target: Achievement) -> None:
+    def achievement_before_update(_mapper: Any, _connection: Any, target: Achievement) -> None:
         """Auto-calculate points before update if relevant fields changed."""
         _recalculate_points(target)
 
     @event.listens_for(Achievement, "after_delete")
-    def achievement_after_delete(mapper: Any, connection: Any, target: Achievement) -> None:
+    def achievement_after_delete(_mapper: Any, _connection: Any, target: Achievement) -> None:
         """Invalidate leaderboard cache after achievement deletion."""
         from services.cache_service import invalidate_leaderboard_cache
 

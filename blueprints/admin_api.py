@@ -15,7 +15,7 @@ from flask_login import current_user
 from sqlalchemy.orm import joinedload
 
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
-from services.admin import invalidate_leaderboard_cache
+from services.cache_service import invalidate_leaderboard_cache
 from services.scoring_service import get_base_points
 
 
