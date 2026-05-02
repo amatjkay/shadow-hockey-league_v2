@@ -1,13 +1,20 @@
-"""E2E тесты для Shadow Hockey League v2.
+"""HTTP-level smoke tests against the Flask app via test client.
 
-Тестирует:
-1. Главную страницу (leaderboard)
-2. Health endpoint
-3. Metrics endpoint
-4. Admin страницу
-5. API endpoints
-6. Статические файлы (CSS/JS/изображения)
-7. Кэширование
+Despite the original ``test_e2e.py`` filename, these are *integration* tests
+(in-process Flask test client; no real browser). The Playwright/browser-driven
+end-to-end suite lives in ``tests/e2e/`` and is gated by ``--ignore=tests/e2e``
+in the default CI pytest invocation.
+
+Covers:
+  1. Main page (leaderboard)
+  2. Health endpoint
+  3. Metrics endpoint
+  4. Admin page
+  5. API endpoints
+  6. Static files (CSS/JS/images)
+  7. Caching
+  8. Audit-log surfacing
+  9. Flush-cache admin route
 """
 
 import json
