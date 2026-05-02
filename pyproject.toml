@@ -16,13 +16,14 @@ exclude = '''
   | dist
   | instance
   | migrations
+  | scripts/oneoff
 )/
 '''
 
 [tool.isort]
 profile = "black"
 line_length = 100
-skip = ["instance", "__pycache__", "venv", ".venv", "migrations"]
+skip = ["instance", "__pycache__", "venv", ".venv", "migrations", "scripts/oneoff"]
 known_first_party = ["app", "data", "config", "models"]
 
 [tool.mypy]
@@ -35,4 +36,5 @@ exclude = [
     "^instance/",
     "^build/",
     "^dist/",
+    "^scripts/oneoff/",
 ]
