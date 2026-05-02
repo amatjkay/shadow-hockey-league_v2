@@ -31,6 +31,7 @@ from models import (
     Season,
     db,
 )
+from services.cache_service import invalidate_leaderboard_cache
 
 # Configure logging for admin service
 admin_logger = logging.getLogger("shleague.admin")
@@ -540,26 +541,6 @@ class ServerControlView(AdminIndexView):
         )
         admin_logger.warning(f"Server restart initiated by {current_user.username}")
         return redirect(url_for(".index"))
-
-
-# ==================== Utilities ====================
-
-
-def invalidate_leaderboard_cache() -> None:
-    """Invalidate all leaderboard-related caches.
-
-    Called after any achievement or manager modification.
-    """
-    try:
-        from services.cache_service import cache
-
-        # If using Redis, we could use cache.delete_memoized or similar.
-        # For now, we clear everything related to the main leaderboard.
-        # In a real app, this would be more granular.
-        cache.clear()
-        admin_logger.info("Leaderboard cache invalidated")
-    except Exception as e:
-        admin_logger.error(f"Failed to invalidate cache: {e}")
 
 
 # ==================== Rate Limiting (Internal) ====================
