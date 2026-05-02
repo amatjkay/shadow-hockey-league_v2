@@ -5,6 +5,22 @@
 >
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md`.
 
+## 2026-05-01: Cleanup pass — docs sync, branch prune, backlog drain
+
+### Completed
+- [x] Pruned 14 already-merged `origin/devin/*` branches (`git push --delete`).
+- [x] Cancelled stale Linear backlog: TIK-14 (Player Search UI), TIK-15 (Admin Achievement Preview), TIK-17 (OpenAPI docs). Rationale documented in each ticket.
+- [x] Synced `docs/activeContext.md` to post-PR-#43 state (Phase A→H plan retired; backlog now empty; only outstanding owner-action is the secret rotation tracked below).
+- [x] Trimmed stale «Open work after this PR» from the 2026-04-30 entry below — referenced phases (D/E/F/G/H) are all closed.
+
+### In Progress
+- [ ] None.
+
+### Blockers
+- [ ] None for this PR. (Secret-rotation blocker still open — see 2026-05-01 repo-hygiene entry below.)
+
+---
+
 ## 2026-05-01: Sub-agents + skills + prompt v2.0 (token-efficiency follow-up)
 
 ### Completed
@@ -17,9 +33,7 @@
 - [x] `.agents/prompts/shl-optimizer.fewshot.md` — one example per role; loaded lazily on first activation.
 - [x] `docs/INDEX.md` — single read-trigger map for `docs/*` so agents avoid full-file reads.
 - [x] `AGENTS.md` §3 updated — new sub-agents registered with role-files, NOT-DO constraints, hand-off protocol entries; new "Skills" sub-section listing all 7 skills.
-
-### In Progress
-- [ ] None — awaiting owner review of PR B.
+- [x] **Merged as PR #45** (2026-05-01).
 
 ### Blockers
 - [ ] None for this PR. (Secret-rotation blocker tracked in companion repo-hygiene PR #44.)
@@ -34,8 +48,8 @@
 - [x] Added `make mcp-install` target to `Makefile` for reproducible MCP-server install.
 - [x] ADR appended to `docs/decisionLog.md` ("2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env").
 
-### In Progress
-- [ ] PR B (subagents + skills + `docs/INDEX.md`) — adds `token-auditor`, `doc-curator`, and skills `token-budget`, `doc-rotation`, `codebase-map`; commits prompt v2.0 + few-shot under `.agents/prompts/`.
+### Status
+- [x] **Merged as PR #44** (2026-05-01).
 
 ### Blockers
 - [!] **Secret rotation required** — values that lived in the tracked `.env` (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `GEMINI_API_KEY`, plus Redis host/port) are in public Git history. Untracking does not rewrite history. Owner must:
@@ -75,20 +89,25 @@
 
 ### Verification
 
-- `venv/bin/pytest tests --ignore=tests/e2e` → **402 passed** (unchanged).
+- `venv/bin/pytest tests --ignore=tests/e2e` → **415 passed** (after `fix(metrics)`).
+
+### Status
+- [x] **Merged as PR #43** (2026-05-01). Includes follow-up `fix(metrics)` removing
+  the `TESTING` gate on Prometheus init and cleaning `prometheus_client.REGISTRY` in
+  `reset_metrics()`, which unblocks the pre-existing `test_first_app_initializes_metrics`
+  failure that was already red on `main`.
 
 ### Open work after this PR
 
-- **Phase D / E / F / G / H** of the post-audit testing campaign continue
-  unchanged. See `docs/activeContext.md` for the full plan.
 - Optional follow-up: extend `?fields=` from listing endpoints to single-record
-  endpoints (`GET /api/managers/<id>`, `GET /api/achievements/<id>`).
+  endpoints (`GET /api/managers/<id>`, `GET /api/achievements/<id>`). No ticket;
+  pick up if a client requests it.
 
 ---
 
-## Project Metrics (as of 2026-04-30)
+## Project Metrics (as of 2026-05-01)
 
-- **Total Tests:** 402 unit/integration passing + 42-scenario Playwright e2e
+- **Total Tests:** 415 unit/integration passing + 42-scenario Playwright e2e
   smoke (manual) + 23/27 deep-probe checks.
 - **Code Coverage:** ~87 % (target threshold).
 - **Repo size on disk:** −505 MB after A1 (`mcp-servers/` no longer tracked).
@@ -97,4 +116,4 @@
 
 ---
 
-_Last updated: 2026-04-30 — token-efficiency pass._
+_Last updated: 2026-05-01 — cleanup pass (docs sync, branch prune, backlog drain)._
