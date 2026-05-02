@@ -791,6 +791,79 @@ def get_achievement(achievement_id: int) -> tuple[Any, int]:
     )
 
 
+def _resolve_fk_by_code(
+    model: Any, code: str | None, label: str
+) -> tuple[Any, tuple[Any, int] | None]:
+    """Look up a model row by its ``code`` column.
+
+    Returns ``(row, None)`` on success, ``(None, error_response)`` on failure.
+    When ``code`` is falsy returns ``(None, None)`` — caller should skip update.
+    """
+    if not code:
+        return None, None
+    row = db.session.query(model).filter_by(code=code).first()
+    if not row:
+        return None, (jsonify({"error": f"{label} '{code}' not found"}), 400)
+    return row, None
+
+
+def _apply_achievement_patch(
+    achievement: Achievement, data: dict
+) -> tuple[tuple[Any, int] | None, bool]:
+    """Apply PUT-payload to an Achievement row.
+
+    Returns ``(error_response_or_none, fk_changed_flag)``.
+    """
+    fk_changed = False
+
+    type_code = data.get("type_code") or data.get("achievement_type")
+    ach_type, err = _resolve_fk_by_code(AchievementType, type_code, "Achievement type")
+    if err:
+        return err, fk_changed
+    if ach_type:
+        achievement.type_id = ach_type.id
+        fk_changed = True
+
+    league_code = data.get("league_code") or data.get("league")
+    league, err = _resolve_fk_by_code(League, league_code, "League")
+    if err:
+        return err, fk_changed
+    if league:
+        achievement.league_id = league.id
+        fk_changed = True
+
+    season_code = data.get("season_code") or data.get("season")
+    season, err = _resolve_fk_by_code(Season, season_code, "Season")
+    if err:
+        return err, fk_changed
+    if season:
+        achievement.season_id = season.id
+        fk_changed = True
+
+    if "title" in data:
+        achievement.title = data["title"]
+    if "icon_path" in data:
+        achievement.icon_path = data["icon_path"]
+
+    if "manager_id" in data:
+        new_manager_id = data["manager_id"]
+        is_valid, error = validate_manager_exists(db.session, new_manager_id)
+        if not is_valid:
+            return (jsonify({"error": error}), 400), fk_changed
+        achievement.manager_id = new_manager_id
+
+    return None, fk_changed
+
+
+def _recalculate_achievement_points(achievement: Achievement) -> None:
+    """Refresh FK relationships and recompute base/multiplier/final points."""
+    db.session.refresh(achievement, attribute_names=["type", "league", "season"])
+    if achievement.type and achievement.league and achievement.season:
+        achievement.base_points = get_base_points(achievement.type, achievement.league)
+        achievement.multiplier = float(achievement.season.multiplier)
+        achievement.final_points = float(achievement.base_points * achievement.multiplier)
+
+
 @api.route("/achievements/<int:achievement_id>", methods=["PUT"])
 @limiter.limit("100 per minute")
 @authenticate_api_key("write")
@@ -814,7 +887,6 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
         JSON with updated achievement or error
     """
     achievement = db.session.query(Achievement).filter_by(id=achievement_id).first()
-
     if not achievement:
         return jsonify({"error": f"Achievement with ID {achievement_id} not found"}), 404
 
@@ -822,56 +894,14 @@ def update_achievement(achievement_id: int) -> tuple[Any, int]:
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    # Update type
-    type_code = data.get("type_code") or data.get("achievement_type")
-    if type_code:
-        ach_type = db.session.query(AchievementType).filter_by(code=type_code).first()
-        if not ach_type:
-            return jsonify({"error": f"Achievement type '{type_code}' not found"}), 400
-        achievement.type_id = ach_type.id
+    error_response, fk_changed = _apply_achievement_patch(achievement, data)
+    if error_response:
+        return error_response
 
-    # Update league
-    league_code = data.get("league_code") or data.get("league")
-    if league_code:
-        league = db.session.query(League).filter_by(code=league_code).first()
-        if not league:
-            return jsonify({"error": f"League '{league_code}' not found"}), 400
-        achievement.league_id = league.id
-
-    # Update season
-    season_code = data.get("season_code") or data.get("season")
-    if season_code:
-        season = db.session.query(Season).filter_by(code=season_code).first()
-        if not season:
-            return jsonify({"error": f"Season '{season_code}' not found"}), 400
-        achievement.season_id = season.id
-
-    if "title" in data:
-        achievement.title = data["title"]
-
-    if "icon_path" in data:
-        achievement.icon_path = data["icon_path"]
-
-    if "manager_id" in data:
-        new_manager_id = data["manager_id"]
-        # Check manager exists
-        is_valid, error = validate_manager_exists(db.session, new_manager_id)
-        if not is_valid:
-            return jsonify({"error": error}), 400
-        achievement.manager_id = new_manager_id
-
-    # Recalculate points if any FK field changed
-    if type_code or league_code or season_code:
-        # Refresh relationships to get updated values
-        db.session.refresh(achievement, attribute_names=["type", "league", "season"])
-        if achievement.type and achievement.league and achievement.season:
-            achievement.base_points = get_base_points(achievement.type, achievement.league)
-            achievement.multiplier = float(achievement.season.multiplier)
-            achievement.final_points = float(achievement.base_points * achievement.multiplier)
+    if fk_changed:
+        _recalculate_achievement_points(achievement)
 
     db.session.commit()
-
-    # Invalidate leaderboard cache
     invalidate_leaderboard_cache()
 
     return (

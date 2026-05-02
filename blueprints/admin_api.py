@@ -428,156 +428,192 @@ def get_achievement_types() -> Any:
 # ==================== API-006: Bulk Create ====================
 
 
+def _validate_bulk_create_payload(
+    data: dict | None,
+) -> tuple[tuple[Any, int] | None, dict]:
+    """Extract & validate the bulk-create request body.
+
+    Returns ``(error_response_or_none, parsed_payload)``.
+    """
+    if not data:
+        return (jsonify({"error": "Request body is required"}), 400), {}
+
+    manager_ids = data.get("manager_ids")
+    type_id = data.get("type_id")
+    league_id = data.get("league_id")
+    season_id = data.get("season_id")
+
+    if not manager_ids or not isinstance(manager_ids, list):
+        return (jsonify({"error": "manager_ids array is required"}), 400), {}
+    if len(manager_ids) > 100:
+        return (jsonify({"error": "Maximum 100 managers per bulk operation"}), 400), {}
+    if not type_id or not league_id or not season_id:
+        return (jsonify({"error": "type_id, league_id, season_id are required"}), 400), {}
+
+    return None, {
+        "manager_ids": manager_ids,
+        "type_id": type_id,
+        "league_id": league_id,
+        "season_id": season_id,
+    }
+
+
+def _resolve_bulk_refs(
+    type_id: int, league_id: int, season_id: int
+) -> tuple[tuple[Any, int] | None, tuple[Any, Any, Any]]:
+    """Look up AchievementType / League / Season rows, or build an error response."""
+    ach_type = db.session.get(AchievementType, type_id)
+    league = db.session.get(League, league_id)
+    season = db.session.get(Season, season_id)
+
+    if not ach_type:
+        return (jsonify({"error": "Achievement type not found"}), 400), (None, None, None)
+    if not league:
+        return (jsonify({"error": "League not found"}), 400), (None, None, None)
+    if not season:
+        return (jsonify({"error": "Season not found"}), 400), (None, None, None)
+
+    if league.code in ("2.1", "2.2") and season.start_year and season.start_year < 2025:
+        return (
+            jsonify({"error": f"League {league.code} is only available from season 25/26 onwards"}),
+            400,
+        ), (None, None, None)
+
+    return None, (ach_type, league, season)
+
+
+def _compute_points(ach_type: Any, league: Any, season: Any) -> tuple[tuple[Any, int] | None, dict]:
+    """Compute base/multiplier/final points; returns error response if any is negative."""
+    base_points = float(get_base_points(ach_type, league))
+    multiplier = float(season.multiplier)
+    final_points = round(base_points * multiplier, 2)
+
+    if base_points < 0 or multiplier < 0 or final_points < 0:
+        return (
+            jsonify(
+                {
+                    "error": (
+                        f"Points calculation error: negative values "
+                        f"(base={base_points}, multiplier={multiplier})"
+                    )
+                }
+            ),
+            400,
+        ), {}
+
+    return None, {"base": base_points, "multiplier": multiplier, "final": final_points}
+
+
+def _process_bulk_create_manager(
+    mid: int,
+    manager: Manager | None,
+    existing_id: int | None,
+    refs: tuple[Any, Any, Any],
+    points: dict,
+    icon_path: str,
+) -> tuple[str, dict | int]:
+    """Decide what to do with a single manager in bulk-create. Returns ``(action, payload)``.
+
+    action ∈ {"error", "skip", "create"}.
+    """
+    if not manager:
+        return "error", {
+            "manager_id": mid,
+            "manager_name": "Unknown",
+            "error_code": "MANAGER_NOT_FOUND",
+            "error_message": f"Manager ID {mid} not found",
+        }
+    if not manager.is_active:
+        return "skip", {
+            "manager_id": mid,
+            "manager_name": manager.name,
+            "reason": "Manager is not active",
+        }
+    if existing_id:
+        return "skip", {
+            "manager_id": mid,
+            "manager_name": manager.name,
+            "reason": "Achievement already exists for this manager",
+            "existing_id": existing_id,
+            "existing_url": f"/admin/achievement/edit/?id={existing_id}",
+        }
+
+    ach_type, league, season = refs
+    achievement = Achievement(
+        manager_id=mid,
+        type_id=ach_type.id,
+        league_id=league.id,
+        season_id=season.id,
+        title=f"{ach_type.name} {league.name} {season.name}",
+        icon_path=icon_path,
+        base_points=points["base"],
+        multiplier=points["multiplier"],
+        final_points=points["final"],
+    )
+    db.session.add(achievement)
+    db.session.flush()
+    return "create", achievement.id
+
+
 @admin_api_bp.route("/achievements/bulk-create", methods=["POST"])
 @admin_required
 def bulk_create_achievements() -> Any:
-    """API-006: Create achievements for multiple managers.
-
-    Request body:
-        manager_ids: array of integers
-        type_id: integer
-        league_id: integer
-        season_id: integer
-    """
+    """API-006: Create achievements for multiple managers."""
     try:
-        # Permission check (Critical: prevent privilege escalation)
         if not current_user.has_permission("create"):
             return jsonify({"error": "Insufficient permissions"}), 403
 
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "Request body is required"}), 400
+        err, payload = _validate_bulk_create_payload(request.get_json())
+        if err:
+            return err
 
-        manager_ids = data.get("manager_ids")
-        type_id = data.get("type_id")
-        league_id = data.get("league_id")
-        season_id = data.get("season_id")
+        err, (ach_type, league, season) = _resolve_bulk_refs(
+            payload["type_id"], payload["league_id"], payload["season_id"]
+        )
+        if err:
+            return err
 
-        # Validate required fields
-        if not manager_ids or not isinstance(manager_ids, list):
-            return jsonify({"error": "manager_ids array is required"}), 400
-        if len(manager_ids) > 100:
-            return jsonify({"error": "Maximum 100 managers per bulk operation"}), 400
-        if not type_id or not league_id or not season_id:
-            return jsonify({"error": "type_id, league_id, season_id are required"}), 400
+        err, points = _compute_points(ach_type, league, season)
+        if err:
+            return err
 
-        # Validate existence
-        ach_type = db.session.get(AchievementType, type_id)
-        league = db.session.get(League, league_id)
-        season = db.session.get(Season, season_id)
-
-        if not ach_type:
-            return jsonify({"error": "Achievement type not found"}), 400
-        if not league:
-            return jsonify({"error": "League not found"}), 400
-        if not season:
-            return jsonify({"error": "Season not found"}), 400
-
-        # VR-004: League/Season compatibility
-        if league.code in ("2.1", "2.2") and season.start_year and season.start_year < 2025:
-            return (
-                jsonify(
-                    {"error": f"League {league.code} is only available from season 25/26 onwards"}
-                ),
-                400,
-            )
-
-        # Calculate points (league-aware via League.parent_code).
-        base_points = get_base_points(ach_type, league)
-        multiplier = season.multiplier
-        final_points = round(base_points * multiplier, 2)
-
-        # VR-005: Range validation for points (non-negative)
-        if base_points < 0:
-            return jsonify({"error": "Base points cannot be negative"}), 400
-        if multiplier < 0:
-            return jsonify({"error": "Season multiplier cannot be negative"}), 400
-        if final_points < 0:
-            return jsonify({"error": "Final points cannot be negative"}), 400
-
-        # Fix N+1: Batch-load managers and existing achievements (Critical: performance)
+        manager_ids = payload["manager_ids"]
         managers = {
             m.id: m for m in db.session.query(Manager).filter(Manager.id.in_(manager_ids)).all()
         }
-        # VR-003: Get existing achievement IDs for duplicate handling
-        existing_achievements = (
-            db.session.query(Achievement.id, Achievement.manager_id)
+        existing_manager_map = {
+            ea[1]: ea[0]
+            for ea in db.session.query(Achievement.id, Achievement.manager_id)
             .filter(
                 Achievement.manager_id.in_(manager_ids),
-                Achievement.type_id == type_id,
-                Achievement.league_id == league_id,
-                Achievement.season_id == season_id,
+                Achievement.type_id == payload["type_id"],
+                Achievement.league_id == payload["league_id"],
+                Achievement.season_id == payload["season_id"],
             )
             .all()
-        )
-        existing_manager_map = {
-            ea[1]: ea[0] for ea in existing_achievements
-        }  # manager_id -> achievement_id
-
-        # Fix: Use correct icon_path based on achievement type (Critical: correctness)
+        }
         icon_path = f"/static/img/cups/{ach_type.code.lower()}.svg"
 
-        # Process each manager
-        created = []
-        skipped = []
-        errors = []
-
+        created: list[int] = []
+        skipped: list[dict] = []
+        errors: list[dict] = []
         for mid in manager_ids:
-            # Fix N+1: Use batch-loaded dict instead of db.session.get
-            manager = managers.get(mid)
-            if not manager:
-                errors.append(
-                    {
-                        "manager_id": mid,
-                        "manager_name": "Unknown",
-                        "error_code": "MANAGER_NOT_FOUND",
-                        "error_message": f"Manager ID {mid} not found",
-                    }
-                )
-                continue
-
-            if not manager.is_active:
-                skipped.append(
-                    {
-                        "manager_id": mid,
-                        "manager_name": manager.name,
-                        "reason": "Manager is not active",
-                    }
-                )
-                continue
-
-            # VR-003: Use pre-loaded map for duplicate check with existing_id
-            existing_achievement_id = existing_manager_map.get(mid)
-            if existing_achievement_id:
-                skipped.append(
-                    {
-                        "manager_id": mid,
-                        "manager_name": manager.name,
-                        "reason": "Achievement already exists for this manager",
-                        "existing_id": existing_achievement_id,
-                        "existing_url": f"/admin/achievement/edit/?id={existing_achievement_id}",
-                    }
-                )
-                continue
-
-            # Create achievement
-            achievement = Achievement(
-                manager_id=mid,
-                type_id=type_id,
-                league_id=league_id,
-                season_id=season_id,
-                title=f"{ach_type.name} {league.name} {season.name}",
-                icon_path=icon_path,
-                base_points=base_points,
-                multiplier=multiplier,
-                final_points=final_points,
+            action, item = _process_bulk_create_manager(
+                mid,
+                managers.get(mid),
+                existing_manager_map.get(mid),
+                (ach_type, league, season),
+                points,
+                icon_path,
             )
-            db.session.add(achievement)
-            created.append(achievement.id)
+            if action == "create":
+                created.append(item)  # type: ignore[arg-type]
+            elif action == "skip":
+                skipped.append(item)  # type: ignore[arg-type]
+            else:
+                errors.append(item)  # type: ignore[arg-type]
 
         db.session.commit()
-
-        # Trigger rating recalculation
         invalidate_leaderboard_cache()
 
         return jsonify(
@@ -680,6 +716,123 @@ def get_manager_achievements(manager_id: int) -> Any:
         return jsonify({"error": "Internal server error", "detail": str(e)}), 500
 
 
+def _validate_bulk_add_payload(data: Any) -> tuple[tuple[Any, int] | None, list]:
+    """Validate the bulk-add request body and return the achievements list."""
+    if not data or "achievements" not in data:
+        return (
+            jsonify({"error": "Request body with achievements array is required"}),
+            400,
+        ), []
+    achievements = data["achievements"]
+    if not isinstance(achievements, list):
+        return (jsonify({"error": "achievements must be an array"}), 400), []
+    if len(achievements) > 50:
+        return (jsonify({"error": "Maximum 50 achievements per request"}), 400), []
+    return None, achievements
+
+
+def _batch_load_bulk_add_refs(
+    achievements: list,
+) -> tuple[dict[int, Any], dict[int, Any], dict[int, Any]]:
+    """Batch-load AchievementType / League / Season rows referenced by the items."""
+    type_ids = {a.get("type_id") for a in achievements if a.get("type_id")}
+    league_ids = {a.get("league_id") for a in achievements if a.get("league_id")}
+    season_ids = {a.get("season_id") for a in achievements if a.get("season_id")}
+
+    types = {
+        t.id: t
+        for t in db.session.query(AchievementType).filter(AchievementType.id.in_(type_ids)).all()
+    }
+    leagues = {lg.id: lg for lg in db.session.query(League).filter(League.id.in_(league_ids)).all()}
+    seasons = {s.id: s for s in db.session.query(Season).filter(Season.id.in_(season_ids)).all()}
+    return types, leagues, seasons
+
+
+def _validate_bulk_add_item(
+    idx: int,
+    ach_data: dict,
+    types: dict[int, Any],
+    leagues: dict[int, Any],
+    seasons: dict[int, Any],
+) -> tuple[dict | None, tuple[int, int, int, Any, Any, Any] | None]:
+    """Validate one bulk-add item. Returns ``(error_dict, resolved)`` — exactly one is truthy."""
+    type_id = ach_data.get("type_id")
+    league_id = ach_data.get("league_id")
+    season_id = ach_data.get("season_id")
+
+    if not type_id or not league_id or not season_id:
+        return {"index": idx, "error": "type_id, league_id, season_id are required"}, None
+
+    ach_type = types.get(type_id)
+    if not ach_type:
+        return {"index": idx, "error": f"Type {type_id} not found"}, None
+    league = leagues.get(league_id)
+    if not league:
+        return {"index": idx, "error": f"League {league_id} not found"}, None
+    season = seasons.get(season_id)
+    if not season:
+        return {"index": idx, "error": f"Season {season_id} not found"}, None
+
+    if league.code in ("2.1", "2.2") and season.start_year and season.start_year < 2025:
+        return {
+            "index": idx,
+            "error": f"League {league.code} only available from season 25/26",
+        }, None
+
+    return None, (type_id, league_id, season_id, ach_type, league, season)
+
+
+def _build_skip_record(
+    type_id: int, ach_type: Any, league: Any, season: Any, existing_id: int
+) -> dict:
+    return {
+        "type_id": type_id,
+        "type_name": ach_type.name,
+        "league_name": league.name,
+        "season_name": season.name,
+        "reason": "Achievement already exists for this manager",
+        "existing_id": existing_id,
+        "existing_url": f"/admin/achievement/edit/?id={existing_id}",
+    }
+
+
+def _create_achievement_for_manager(
+    manager_id: int,
+    type_id: int,
+    league_id: int,
+    season_id: int,
+    ach_type: Any,
+    league: Any,
+    season: Any,
+) -> tuple[dict | None, Achievement | None]:
+    """Build and persist an Achievement; returns (error_dict, achievement). Exactly one is truthy."""
+    base_points = float(get_base_points(ach_type, league))
+    multiplier = float(season.multiplier)
+    final_points = round(base_points * multiplier, 2)
+    if base_points < 0 or multiplier < 0 or final_points < 0:
+        return {
+            "error": (
+                f"Points calculation error: negative values "
+                f"(base={base_points}, multiplier={multiplier})"
+            ),
+        }, None
+
+    achievement = Achievement(
+        manager_id=manager_id,
+        type_id=type_id,
+        league_id=league_id,
+        season_id=season_id,
+        title=f"{ach_type.name} {league.name} {season.name}",
+        icon_path=f"/static/img/cups/{ach_type.code.lower()}.svg",
+        base_points=base_points,
+        multiplier=multiplier,
+        final_points=final_points,
+    )
+    db.session.add(achievement)
+    db.session.flush()
+    return None, achievement
+
+
 @admin_api_bp.route("/managers/<int:manager_id>/achievements/bulk-add", methods=["POST"])
 @admin_required
 def bulk_add_achievements(manager_id: int) -> Any:
@@ -688,149 +841,60 @@ def bulk_add_achievements(manager_id: int) -> Any:
         if not current_user.has_permission("create"):
             return jsonify({"error": "Insufficient permissions"}), 403
 
-        data = request.get_json()
-        if not data or "achievements" not in data:
-            return jsonify({"error": "Request body with achievements array is required"}), 400
+        err, achievements = _validate_bulk_add_payload(request.get_json())
+        if err:
+            return err
 
-        achievements = data["achievements"]
-        if not isinstance(achievements, list):
-            return jsonify({"error": "achievements must be an array"}), 400
-        if len(achievements) > 50:
-            return jsonify({"error": "Maximum 50 achievements per request"}), 400
-
-        # Validate manager exists
         manager = db.session.get(Manager, manager_id)
         if not manager:
             return jsonify({"error": "Manager not found"}), 404
 
-        # Load reference data in batch
-        type_ids = set(a.get("type_id") for a in achievements if a.get("type_id"))
-        league_ids = set(a.get("league_id") for a in achievements if a.get("league_id"))
-        season_ids = set(a.get("season_id") for a in achievements if a.get("season_id"))
+        types, leagues, seasons = _batch_load_bulk_add_refs(achievements)
 
-        types = {
-            t.id: t
-            for t in db.session.query(AchievementType)
-            .filter(AchievementType.id.in_(type_ids))
-            .all()
-        }
-        leagues = {
-            l.id: l for l in db.session.query(League).filter(League.id.in_(league_ids)).all()
-        }
-        seasons = {
-            s.id: s for s in db.session.query(Season).filter(Season.id.in_(season_ids)).all()
-        }
-
-        # VR-003: Load existing achievements for duplicate check with IDs
-        existing = (
-            db.session.query(
-                Achievement.id, Achievement.type_id, Achievement.league_id, Achievement.season_id
+        # VR-003: Pre-load existing achievements (type, league, season) -> achievement_id
+        existing_key_map = {
+            (e[1], e[2], e[3]): e[0]
+            for e in db.session.query(
+                Achievement.id,
+                Achievement.type_id,
+                Achievement.league_id,
+                Achievement.season_id,
             )
             .filter(Achievement.manager_id == manager_id)
             .all()
-        )
-        existing_key_map = {
-            (e[1], e[2], e[3]): e[0] for e in existing
-        }  # (type, league, season) -> achievement_id
+        }
 
-        created = []
-        skipped = []
-        errors = []
+        created: list[int] = []
+        skipped: list[dict] = []
+        errors: list[dict] = []
 
         for idx, ach_data in enumerate(achievements):
-            type_id = ach_data.get("type_id")
-            league_id = ach_data.get("league_id")
-            season_id = ach_data.get("season_id")
-
-            if not type_id or not league_id or not season_id:
-                errors.append({"index": idx, "error": "type_id, league_id, season_id are required"})
+            error_dict, resolved = _validate_bulk_add_item(idx, ach_data, types, leagues, seasons)
+            if error_dict:
+                errors.append(error_dict)
                 continue
+            assert resolved is not None
+            type_id, league_id, season_id, ach_type, league, season = resolved
 
-            ach_type = types.get(type_id)
-            league = leagues.get(league_id)
-            season = seasons.get(season_id)
-
-            if not ach_type:
-                errors.append({"index": idx, "error": f"Type {type_id} not found"})
-                continue
-            if not league:
-                errors.append({"index": idx, "error": f"League {league_id} not found"})
-                continue
-            if not season:
-                errors.append({"index": idx, "error": f"Season {season_id} not found"})
-                continue
-
-            # VR-004: League/Season compatibility
-            if league.code in ("2.1", "2.2") and season.start_year and season.start_year < 2025:
-                errors.append(
-                    {
-                        "index": idx,
-                        "error": f"League {league.code} only available from season 25/26",
-                    }
-                )
-                continue
-
-            # VR-003: Duplicate check with existing_id
             key = (type_id, league_id, season_id)
-            existing_achievement_id = existing_key_map.get(key)
-            if existing_achievement_id:
-                skipped.append(
-                    {
-                        "type_id": type_id,
-                        "type_name": ach_type.name,
-                        "league_name": league.name,
-                        "season_name": season.name,
-                        "reason": "Achievement already exists for this manager",
-                        "existing_id": existing_achievement_id,
-                        "existing_url": f"/admin/achievement/edit/?id={existing_achievement_id}",
-                    }
-                )
+            existing_id = existing_key_map.get(key)
+            if existing_id:
+                skipped.append(_build_skip_record(type_id, ach_type, league, season, existing_id))
                 continue
 
-            # Calculate points (league-aware via League.parent_code).
-            base_points = float(get_base_points(ach_type, league))
-            multiplier = float(season.multiplier)
-            final_points = round(base_points * multiplier, 2)
-
-            # VR-005: Range validation for points (non-negative)
-            if base_points < 0 or multiplier < 0 or final_points < 0:
-                errors.append(
-                    {
-                        "index": idx,
-                        "error": (
-                            f"Points calculation error: negative values "
-                            f"(base={base_points}, multiplier={multiplier})"
-                        ),
-                    }
-                )
-                continue
-
-            # Icon path
-            icon_path = f"/static/img/cups/{ach_type.code.lower()}.svg"
-
-            # Create achievement
-            achievement = Achievement(
-                manager_id=manager_id,
-                type_id=type_id,
-                league_id=league_id,
-                season_id=season_id,
-                title=f"{ach_type.name} {league.name} {season.name}",
-                icon_path=icon_path,
-                base_points=base_points,
-                multiplier=multiplier,
-                final_points=final_points,
+            err_dict, achievement = _create_achievement_for_manager(
+                manager_id, type_id, league_id, season_id, ach_type, league, season
             )
-            db.session.add(achievement)
-            db.session.flush()  # Get ID before commit
+            if err_dict:
+                errors.append({"index": idx, **err_dict})
+                continue
+            assert achievement is not None
             created.append(achievement.id)
             existing_key_map[key] = achievement.id  # Prevent intra-batch duplicates
 
         db.session.commit()
-
-        # Invalidate cache
         invalidate_leaderboard_cache()
 
-        # Calculate manager total points
         total_points = (
             db.session.query(db.func.sum(Achievement.final_points))
             .filter(Achievement.manager_id == manager_id)
