@@ -131,6 +131,78 @@ def validate_managers(data: Any) -> list[str]:
     return errors
 
 
+_VALID_ACHIEVEMENT_TYPES = frozenset(
+    {"TOP1", "TOP2", "TOP3", "BEST", "R3", "R1", "BEST_REG", "HOCKEY_STICKS_AND_PUCK"}
+)
+_REQUIRED_ACHIEVEMENT_FIELDS = (
+    "manager_name",
+    "type",
+    "league",
+    "season",
+    "title",
+    "icon_filename",
+)
+
+
+def _check_required_fields(item: dict, prefix: str) -> list[str]:
+    return [
+        f"{prefix}: Missing required field '{field}'"
+        for field in _REQUIRED_ACHIEVEMENT_FIELDS
+        if field not in item
+    ]
+
+
+def _check_manager_name(value: Any, prefix: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, str) or len(value.strip()) == 0:
+        return [f"{prefix}: 'manager_name' must be a non-empty string"]
+    return []
+
+
+def _check_achievement_type(value: Any, prefix: str) -> list[str]:
+    if value is None or value in _VALID_ACHIEVEMENT_TYPES:
+        return []
+    return [f"{prefix}: 'type' must be one of {_VALID_ACHIEVEMENT_TYPES}"]
+
+
+def _check_league_code(value: Any, prefix: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, str) or not value.isdigit() or int(value) < 1:
+        return [f"{prefix}: 'league' must be a positive number string"]
+    return []
+
+
+def _check_season_code(value: Any, prefix: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, str) or "/" not in value:
+        return [f"{prefix}: 'season' must be in format 'YY/YY' (e.g. '22/23')"]
+    return []
+
+
+def _check_icon_filename(value: Any, prefix: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, str) or not value.endswith((".svg", ".png")):
+        return [f"{prefix}: 'icon_filename' must end with .svg or .png"]
+    return []
+
+
+def _validate_achievement_item(item: Any, prefix: str) -> list[str]:
+    if not isinstance(item, dict):
+        return [f"{prefix}: Must be an object"]
+    errors: list[str] = []
+    errors.extend(_check_required_fields(item, prefix))
+    errors.extend(_check_manager_name(item.get("manager_name"), prefix))
+    errors.extend(_check_achievement_type(item.get("type"), prefix))
+    errors.extend(_check_league_code(item.get("league"), prefix))
+    errors.extend(_check_season_code(item.get("season"), prefix))
+    errors.extend(_check_icon_filename(item.get("icon_filename"), prefix))
+    return errors
+
+
 def validate_achievements(data: Any) -> list[str]:
     """Validate achievements JSON data structure.
 
@@ -153,57 +225,12 @@ def validate_achievements(data: Any) -> list[str]:
     Returns:
         List of validation error messages. Empty if valid.
     """
-    errors: list[str] = []
-
     if not isinstance(data, list):
-        errors.append("Achievements data must be a list")
-        return errors
+        return ["Achievements data must be a list"]
 
-    valid_types = {"TOP1", "TOP2", "TOP3", "BEST", "R3", "R1", "BEST_REG", "HOCKEY_STICKS_AND_PUCK"}
-
+    errors: list[str] = []
     for i, item in enumerate(data):
-        prefix = f"Achievements[{i}]"
-
-        if not isinstance(item, dict):
-            errors.append(f"{prefix}: Must be an object")
-            continue
-
-        # Required fields
-        required_fields = ("manager_name", "type", "league", "season", "title", "icon_filename")
-        for field in required_fields:
-            if field not in item:
-                errors.append(f"{prefix}: Missing required field '{field}'")
-
-        # Validate manager_name
-        manager_name = item.get("manager_name")
-        if manager_name is not None:
-            if not isinstance(manager_name, str) or len(manager_name.strip()) == 0:
-                errors.append(f"{prefix}: 'manager_name' must be a non-empty string")
-
-        # Validate type
-        ach_type = item.get("type")
-        if ach_type is not None:
-            if ach_type not in valid_types:
-                errors.append(f"{prefix}: 'type' must be one of {valid_types}")
-
-        # Validate league
-        league = item.get("league")
-        if league is not None:
-            if not isinstance(league, str) or not league.isdigit() or int(league) < 1:
-                errors.append(f"{prefix}: 'league' must be a positive number string")
-
-        # Validate season
-        season = item.get("season")
-        if season is not None:
-            if not isinstance(season, str) or "/" not in season:
-                errors.append(f"{prefix}: 'season' must be in format 'YY/YY' (e.g. '22/23')")
-
-        # Validate icon_filename
-        icon = item.get("icon_filename")
-        if icon is not None:
-            if not isinstance(icon, str) or not icon.endswith((".svg", ".png")):
-                errors.append(f"{prefix}: 'icon_filename' must end with .svg or .png")
-
+        errors.extend(_validate_achievement_item(item, f"Achievements[{i}]"))
     return errors
 
 
