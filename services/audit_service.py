@@ -200,14 +200,14 @@ def setup_audit_events():
 
     # Enable foreign key constraints for SQLite
     @event.listens_for(db.engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
+    def set_sqlite_pragma(dbapi_connection, _connection_record):
         if "sqlite" in str(db.engine.url):
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.close()
 
     @event.listens_for(Session, "after_flush")
-    def after_flush(session, context):
+    def after_flush(session, _context):
         """Log changes after session flush."""
         try:
             # Get current user from Flask context
