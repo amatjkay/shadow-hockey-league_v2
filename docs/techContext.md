@@ -14,19 +14,30 @@
 ├──────────────────────────────────────────────────────────────┤
 │  Flask 3.1+ Application (Application Factory Pattern)        │
 │                                                              │
-│  ┌─────────────┐  ┌──────────────────┐  ┌──────────────┐    │
-│  │ Blueprints  │  │     Services     │  │    Models    │    │
-│  │  main.py    │  │ rating_svc       │  │   models.py  │    │
-│  │  health.py  │  │ cache_svc        │  │ (SA 2.0)     │    │
-│  │  admin_api  │  │ audit_svc        │  │              │    │
-│  └─────────────┘  │ api_auth         │  └──────┬───────┘    │
-│                   │ admin.py         │         │            │
-│                   │ recalc_svc       │         │            │
-│                   │ scoring_svc ★    │         │            │
-│                   │ extensions ★     │         │            │
-│                   │ metrics_svc      │         │            │
-│                   └──────────────────┘         │            │
-│           ★ = added/refactored in audit-2026-04-28          │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌────────────┐  │
+│  │ Blueprints      │  │     Services     │  │   Models   │  │
+│  │  main.py        │  │ rating_svc       │  │  models.py │  │
+│  │  health.py      │  │ cache_svc        │  │ (SA 2.0)   │  │
+│  │  admin_api/ ◆   │  │ audit_svc        │  │            │  │
+│  │   __init__.py   │  │ api_auth         │  └─────┬──────┘  │
+│  │   _helpers.py   │  │ admin/ ◆         │        │         │
+│  │   lookups.py    │  │  __init__.py     │        │         │
+│  │   achievements  │  │  base.py         │        │         │
+│  └─────────────────┘  │  views.py        │        │         │
+│                       │  _rate_limit.py  │        │         │
+│                       │ api/ ◆           │        │         │
+│                       │  __init__.py     │        │         │
+│                       │  countries.py    │        │         │
+│                       │  managers.py     │        │         │
+│                       │  achievements.py │        │         │
+│                       │ recalc_svc       │        │         │
+│                       │ scoring_svc ★    │        │         │
+│                       │ extensions ★    │        │         │
+│                       │ metrics_svc     │        │         │
+│                       │ _types.py ◆     │        │         │
+│                       └──────────────────┘        │         │
+│   ★ = added/refactored in audit-2026-04-28                  │
+│   ◆ = split into package or added in TIK-42 / TIK-51        │
 ├──────────────────────────────────────────────┼──────────────┤
 │                                              ▼              │
 │  ┌──────────────┐                   ┌────────────────┐      │
@@ -43,7 +54,7 @@
 
 | Component | Technology | Version |
 | :--- | :--- | :--- |
-| Language | Python | 3.10+ |
+| Language | Python | 3.12 |
 | Framework | Flask | 3.1+ |
 | ORM | SQLAlchemy | 2.0+ |
 | Database | SQLite | — |
@@ -63,18 +74,19 @@
 
 ---
 
-## MCP Servers (8 Connected)
+## MCP Servers
 
 | Server | Purpose | Constraint |
 | :--- | :--- | :--- |
-| `filesystem` | Read/write files in project root | Scoped to `/home/tiki/dev/shadow-hockey-league_v2` |
+| `filesystem` | Read/write files in project root | Scoped to repo root |
 | `github` | Repository operations, PRs, issues | Token-authenticated |
 | `sqlite` | Direct query access to `dev.db` | **Read-only by default** (see AGENTS.md) |
 | `context7` | Fresh library/framework documentation | API-key authenticated |
-| `duckduckgo` | Web search | No auth required |
+| `playwright` | Browser automation (e2e smoke locally + CI) | Headless Chromium installed via `playwright install chromium` |
+| `redis` | Direct query access to local cache | Optional; production cache is Redis, dev fallback is in-memory |
 | `sequential-thinking` | Structured problem decomposition | Stateless |
 | `notebooklm` | Research notebooks, source management | Cookie-authenticated |
-| `linear` | Task/issue management (TIK- prefix) | API-key authenticated |
+| `linear` | Task/issue management (TIK- prefix) | API-key authenticated; see `.agents/skills/linear-sync/SKILL.md` for current tool names |
 
 ---
 
@@ -116,21 +128,24 @@ upstream issues are now handled natively by the pinned versions:
 If a future bump re-introduces either incompatibility, restore a small
 `utils/patches.py` and call `apply_patches()` from `create_app()` **before**
 `init_admin(app)`. The 42/42 Playwright smoke suite (`tests/e2e/test_smoke.py`)
-plus the 388 unit/integration tests are the regression net for this area.
+plus the 464 unit/integration tests are the regression net for this area.
 
 ---
 
 ## Development Commands
 
 ```bash
-make setup      # Install deps + init DB
-make run        # Dev server (port 5000)
-make test       # Run 388 unit/integration tests (excludes tests/e2e)
-make lint       # Flake8
-make format     # Black + isort
-make clean      # Remove temp files
-make audit      # Data integrity verification
-make benchmark  # Performance latency check
+make setup        # Install deps + init DB
+make run          # Dev server (port 5000)
+make test         # 464 unit/integration tests (excludes tests/e2e)
+make check        # Black + isort + flake8 + mypy (the CI lint/type gate)
+make lint         # Flake8 only (subset of check)
+make format       # Black + isort (write mode)
+make audit-deps   # pip-audit on requirements.txt + requirements-dev.txt
+make e2e          # Playwright 42-scenario smoke (needs running dev server)
+make clean        # Remove temp files
+make benchmark    # Performance latency check
+make mcp-install  # Reinstate untracked mcp-servers/ workspace
 ```
 
 ---
@@ -155,11 +170,18 @@ make benchmark  # Performance latency check
 | :--- | :--- | :--- |
 | `tests/` (root) | Unit tests | `pytest --ignore=tests/e2e -q` |
 | `tests/integration/` | Integration tests against in-memory app | same |
-| `tests/e2e/test_smoke.py` | Playwright smoke (42 scenarios) | requires a live dev server, see `PROJECT_KNOWLEDGE.md` §5 |
+| `tests/e2e/test_smoke.py` | Playwright smoke (42 scenarios) | local: `make e2e` against a running dev server. CI: `E2E Smoke (Playwright)` GitHub Actions job (TIK-55, PR #60) |
 
 `tests/e2e/conftest.py` sets `collect_ignore_glob = ["*.py"]` so the smoke suite never runs under `pytest` auto-collection.
 
-A full categorical inventory (unit / integration / regression / UI / e2e) is planned at `docs/audits/test-inventory-2026-04-29.md` (post-audit testing campaign Phase C — not yet created; tracked by TIK-41).
+## CI / GitHub Actions pipeline
+
+`.github/workflows/deploy.yml` runs three sequential jobs on every push to a PR
+branch:
+
+1. **`quality-and-tests`** — `black --check`, `isort --check`, `flake8`, `mypy`, `pytest --ignore=tests/e2e --cov` (≥ 87% gate), `pip-audit -r requirements.txt`.
+2. **`e2e-smoke`** — boots a Redis service, installs Playwright (chromium only), creates the schema with `db.create_all()`, runs `seed_db.py`, provisions the `e2e_admin` super-admin via `scripts/create_e2e_admin.py`, boots the dev server in the background, runs the 42-scenario Playwright suite. Depends on `quality-and-tests`.
+3. **`deploy`** — production deploy (only on `main`); depends on `e2e-smoke`.
 
 ---
 
@@ -178,4 +200,4 @@ The following modules were touched (or added) during the audit remediation. Futu
 
 ---
 
-Last updated: 29 апреля 2026 г.
+Last updated: 2026-05-03 (post-TIK-51 — packages, mypy/pip-audit/e2e in CI, 87% coverage, 464 tests).

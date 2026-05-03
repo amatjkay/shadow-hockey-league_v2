@@ -5,6 +5,39 @@
 >
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md`.
 
+## 2026-05-03: TIK-51 tech-debt continuation — deps audit, mypy, coverage, e2e in CI
+
+### Completed
+- [x] **TIK-52** (PR #57) — `pip-audit` wired into CI as a non-blocking-for-dev-deps gate. New `make audit-deps` target; runtime CVEs fail the build, dev-only CVEs are reported. Bumped `WTForms` 3.2.1 → 3.2.2 and dev tooling bumps that the audit surfaced.
+- [x] **TIK-53** (PR #58) — Re-enabled `mypy` in `make check` and `Quality & Tests` CI. Fixed all 40 errors on the source tree. Added `services/_types.py::SessionLike` to model the Flask-SQLAlchemy session proxy for callers; preferred `cast()` + `is not None` guards over `# type: ignore`. Side-fix: removed double JSON encoding in `recalc_service`'s audit-log details payload (rows now store `"{...}"` instead of `"\"{...}\""`).
+- [x] **TIK-54** (PR #59) — Coverage 83% → 87% via 49 new tests covering Redis socket-timeout error paths, admin view formatters, recalc/metrics corner cases, and `app.py` create-app failure modes. Added `tests/test_admin_views_formatters.py` (new), expanded `tests/test_health.py`, `tests/test_recalc_service.py`, `tests/test_metrics_service.py`, `tests/test_app.py`.
+- [x] **TIK-55** (PR #60) — Wired `tests/e2e/test_smoke.py` (42-scenario Playwright suite) into CI as the `E2E Smoke (Playwright)` GitHub Actions job. New `scripts/create_e2e_admin.py` provisions the `e2e_admin` super-admin idempotently. New `make e2e` target for local runs. Workflow now has 3 stages: `quality-and-tests` → `e2e-smoke` → `deploy`. Fixed an early CI failure where `seed_db.py` ran on a fresh runner with no database — added a `Create database schema` step to the workflow that calls `db.create_all()` before seeding.
+
+### Metrics delta
+
+| Metric | Before (post-TIK-42) | After (post-TIK-55) |
+|---|--:|--:|
+| Tests | 423 | 464 |
+| Coverage (services/blueprints/app/models) | 84% | 87% |
+| `mypy` errors in `make check` | 40 (skip in CI) | 0 (gate in CI) |
+| Dependency audit | manual | `pip-audit` in CI |
+| E2E in CI | none | 42 scenarios per PR |
+
+### Status
+- [x] All 5 Linear tickets (TIK-51 epic + TIK-52..TIK-55) in **Done**.
+- [x] All tech-debt-continuation remote branches deleted.
+- [x] Smoke verification passed locally (delete `instance/dev.db` → schema bootstrap → seed → admin provision → 42/42 e2e green).
+
+### Blockers
+- [ ] None for this campaign. (Secret-rotation owner-action still open from 2026-05-01 entry below.)
+
+### Forward contracts
+- New `scripts/create_e2e_admin.py` is the single way to provision the e2e admin user; do not inline its logic into the CI workflow. Idempotent — safe to re-run.
+- `make audit-deps` reports both runtime and dev-only CVEs; the CI step fails only on runtime CVEs (`pip-audit -r requirements.txt`). Dev-only audit (`pip-audit -r requirements-dev.txt`) is informational; promote a CVE to runtime-blocking by updating the dep, not by relaxing the gate.
+- `services/_types.py::SessionLike` is the canonical alias for Flask-SQLAlchemy's `db.session` proxy. New service-layer code should use it rather than re-importing private SQLAlchemy types.
+
+---
+
 ## 2026-05-03: TIK-42 cleanup campaign — splits, refactor, dedup, coverage
 
 ### Completed
