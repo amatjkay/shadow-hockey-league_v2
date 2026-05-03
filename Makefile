@@ -1,4 +1,4 @@
-.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install audit-deps
+.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install audit-deps e2e
 
 # ==============================================================================
 # INSTALLATION
@@ -34,6 +34,15 @@ test:
 # Run tests with coverage
 coverage:
 	$(VENV_BIN)pytest --cov=services --cov=blueprints --cov=app --cov=models tests/
+
+# Run the Playwright end-to-end smoke suite against a *running* dev server.
+# Requires `make run` (or equivalent) in another shell + an admin user
+# created by `scripts/create_e2e_admin.py`. CI wires this up automatically.
+e2e:
+	BASE_URL=$${BASE_URL:-http://127.0.0.1:5000} \
+	E2E_ADMIN_USER=$${E2E_ADMIN_USER:-e2e_admin} \
+	E2E_ADMIN_PASS=$${E2E_ADMIN_PASS:-e2e-pass-1234} \
+	$(VENV_BIN)python tests/e2e/test_smoke.py
 
 # ==============================================================================
 # CODE QUALITY
