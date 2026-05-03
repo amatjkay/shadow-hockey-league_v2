@@ -88,9 +88,10 @@ def authenticate_api_key(required_scope: str = "read") -> Callable:
             api_key.last_used_at = datetime.now(timezone.utc)
             db.session.commit()
 
-            # Store key info in request context for logging/auditing
-            request.api_key_id = api_key.id
-            request.api_key_scope = api_key.scope
+            # Store key info in request context for logging/auditing.
+            # Flask's Request type doesn't expose these custom attrs; ignored at type level.
+            request.api_key_id = api_key.id  # type: ignore[attr-defined]
+            request.api_key_scope = api_key.scope  # type: ignore[attr-defined]
 
             return f(*args, **kwargs)
 

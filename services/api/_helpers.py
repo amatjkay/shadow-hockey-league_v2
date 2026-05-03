@@ -10,12 +10,12 @@ from __future__ import annotations
 import math
 
 from flask import request
-from sqlalchemy.orm import Session
 
 from models import db
+from services._types import SessionLike
 
 
-def get_session() -> Session:
+def get_session() -> SessionLike:
     """Return the current Flask-SQLAlchemy session."""
     return db.session
 

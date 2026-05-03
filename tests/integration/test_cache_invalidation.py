@@ -79,14 +79,13 @@ class TestAPICacheInvalidation(unittest.TestCase):
             db.session.flush()
             self.manager_id = manager.id
 
-            # Create reference data for Achievement (FK relationships)
+            # Create reference data for Achievement (FK relationships).
+            # The dead `if "leagues" in dir()` branch was removed: `leagues` and
+            # `seasons` were never bound in this scope, so the fallback path was
+            # always taken. mypy flagged the unreachable references in TIK-53.
             ach_type = type_map["TOP1"]
-            league = leagues["1"] if "leagues" in dir() else League(code="1", name="League 1")
-            season = (
-                seasons["25/26"]
-                if "seasons" in dir()
-                else Season(code="25/26", name="Season 25/26", multiplier=1.0)
-            )
+            league = League(code="1", name="League 1")
+            season = Season(code="25/26", name="Season 25/26", multiplier=1.0)
 
             # Create test achievement with FK relationships
             achievement = Achievement(

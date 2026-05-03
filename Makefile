@@ -53,7 +53,7 @@ check:
 	$(VENV_BIN)black --check .
 	$(VENV_BIN)isort --check-only .
 	$(VENV_BIN)flake8 . --count --show-source --statistics
-	@echo "[skip] mypy currently disabled in CI; tracked as type-debt cleanup"
+	$(VENV_BIN)mypy .
 
 # Performance benchmark
 benchmark:

@@ -7,7 +7,7 @@ Includes the helpers extracted in TIK-44 (``_resolve_fk_by_code``,
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from flask import jsonify, request
 from sqlalchemy.exc import IntegrityError
@@ -266,8 +266,11 @@ def _recalculate_achievement_points(achievement: Achievement) -> None:
     """Refresh FK relationships and recompute base/multiplier/final points."""
     db.session.refresh(achievement, attribute_names=["type", "league", "season"])
     if achievement.type and achievement.league and achievement.season:
-        achievement.base_points = get_base_points(achievement.type, achievement.league)
-        achievement.multiplier = float(achievement.season.multiplier)
+        ach_type = cast(AchievementType, achievement.type)
+        league = cast(League, achievement.league)
+        season = cast(Season, achievement.season)
+        achievement.base_points = get_base_points(ach_type, league)
+        achievement.multiplier = float(season.multiplier)
         achievement.final_points = float(achievement.base_points * achievement.multiplier)
 
 
