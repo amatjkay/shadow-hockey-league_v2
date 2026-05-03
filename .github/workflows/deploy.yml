@@ -43,6 +43,9 @@ jobs:
       - name: Code Quality Checks (black, isort, flake8, mypy)
         run: make check
 
+      - name: Dependency Security Audit (pip-audit)
+        run: make audit-deps
+
       - name: Run Tests
         env:
           TESTING: "1"

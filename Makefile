@@ -1,4 +1,4 @@
-.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install
+.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install audit-deps
 
 # ==============================================================================
 # INSTALLATION
@@ -62,6 +62,10 @@ benchmark:
 # Data integrity audit
 audit:
 	PYTHONPATH=. $(VENV_BIN)python scripts/audit_data.py
+
+# Dependency security audit (scans installed packages for known CVEs).
+audit-deps:
+	$(VENV_BIN)pip-audit -r requirements.txt -r requirements-dev.txt
 
 # ==============================================================================
 # DATABASE
