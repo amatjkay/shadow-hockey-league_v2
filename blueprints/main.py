@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import time
 
-from flask import Blueprint, Response, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request, url_for
+from werkzeug.wrappers import Response
 
 from models import Season, db
 from services.cache_service import cache
@@ -36,7 +37,9 @@ def _leaderboard_cache_key() -> str:
 
 
 @main.route("/")
-@cache.cached(timeout=300, key_prefix=_leaderboard_cache_key)  # 5 min
+# Flask-Caching accepts a callable for ``key_prefix`` (resolved per-request) but
+# its bundled type stubs declare ``str``-only; we trust the runtime contract here.
+@cache.cached(timeout=300, key_prefix=_leaderboard_cache_key)  # type: ignore[arg-type]  # 5 min
 def index() -> str | tuple[str, int]:
     """Render the leaderboard page.
 

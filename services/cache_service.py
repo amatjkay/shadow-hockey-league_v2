@@ -56,9 +56,10 @@ def get_cache_stats() -> dict:
         return {"status": "not_initialized"}
 
     try:
+        config = cache.config or {}
         return {
             "status": "ok",
-            "cache_type": cache.config.get("CACHE_TYPE", "unknown"),
+            "cache_type": config.get("CACHE_TYPE", "unknown"),
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}

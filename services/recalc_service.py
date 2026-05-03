@@ -10,7 +10,6 @@ All recalculations are atomic transactions that update base_points and final_poi
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -114,15 +113,13 @@ def recalc_by_achievement_type(type_id: int) -> dict[str, Any]:
                     action="RECALCULATE_POINTS",
                     target_model="AchievementType",
                     target_id=type_id,
-                    changes=json.dumps(
-                        {
-                            "affected_count": affected,
-                            "old_base_points_l1": old_l1,
-                            "new_base_points_l1": ach_type.base_points_l1,
-                            "old_base_points_l2": old_l2,
-                            "new_base_points_l2": ach_type.base_points_l2,
-                        }
-                    ),
+                    changes={
+                        "affected_count": affected,
+                        "old_base_points_l1": old_l1,
+                        "new_base_points_l1": ach_type.base_points_l1,
+                        "old_base_points_l2": old_l2,
+                        "new_base_points_l2": ach_type.base_points_l2,
+                    },
                 )
 
             # Invalidate cache
@@ -180,13 +177,11 @@ def recalc_by_season(season_id: int) -> dict[str, Any]:
                     action="RECALCULATE_POINTS",
                     target_model="Season",
                     target_id=season_id,
-                    changes=json.dumps(
-                        {
-                            "affected_count": affected,
-                            "old_multiplier": old_multiplier,
-                            "new_multiplier": season.multiplier,
-                        }
-                    ),
+                    changes={
+                        "affected_count": affected,
+                        "old_multiplier": old_multiplier,
+                        "new_multiplier": season.multiplier,
+                    },
                 )
 
             # Invalidate cache

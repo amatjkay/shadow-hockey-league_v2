@@ -12,11 +12,12 @@ The rating is used to build the leaderboard displayed on the main page.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import joinedload
 
 from models import Achievement, AchievementType, League, Manager, Season
+from services._types import SessionLike
 from services.scoring_service import get_base_points
 
 # ==================== Fallback constants (used if reference tables are empty) ====================
@@ -60,7 +61,7 @@ LABEL_RU: dict[str, str] = {
 }
 
 
-def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
+def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], int]:
     """Read base points from AchievementType reference table.
 
     Falls back to hardcoded BASE_POINTS if table is empty.
@@ -89,7 +90,7 @@ def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
     return result
 
 
-def _get_season_multiplier_from_db(session: Session) -> dict[str, float]:
+def _get_season_multiplier_from_db(session: SessionLike) -> dict[str, float]:
     """Read season multipliers from Season reference table.
 
     Falls back to hardcoded SEASON_MULTIPLIER if table is empty.
@@ -179,7 +180,7 @@ def calculate_achievement_points(
     }
 
 
-def build_leaderboard(session: Session, season_id: int | None = None) -> list[dict[str, Any]]:
+def build_leaderboard(session: SessionLike, season_id: int | None = None) -> list[dict[str, Any]]:
     """Build the leaderboard with all managers and their ratings.
 
     Uses eager loading (joinedload) to prevent N+1 query problem:
@@ -228,7 +229,7 @@ def build_leaderboard(session: Session, season_id: int | None = None) -> list[di
         country_flag = manager.country.flag_display_url if manager.country else ""
         country_code = manager.country.code if manager.country else "???"
 
-        for achievement in manager.achievements:
+        for achievement in cast(list[Achievement], manager.achievements):
             # Season filter: when the caller asked for one specific season,
             # skip every achievement that does not belong to it. Passing
             # season_id=None preserves the lifetime aggregate behaviour.
@@ -317,8 +318,11 @@ def setup_rating_triggers() -> None:
                 season = session.get(Season, target.season_id)
 
         if ach_type and league and season:
-            target.base_points = get_base_points(ach_type, league)
-            target.multiplier = float(season.multiplier)
+            ach_type_resolved = cast(AchievementType, ach_type)
+            league_resolved = cast(League, league)
+            season_resolved = cast(Season, season)
+            target.base_points = get_base_points(ach_type_resolved, league_resolved)
+            target.multiplier = float(season_resolved.multiplier)
             target.final_points = round(target.base_points * target.multiplier, 2)
 
     @event.listens_for(Achievement, "before_insert")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, cast
 
 from flask import flash, redirect, request, url_for
 from flask_admin import AdminIndexView, expose
@@ -120,7 +120,7 @@ class AchievementModelView(SHLModelView):
     def on_model_change(self, form: Any, model: Achievement, is_created: bool) -> None:
         """Auto-calculate fields and validate uniqueness."""
         # --- Duplicate Validation (TIK-23) ---
-        with db.session.no_autoflush:
+        with db.session.no_autoflush:  # type: ignore[attr-defined]
             if model.manager_id and model.type_id and model.league_id and model.season_id:
                 query = db.session.query(Achievement).filter(
                     Achievement.manager_id == model.manager_id,
@@ -153,17 +153,21 @@ class AchievementModelView(SHLModelView):
                 model.season = db.session.get(Season, model.season_id)
 
         if model.type and model.league and model.season:
+            type_resolved = cast(AchievementType, model.type)
+            league_resolved = cast(League, model.league)
+            season_resolved = cast(Season, model.season)
+
             # 1. Generate Title: "Top 1 League 1 Season 23/24"
-            model.title = f"{model.type.name} {model.league.name} {model.season.name}"
+            model.title = f"{type_resolved.name} {league_resolved.name} {season_resolved.name}"
 
             # 2. Resolve Icon Path
-            model.icon_path = model.type.get_icon_url()
+            model.icon_path = type_resolved.get_icon_url()
 
             # 3. Calculate Points (league-aware via League.parent_code).
             from services.scoring_service import get_base_points
 
-            base = get_base_points(model.type, model.league)
-            mult = model.season.multiplier
+            base = get_base_points(type_resolved, league_resolved)
+            mult = season_resolved.multiplier
 
             model.base_points = float(base)
             model.multiplier = float(mult)

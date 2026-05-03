@@ -8,9 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from sqlalchemy.orm import Session
-
 from models import Country, Manager
+from services._types import SessionLike
 
 # Format-only regex for league codes. Matches ``1``, ``2``, ``2.1``, ``3.5``, ``42``,
 # but rejects ``0``, ``01``, ``2.``, ``2.1.1``, etc. Existence of the league in the
@@ -26,7 +25,7 @@ class ValidationError(Exception):
         self.errors = errors or []
 
 
-def validate_country_unique(session: Session, code: str) -> tuple[bool, str | None]:
+def validate_country_unique(session: SessionLike, code: str) -> tuple[bool, str | None]:
     """Check if country code is unique.
 
     Args:
@@ -42,7 +41,7 @@ def validate_country_unique(session: Session, code: str) -> tuple[bool, str | No
     return True, None
 
 
-def validate_manager_unique(session: Session, name: str) -> tuple[bool, str | None]:
+def validate_manager_unique(session: SessionLike, name: str) -> tuple[bool, str | None]:
     """Check if manager name is unique.
 
     Args:
@@ -58,7 +57,7 @@ def validate_manager_unique(session: Session, name: str) -> tuple[bool, str | No
     return True, None
 
 
-def validate_country_exists(session: Session, country_id: int) -> tuple[bool, str | None]:
+def validate_country_exists(session: SessionLike, country_id: int) -> tuple[bool, str | None]:
     """Check if country exists.
 
     Args:
@@ -74,7 +73,7 @@ def validate_country_exists(session: Session, country_id: int) -> tuple[bool, st
     return True, None
 
 
-def validate_manager_exists(session: Session, manager_id: int) -> tuple[bool, str | None]:
+def validate_manager_exists(session: SessionLike, manager_id: int) -> tuple[bool, str | None]:
     """Check if manager exists.
 
     Args:
@@ -182,7 +181,7 @@ def validate_country_data(code: str, flag_path: str) -> tuple[bool, str | None]:
 class DataValidator:
     """Comprehensive data validator for seed operations."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: SessionLike):
         self.session = session
         self.errors: list[str] = []
         self.warnings: list[str] = []
@@ -209,6 +208,7 @@ class DataValidator:
             # Check database for existing
             is_valid, error = validate_country_unique(self.session, code)
             if not is_valid:
+                assert error is not None  # validator contract: error set when is_valid=False
                 self.errors.append(error)
 
         return len(self.errors) == 0
@@ -241,6 +241,7 @@ class DataValidator:
             # Check database for existing
             is_valid, error = validate_manager_unique(self.session, name)
             if not is_valid:
+                assert error is not None  # validator contract: error set when is_valid=False
                 self.errors.append(error)
 
             # Check country exists

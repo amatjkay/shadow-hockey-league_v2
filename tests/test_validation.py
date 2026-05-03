@@ -127,7 +127,7 @@ class TestManagerValidation(unittest.TestCase):
 
     def test_validate_manager_data_no_country(self) -> None:
         """Missing country_id should fail."""
-        is_valid, error = validate_manager_data("Test Manager", None)
+        is_valid, error = validate_manager_data("Test Manager", None)  # type: ignore[arg-type]
         self.assertFalse(is_valid)
         self.assertIsNotNone(error)
 

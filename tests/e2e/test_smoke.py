@@ -240,7 +240,7 @@ def run_rest_api() -> None:
     for path, opts in cases_anon + cases_auth + cases_admin:
         try:
             r = s.get(BASE_URL + path, timeout=10, allow_redirects=False)
-            ok = r.status_code in opts["ok"]
+            ok = r.status_code in opts["ok"]  # type: ignore[operator]
             detail = f"HTTP {r.status_code}"
             if ok and opts["expected_keys"] is not None:
                 try:

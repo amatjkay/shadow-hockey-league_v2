@@ -37,7 +37,7 @@ class SeedResult:
         self.achievements_skipped = 0
         self.errors: list[str] = []
 
-    def to_dict(self) -> dict[str, dict[str, int]]:
+    def to_dict(self) -> dict[str, dict[str, int] | int]:
         return {
             "countries": {"created": self.countries_created, "skipped": self.countries_skipped},
             "managers": {"created": self.managers_created, "skipped": self.managers_skipped},
@@ -291,13 +291,13 @@ class SeedService:
             league = leagues.get(item["league"])
             season = seasons.get(item["season"])
 
-            if not all([ach_type, league, season]):
+            if ach_type is None or league is None or season is None:
                 missing = []
-                if not ach_type:
+                if ach_type is None:
                     missing.append(f"type:{ach_type_code}")
-                if not league:
+                if league is None:
                     missing.append(f"league:{item['league']}")
-                if not season:
+                if season is None:
                     missing.append(f"season:{item['season']}")
                 result.errors.append(
                     f"Missing reference data for {manager_name}: {', '.join(missing)}"
