@@ -54,9 +54,115 @@ jobs:
           REDIS_HOST: "localhost"
         run: make test
 
+  e2e-smoke:
+    name: "E2E Smoke (Playwright)"
+    needs: quality-and-tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Match defaults baked into ``tests/e2e/test_smoke.py`` so the
+      # script can fall back to them if a step is missing the env.
+      BASE_URL: "http://127.0.0.1:5000"
+      E2E_ADMIN_USER: "e2e_admin"
+      E2E_ADMIN_PASS: "e2e-pass-1234"
+      E2E_ARTIFACTS: "${{ github.workspace }}/e2e_artifacts"
+      # Bring up a real Redis so the cache + rate-limiter paths are
+      # exercised end-to-end (the in-memory fallback hides bugs).
+      CACHE_TYPE: "RedisCache"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      # Server-side env required by ``app.create_app``.
+      FLASK_ENV: "development"
+      SECRET_KEY: "ci-e2e-secret-key-not-for-prod"
+      WTF_CSRF_SECRET_KEY: "ci-e2e-csrf-secret-key-not-for-prod"
+      API_KEY_SECRET: "ci-e2e-api-key-secret-not-for-prod"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install -r requirements-dev.txt
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Chromium + system deps
+        run: ./venv/bin/playwright install --with-deps chromium
+
+      - name: Seed database
+        run: ./venv/bin/python seed_db.py
+
+      - name: Provision e2e admin user
+        run: ./venv/bin/python scripts/create_e2e_admin.py
+
+      - name: Boot Flask dev server in background
+        run: |
+          mkdir -p "$E2E_ARTIFACTS"
+          ./venv/bin/python app.py > "$E2E_ARTIFACTS/server.log" 2>&1 &
+          echo $! > "$E2E_ARTIFACTS/server.pid"
+
+      - name: Wait for /health to come up
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/health" || true)
+            if [ "$code" = "200" ]; then
+              echo "server up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "server failed to come up; last 200 lines of server.log:"
+          tail -n 200 "$E2E_ARTIFACTS/server.log" || true
+          exit 1
+
+      - name: Run e2e smoke suite
+        run: ./venv/bin/python tests/e2e/test_smoke.py
+
+      - name: Stop Flask dev server
+        if: always()
+        run: |
+          if [ -f "$E2E_ARTIFACTS/server.pid" ]; then
+            kill "$(cat "$E2E_ARTIFACTS/server.pid")" 2>/dev/null || true
+          fi
+
+      - name: Upload e2e artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: ${{ env.E2E_ARTIFACTS }}
+          retention-days: 14
+
   deploy:
     name: "Deploy to Production"
-    needs: quality-and-tests
+    needs: [quality-and-tests, e2e-smoke]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

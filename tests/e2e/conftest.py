@@ -1,15 +1,20 @@
 """Pytest collection guard for the e2e smoke suite.
 
-The script in this directory (``test_smoke.py``) is intended for
-**manual** execution against a running dev server, not for inclusion in
-``pytest`` runs (it would fail to discover any tests collectible by
-pytest and, more importantly, would try to talk to a live HTTP server
-that does not exist in CI).
+The script in this directory (``test_smoke.py``) is *not* a pytest
+module - it talks to a live HTTP server via Playwright and writes its
+own report under ``$E2E_ARTIFACTS``. We exclude it from the unit-test
+``pytest`` collection here; CI runs it as a dedicated job (see
+``.github/workflows/deploy.yml`` ``e2e-smoke``).
 
-We satisfy pytest by collecting nothing from this folder. To run the
-suite explicitly, invoke the script directly:
+To run the suite locally, boot the dev server in one shell and call the
+``e2e`` make target in another:
 
-    BASE_URL=http://127.0.0.1:5000 ./venv/bin/python tests/e2e/test_smoke.py
+    # shell 1
+    make run
+
+    # shell 2
+    ./venv/bin/python scripts/create_e2e_admin.py
+    make e2e
 """
 
 from __future__ import annotations
