@@ -177,6 +177,67 @@ class TestHealthBlueprint(unittest.TestCase):
         )
         self.assertIn("socket_connect_timeout", kwargs)
 
+    def test_health_endpoint_redis_disconnected_falls_back(self) -> None:
+        """When `redis.Redis(...)` raises `ConnectionError`, /health must report
+        ``redis_status=disconnected`` and ``cache_status=fallback`` instead of 5xx.
+
+        Targets the previously uncovered Redis-error branch in
+        ``blueprints/health.py:100-103``.
+        """
+        import redis as _redis
+
+        fake_client = MagicMock()
+        fake_client.ping.side_effect = _redis.ConnectionError("simulated outage")
+
+        with patch("redis.Redis", return_value=fake_client):
+            response = self.client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["redis_status"], "disconnected")
+        self.assertEqual(data["cache_status"], "fallback")
+        self.assertIn("cache_type", data)
+
+    def test_health_endpoint_cache_roundtrip_mismatch_marks_degraded(self) -> None:
+        """When `cache.set/get` returns the wrong value, status must degrade.
+
+        Targets the previously uncovered cache-error branch in
+        ``blueprints/health.py:97-99``.
+        """
+        fake_client = MagicMock()
+        fake_client.ping.return_value = True
+        fake_client.info.return_value = {"used_memory": 0}
+
+        # Force `cache.get("_health_check")` to return None instead of "ok".
+        with (
+            patch("redis.Redis", return_value=fake_client),
+            patch("blueprints.health.cache") as fake_cache,
+        ):
+            fake_cache.set.return_value = True
+            fake_cache.get.return_value = None
+            response = self.client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["cache_status"], "error")
+        self.assertEqual(data["status"], "degraded")
+
+    def test_health_endpoint_database_error_marks_degraded(self) -> None:
+        """When the DB session raises, /health reports ``database_status=error``.
+
+        Targets the previously uncovered DB-error branch in
+        ``blueprints/health.py:67-71``.
+        """
+        with patch.object(db, "session") as fake_session:
+            fake_session.begin.side_effect = RuntimeError("simulated db outage")
+            response = self.client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["database_status"], "error")
+        self.assertEqual(data["status"], "degraded")
+        self.assertIn("database_error", data)
+
 
 class TestMainBlueprint(unittest.TestCase):
     """Tests for main blueprint."""
