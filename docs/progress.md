@@ -5,6 +5,42 @@
 >
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md`.
 
+## 2026-05-03: TIK-42 cleanup campaign — splits, refactor, dedup, coverage
+
+### Completed
+- [x] **TIK-43** (PR #47) — vulture dead-code prune (5 unused locals) + canonicalised `invalidate_leaderboard_cache` to `services/cache_service`.
+- [x] **TIK-44** (PR #48) — lowered cyclomatic complexity of 4 hot functions to ≤ C: `bulk_add_achievements` E33→C13, `bulk_create_achievements` D25→C11, `update_achievement` D25→B8, `validate_achievements` D21→A3.
+- [x] **TIK-45** (PR #49) — split `services/api.py` (920 LOC monolith) into `services/api/` package: `__init__.py` (37) + `_helpers.py` (92) + `countries.py` (161) + `managers.py` (215) + `achievements.py` (331). External `from services.api import api` preserved.
+- [x] **TIK-46** (PR #50) — split `blueprints/admin_api.py` (893 LOC) into `blueprints/admin_api/` package: `__init__.py` + `_helpers.py` + `lookups.py` + `achievements.py`. External `from blueprints.admin_api import admin_api_bp` preserved.
+- [x] **TIK-47** (PR #51) — decomposed `services/admin.py` (635 LOC) into `services/admin/` package: `__init__.py` (209) + `base.py` (53, `SHLModelView`) + `views.py` (342, all 7 ModelViews) + `_rate_limit.py` (72, helpers).
+- [x] **TIK-48** (PR #52) — removed 4 duplicate test classes from `tests/test_rating_service.py` (-331 LOC); renamed `tests/test_e2e.py` → `tests/integration/test_smoke_endpoints.py` (it was Flask test client, not Playwright).
+- [x] **TIK-49** (PR #53) — archived `scratch/` (7 one-off prod-sync scripts) into `scripts/oneoff/` with README; updated `pyproject.toml` exclusions for black/isort/mypy.
+- [x] **TIK-50** (PR #54) — added 28 tests targeting recalc/app/metrics error paths. Combined coverage on `services/blueprints/app.py` rose from 81% → 84% (target ≥ 87% remains; gap closed materially).
+- [x] Stack consolidated via **PR #55** (devin/1777714229-tik48-tests-reorg → main) after sequential merges of #47-#54 stacked into each other instead of main. Resolved 2 textual conflicts in `blueprints/admin_api/achievements.py` and `services/admin/views.py` against TIK-43 (#47) which had landed on main separately.
+- [x] **Smoke-tested on `main`** post-merge: 6 UI/API checks across all 3 split packages — leaderboard renders 42 managers, `/api/countries` JSON OK, admin login + dashboard + manager list + admin_api lookup all green. Server logs clean (no ImportError/AttributeError/500).
+- [x] Pruned 9 stale `origin/devin/*` branches (TIK-42 epic stack heads).
+
+### Metrics delta
+
+| Metric | Before | After |
+|---|--:|--:|
+| Tests | 415 | 423 |
+| Coverage (services/blueprints/app) | 81% | 84% |
+| Files > 600 LOC | 3 | 0 |
+| Functions with CC ≥ D | 4 | 0 |
+| Dead code (vulture conf 80) | 5 | 0 |
+| Duplicate test names | 13+ | 4 (intentional) |
+
+### Status
+- [x] All 9 Linear tickets (TIK-42 epic + TIK-43..TIK-50) in **Done**.
+- [x] All cleanup-stack remote branches deleted.
+- [x] Smoke tests recorded with annotations; report at `docs/audits/test-report-tik42-cleanup-2026-05-03.md` (when archived).
+
+### Blockers
+- [ ] None for this PR. (Secret-rotation blocker still open — see 2026-05-01 repo-hygiene entry below.)
+
+---
+
 ## 2026-05-01: Cleanup pass — docs sync, branch prune, backlog drain
 
 ### Completed

@@ -1,5 +1,69 @@
 # Decision Log
 
+## 2026-05-03: TIK-42 cleanup — 3 monolith→package splits, CC reduction, dedup
+
+**Context**: Post-audit (audit-2026-04-28 closed in PRs #41-#46), three Python files
+exceeded 600 LOC (`services/api.py` 920, `blueprints/admin_api.py` 893, `services/admin.py`
+635), four functions had cyclomatic complexity ≥ D, and `tests/test_rating_service.py`
+contained four duplicate test classes. Coverage on services/blueprints/app was 81%.
+
+**Decision**:
+
+1. **Decompose each large file into a package**, not a flat split:
+   - Create `<module>/__init__.py` that owns the Flask `Blueprint` (or `init_admin`
+     entrypoint) and re-exports the public symbols.
+   - Move per-resource handlers (countries / managers / achievements; ModelViews;
+     lookups) into sibling submodules.
+   - Submodules import the Blueprint from `__init__.py` and register routes via
+     decorator. Circular-import safe because the Blueprint is created BEFORE the
+     submodule imports inside `__init__.py`.
+   - Keep `from services.api import api`, `from blueprints.admin_api import
+     admin_api_bp`, `from services.admin import init_admin` working unchanged so
+     consumers (chiefly `app.py`) need no edits.
+2. **Cap cyclomatic complexity at C** for hot functions; refactor by extracting
+   per-branch helpers (e.g. `_validate_one`, `_persist_batch`, `_render_summary`)
+   rather than rewriting business logic.
+3. **Dedup tests** by removing duplicate `TestAppRoutes`, `TestSecurityHeaders`,
+   `TestValidationService`, `TestAPIEndpoints` classes from
+   `tests/test_rating_service.py`. The canonical copies live in their topic-named
+   files. Rename `tests/test_e2e.py` → `tests/integration/test_smoke_endpoints.py`
+   because it uses Flask test client, not Playwright — the previous name lied.
+4. **Archive `scratch/` to `scripts/oneoff/`** with a README explaining provenance,
+   instead of deleting. One-off prod-sync scripts retain historical reference and
+   stay out of agent search via `pyproject.toml` exclusions.
+5. **Coverage boost** via targeted error-path tests in `recalc_service` /
+   `metrics_service` / `app.py`. Did not chase 100% — pragmatic stop at the
+   exception handlers and singleton corner cases.
+6. **Stack landing**: PRs #47-#54 stacked into each other instead of main. After the
+   user merged them sequentially they all collapsed into PR #55 (the final stack
+   head). Resolved 2 conflicts against TIK-43 (#47, which had landed independently)
+   by keeping HEAD — the splits already incorporated the canonical cache import.
+7. **Verification**: 423 unit/integration tests pass; six-test smoke run on `main`
+   covers all 3 split packages via UI (leaderboard, public API, admin login,
+   manager list, lookup endpoint).
+
+**Rationale**:
+- Package-level decomposition beats flat split because per-resource files become
+  navigable and reviewable in isolation, while the `__init__.py` stays the only
+  place that knows about cross-resource glue.
+- Backward-compat re-exports remove churn: no consumer change in `app.py`, no
+  fixture change in tests, no doc change for "where does X live".
+- Capping CC at C (not B) keeps reviews short — going below C usually means
+  splitting a meaningful business operation across files for cosmetic reasons.
+
+**Trade-offs**:
+- More files, deeper directory tree. Mitigated by `docs/INDEX.md` map and the
+  `codebase-map` skill.
+- Coverage on `app.py` and `recalc_service` still below 87% target. Closing the
+  gap fully needs end-to-end fixtures, which were out-of-scope.
+- `services/admin/views.py` is still 342 LOC. Splitting per-ModelView file would
+  be cosmetic — kept as a single file because all views share the `SHLModelView`
+  base patterns and reading them together helps debugging.
+
+**Source**: `docs/progress.md` 2026-05-03 entry; PRs #47-#55; Linear epic TIK-42.
+
+---
+
 ## 2026-04-30: Token-efficiency pass
 
 **Context**: Owner asked to "make the system efficient and consume fewer tokens
