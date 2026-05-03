@@ -116,6 +116,11 @@ jobs:
       - name: Install Playwright Chromium + system deps
         run: ./venv/bin/playwright install --with-deps chromium
 
+      - name: Create database schema
+        run: |
+          ./venv/bin/python -c "from app import create_app; from models import db; \
+          app = create_app(); app.app_context().push(); db.create_all()"
+
       - name: Seed database
         run: ./venv/bin/python seed_db.py
 
