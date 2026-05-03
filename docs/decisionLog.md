@@ -1,5 +1,71 @@
 # Decision Log
 
+## 2026-05-03: TIK-51 tech-debt continuation — pip-audit, mypy, coverage gate, e2e in CI
+
+**Context**: Post-TIK-42, three latent tech debts remained: (1) `pip-audit` was
+not in CI, so dependency CVEs were caught only on demand; (2) `mypy` had been
+disabled in CI (TIK-39 was a one-shot cleanup, no enforcement); (3) coverage on
+`services/blueprints/app/models` had only reached 84% (target ≥ 87%); (4) the
+42-scenario Playwright smoke suite ran only locally — regressions in admin
+views or auth boundary could land on `main` undetected.
+
+**Decision**:
+
+1. **pip-audit gate (TIK-52)** — runtime CVEs (`requirements.txt`) fail CI;
+   dev-only CVEs (`requirements-dev.txt`) are reported but do not fail. The
+   `make audit-deps` target is the single entrypoint; the CI step shells out
+   to it. Rationale: dev-only CVEs are common (e.g., test runners, formatters
+   with transitive issues) and would create noise without buying production
+   safety.
+2. **mypy back in `make check` and CI (TIK-53)** — re-enabled with the existing
+   `mypy.ini` config; fixed all 40 errors on the source tree; 0 errors today.
+   Rationale: type safety is cheap to enforce after the one-shot fix and gives
+   refactoring confidence. Where Flask-SQLAlchemy session proxies confused mypy,
+   we introduced `services/_types.py::SessionLike` rather than `# type: ignore`.
+3. **Coverage to 87% (TIK-54)** — added 49 targeted tests on previously low-cov
+   files: Redis socket-timeout error paths in `blueprints/health.py`; admin view
+   formatters in `services/admin/views.py`; recalc/metrics corner cases; create-
+   app failure modes. Did not chase 100% — pragmatic stop where the remaining
+   gaps are init guards and dead-on-startup branches.
+4. **E2E Playwright smoke as a separate CI job (TIK-55)** — new
+   `E2E Smoke (Playwright)` job in `.github/workflows/deploy.yml`, downstream of
+   `quality-and-tests` and upstream of `deploy`. Same script as local
+   (`tests/e2e/test_smoke.py`); `scripts/create_e2e_admin.py` provisions the
+   `e2e_admin` super-admin idempotently. Rationale for keeping it separate from
+   the unit-test job: e2e wants Redis service + browser binaries + a live dev
+   server boot, all of which would slow `quality-and-tests` substantially even
+   on green runs.
+
+**Rationale**:
+- All four debts had been listed in `docs/activeContext.md` as outstanding
+  follow-ups. Closing them as a coordinated mini-epic (rather than ad hoc)
+  ensured consistent CI shape and a single docs sync.
+- Keeping `pip-audit` and `mypy` in the same `quality-and-tests` job rather than
+  parallel jobs minimises matrix complexity for a low-traffic repo. If queue
+  time becomes an issue we can split later.
+
+**Trade-offs**:
+- `pip-audit` adds ~10s to CI; `mypy` adds ~6s; e2e job adds ~90s end-to-end on
+  fresh runners. Net CI wall-clock for a typical PR went from ~120s to ~210s.
+  Worth it for type/security/UI regression coverage on every PR.
+- The schema-bootstrap step (`db.create_all()`) in the e2e CI job duplicates
+  what `make init-db` does locally. We accept the duplication because the CI
+  flow boots a bare runner where `instance/dev.db` doesn't exist; pulling in
+  the full Makefile target would drag dev-only build deps.
+
+**Forward contracts**:
+- `pip-audit` policy: `--ignore-vuln <ID>` is allowed only with a one-line
+  rationale committed alongside the entry; never silence a CVE without
+  documenting why.
+- `mypy` policy: prefer `cast()` + narrowing over `# type: ignore`; if you must
+  use `# type: ignore`, narrow it (`# type: ignore[arg-type]`) and add a
+  one-line reason on the same line.
+- E2E policy: the suite is a smoke check, not a feature spec. Keep it under
+  ~90s wall-clock; if it grows past that, split per-domain jobs (admin vs
+  public vs api) rather than one giant matrix.
+
+---
+
 ## 2026-05-03: TIK-42 cleanup — 3 monolith→package splits, CC reduction, dedup
 
 **Context**: Post-audit (audit-2026-04-28 closed in PRs #41-#46), three Python files

@@ -16,8 +16,11 @@
 
 | File | When to load |
 | :--- | :--- |
-| `docs/API.md` | Touching `services/api.py` or any `/api/*` endpoint. |
+| `docs/API.md` | Touching the `services/api/` package or any `/api/*` endpoint. |
 | `docs/ARCHITECTURE.md` | Cross-cutting refactors, new service, or layout changes. |
+| `.agents/skills/codebase-map/SKILL.md` | Navigating the `services/api/` / `blueprints/admin_api/` / `services/admin/` packages without reading whole files. |
+| `.agents/skills/verification/SKILL.md` | Pre-handoff QA recipe (lint + types + tests + audit-deps + e2e). |
+| `.agents/skills/linear-sync/SKILL.md` | Updating `TIK-NN` ticket status via the `linear` MCP. |
 | `docs/MIGRATIONS.md` | Adding/changing an Alembic migration. |
 | `docs/ADMIN_RECALC.md` | Working on rating recalculation or admin recalc UI. |
 | `docs/AI_WORKFLOW.md` | Decomposing a complex multi-step task. |

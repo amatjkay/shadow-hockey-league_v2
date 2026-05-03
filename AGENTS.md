@@ -119,7 +119,7 @@ All agents **MUST** follow this protocol at the start and end of every task:
 | `verification` | Pre-handoff QA (lint + type + tests) | before any `coder → reviewer` handoff |
 | `token-budget` | Estimate token cost; enforce lazy loading | before reading files > 200 lines |
 | `doc-rotation` | Move > 30-day entries to `docs/archive/<period>.md` | `progress.md` / `decisionLog.md` > 200 lines |
-| `codebase-map` | `grep -n` symbol index + read-window pattern | navigating heavy files (`blueprints/admin_api.py`, `services/api.py`, `services/admin.py`) |
+| `codebase-map` | `grep -n` symbol index + read-window pattern | navigating the `services/api/`, `blueprints/admin_api/`, `services/admin/` packages and other heavy files |
 
 Full skill bodies live in `.agents/skills/<name>/SKILL.md`.
 
@@ -132,10 +132,12 @@ These are enforced by `.antigravityrules` and reiterated here for agent complian
 - **Type Hints**: Mandatory on all new functions and methods.
 - **Docstrings**: Google-style, in English.
 - **Imports**: Sorted by `isort`, formatted by `black`.
-- **Testing**: Every new feature must have corresponding tests. Target: ≥87% coverage.
+- **Testing**: Every new feature must have corresponding tests. Target: ≥ 87% coverage (enforced as the CI gate since TIK-54).
+- **Type Checking**: `mypy` is back in `make check` and CI as of TIK-53. Prefer `cast()` + narrowing over `# type: ignore`; if you must ignore, narrow the code (`# type: ignore[arg-type]`) and add a one-line reason.
+- **Dependency Audit**: `make audit-deps` runs `pip-audit` on both `requirements.txt` and `requirements-dev.txt`. Runtime CVEs are blocking in CI; dev-only are reported.
 - **N+1 Prevention**: Use `joinedload()` for any query that accesses relationships in loops.
-- **Cache Invalidation**: Call `invalidate_leaderboard_cache()` after any data mutation.
-- **Audit Logging**: All admin CRUD actions logged via `audit_service.log_action()`.
+- **Cache Invalidation**: Call `invalidate_leaderboard_cache()` from `services/cache_service` after any data mutation. Do NOT re-import it from elsewhere — the canonical location was set in TIK-43.
+- **Audit Logging**: All admin CRUD actions logged via `audit_service.log_action()` (or, for ORM-level mutations, the `after_flush` listener registered by `register_audit_request_hook(app)` in `app.py::register_extensions`).
 
 ---
 
@@ -145,3 +147,5 @@ These are enforced by `.antigravityrules` and reiterated here for agent complian
 | :--- | :--- | :--- |
 | 2026-04-23 | Initial creation — Memory Bank + Subagents | AI |
 | 2026-05-01 | Add `token-auditor` + `doc-curator` sub-agents; add `token-budget`, `doc-rotation`, `codebase-map` skills; add `docs/INDEX.md`; commit SHL-OPTIMIZER prompt v2.0 to `.agents/prompts/` | AI |
+| 2026-05-03 | TIK-42 cleanup epic: split `services/api.py`, `blueprints/admin_api.py`, `services/admin.py` into per-resource Python packages; lower CC of 4 hot functions to ≤ C; dedup tests; archive `scratch/` to `scripts/oneoff/`; coverage 81 → 84%. Public imports unchanged. | AI |
+| 2026-05-03 | TIK-51 tech-debt continuation: `pip-audit` gate in CI; `mypy` back in `make check` and CI (0 errors); coverage 84 → 87% (enforced as CI gate); `tests/e2e/test_smoke.py` wired into a dedicated `E2E Smoke (Playwright)` GitHub Actions job. Updated skills `verification`, `codebase-map`, `linear-sync` to match the new toolchain. | AI |

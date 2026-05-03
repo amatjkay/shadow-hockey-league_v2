@@ -1,134 +1,125 @@
 # SKILL: Linear Task Synchronization
 
 ## Purpose
-A workflow for using the `linear` MCP server to read task requirements from Linear,
-track progress, and update ticket statuses as work progresses.
+
+Read TIK-prefixed Linear tickets, update their status as work progresses, and
+keep PR descriptions linked to the right ticket so the GitHub ↔ Linear
+integration auto-closes them on merge.
 
 ## When to Use
-- Starting a new task that has a Linear ticket
-- Updating task status during implementation
-- Linking Git branches and PRs to Linear tickets
-- Reviewing task backlog for prioritization
 
-## MCP Server Used
-- `linear` — Task and issue management
+- Starting a task that has a `TIK-NN` ticket.
+- Transitioning a ticket between states (Todo → In Progress → In Review → Done).
+- Cancelling stale tickets after backlog triage.
+- Cross-referencing a PR to a ticket.
 
-## Project Convention
-- **Ticket prefix:** `TIK-` (e.g., `TIK-42`)
-- **PR format:** Include `Fixes TIK-ID` in PR description for auto-linking
-- **Branch format:** `tik-42/short-description`
+## MCP Server
 
----
+- `linear` — see `mcp_tool` with `command="list_tools"` for the live signature.
+  As of 2026-05-03 the Cognition `linear` MCP exposes `list_issues`,
+  `get_issue`, `save_issue`, `list_issue_statuses`, `save_comment`,
+  `list_comments`. Older `linear_*` tool names from this skill's earlier
+  versions are obsolete.
+
+## Project conventions
+
+- **Ticket prefix:** `TIK-` (Tikispace team). Team ID is stable and discoverable
+  via `list_issue_statuses({team: "Tikispace"})`.
+- **Branch format:** `devin/<unix-ts>-tikNN-short-description` (matches the
+  branch convention used since TIK-42).
+- **PR linkage:** put `Closes TIK-NN` (or `Fixes TIK-NN`) in the PR body. The
+  GitHub integration will (a) attach the PR to the ticket and (b) move the
+  ticket to Done automatically when the PR merges into `main`. Do not also
+  manually mark such tickets Done — let the integration do it.
 
 ## Workflow
 
-### Step 1: Discover Available Tasks
-```
-# Get team information and workflow states
-Tool: mcp_linear_linear_get_teams
+### 1. Discover the ticket
 
-# Search for tasks assigned or relevant
-Tool: mcp_linear_linear_search_issues
-  query: "<search term>"
-  states: ["Todo", "In Progress"]
+```jsonc
+// list_issues — fuzzy search
+{"query": "TIK-55", "limit": 5}
 
-# Or get a specific ticket by identifier
-Tool: mcp_linear_linear_get_issue
-  identifier: "TIK-42"
+// get_issue — full body, comments, attachments
+{"id": "TIK-55"}
 ```
 
-### Step 2: Read Task Requirements
-```
-# Get full issue details including comments and description
-Tool: mcp_linear_linear_get_issue
-  identifier: "TIK-42"
-```
+### 2. Find the target state
 
-Extract from the issue:
-- **Title** — What needs to be done
-- **Description** — Detailed requirements and acceptance criteria
-- **Comments** — Additional context or clarifications
-- **Priority** — 0 (No priority) to 1 (Urgent)
-- **Labels** — Feature area or type
-
-### Step 3: Update Status → In Progress
-```
-# First, find the issue UUID (not the identifier)
-Tool: mcp_linear_linear_search_issues_by_identifier
-  identifiers: ["TIK-42"]
-
-# Get team states to find the "In Progress" state ID
-Tool: mcp_linear_linear_get_teams
-
-# Update the issue status
-Tool: mcp_linear_linear_edit_issue
-  issueId: "<uuid>"
-  stateId: "<in_progress_state_uuid>"
+```jsonc
+// list_issue_statuses — returns id+name+type for the team
+{"team": "Tikispace"}
 ```
 
-### Step 4: Work on the Task
-Follow the Coder agent workflow:
-1. Create a branch: `tik-42/short-description`
-2. Implement the changes
-3. Write tests
-4. Update `docs/progress.md`
+The Tikispace team uses these states (IDs are stable, but always re-fetch):
 
-### Step 5: Update Status → Done / In Review
-```
-# When implementation is complete
-Tool: mcp_linear_linear_edit_issue
-  issueId: "<uuid>"
-  stateId: "<done_state_uuid>"
-```
+| Name | Type |
+| :--- | :--- |
+| Backlog | backlog |
+| Todo | unstarted |
+| In Progress | started |
+| In Review | started |
+| Done | completed |
+| Canceled | canceled |
+| Duplicate | canceled |
 
-### Step 6: Link PR to Ticket
-When creating a PR via GitHub MCP, include in the PR body:
-```
-Fixes TIK-42
+### 3. Move the ticket
 
-## Changes
-- [description of changes]
-
-## Testing
-- [how it was tested]
+```jsonc
+// save_issue — for an existing issue, pass id; state accepts name OR uuid
+{"id": "TIK-55", "state": "In Review"}
 ```
 
----
+`save_issue` is **create-or-update**. For updates always pass `id`. Do NOT
+pass `team` or `title` on updates — those are only required when creating.
 
-## Common Operations
+### 4. Comment / attach evidence
 
-### List all projects
-```
-Tool: mcp_linear_linear_list_projects
-```
-
-### Search by priority
-```
-Tool: mcp_linear_linear_search_issues
-  priority: 1  # Urgent
-  states: ["Todo"]
+```jsonc
+// save_comment — append a comment
+{"issueId": "TIK-55", "body": "PR https://github.com/.../pull/60 opened, CI green."}
 ```
 
-### Bulk update tickets
+### 5. PR-side wiring
+
+In the PR body include a single line:
+
 ```
-Tool: mcp_linear_linear_bulk_update_issues
-  issueIds: ["<uuid1>", "<uuid2>"]
-  update:
-    stateId: "<target_state_uuid>"
+Closes TIK-55.
 ```
 
----
+The Linear integration parses the `Closes`/`Fixes` keyword. Avoid wrapping it in
+backticks — some integrations skip it.
 
-## Safety Rules
+## Safety
 
-> ⚠️ **Do not** change ticket status without user approval for production-impacting tasks.
+- Never bulk-cancel without user approval. Cancellations are recorded but not
+  reversible without manual restoration.
+- Never edit `description` on tickets you didn't open without the user's
+  approval — Linear has no field-level revision history surfaced to MCP.
+- For epic/sub-issue trees, transition the children first, then the epic.
+  Linear does not auto-close epics when all children are Done.
 
-> ⚠️ **Do not** delete tickets — deactivate or move to backlog instead.
+## Common patterns
 
-> ⚠️ **Always** verify the ticket exists before updating status.
+### Cancel a stale backlog ticket
 
-## Notes
-- Linear uses UUIDs internally, not the human-readable identifiers like `TIK-42`.
-  Always resolve the identifier to a UUID first.
-- The `get_teams` endpoint returns all workflow states (Todo, In Progress, Done, etc.)
-  with their UUIDs — use these for status transitions.
+```jsonc
+{"id": "TIK-14", "state": "Canceled"}
+// then leave a save_comment explaining why so the audit trail is clear.
+```
+
+### Promote In Progress → In Review on PR open
+
+```jsonc
+{"id": "TIK-55", "state": "In Review"}
+```
+
+Do this when you open the PR, not when CI goes green — the `In Review` semantic
+is "ready for human eyes", which is the moment you ask for review.
+
+### Re-fetch after change
+
+`save_issue`'s response sometimes shows the *previous* status field (server
+caching). To verify, immediately call `list_issues({"query": "TIK-NN"})` or
+`get_issue({"id": "TIK-NN"})`.

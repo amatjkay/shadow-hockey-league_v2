@@ -31,15 +31,14 @@
 
 - **Core**: Flask 3.1+ (Application Factory pattern in `app.py`).
 - **Database**: SQLite (`dev.db`) + SQLAlchemy 2.0. Migrations via Alembic.
-- **Admin**: Flask-Admin + AJAX-powered achievement management in `services/admin.py`.
+- **Admin**: Flask-Admin + AJAX-powered achievement management in the `services/admin/` package (`__init__.py`, `base.py`, `views.py`, `_rate_limit.py`).
 - **Asset Resolution**: Centralized icon pathing in `AchievementType.get_icon_url()`. Flags normalized to uppercase (e.g., `RUS.png`).
 
 ## 3. Development Standards
 
-- **Type Hints**: 100% coverage mandatory for all new code.
-- **Testing**: Target ≥87% coverage. Run via `make test` or `venv/bin/pytest`.
-- **Audit**: All admin actions logged to `AuditLog`. Snapshots taken before deletion.
-  - **Known gap (B9, 2026-04-28):** the `after_flush` listener in `services/audit_service.py` early-returns unless `g.current_user_id` is set, and `set_current_user_for_audit()` is currently only called from tests — production admin mutations are not actually being logged. Fix tracked separately.
+- **Type Hints**: 100% coverage mandatory for all new code; `mypy` enforces this in `make check` and CI (TIK-53).
+- **Testing**: ≥ 87% coverage gate (TIK-54). Run via `make test`.
+- **Audit**: All admin actions logged to `AuditLog`. Snapshots taken before deletion. The `after_flush` listener in `services/audit_service.py` is now wired via `register_audit_request_hook(app)` in `app.py::register_extensions`, which sets `g.current_user_id` from `flask_login.current_user` so production admin CRUD is captured.
 - **Memory Bank**: Keep `docs/activeContext.md` and `docs/progress.md` updated.
 
 ## 4. Automation & Seeding
@@ -50,9 +49,11 @@
 
 ## 5. Testing
 
-- **Unit / integration**: `pytest --ignore=tests/e2e` — currently 388 passing (3 pre-existing failures unrelated to current branch).
-- **Smoke e2e**: `tests/e2e/test_smoke.py` (Playwright). Run manually against a live dev server: `BASE_URL=http://127.0.0.1:5000 E2E_ADMIN_USER=e2e_admin E2E_ADMIN_PASS=... ./venv/bin/python tests/e2e/test_smoke.py`. Excluded from `pytest` auto-collection via `tests/e2e/conftest.py`.
+- **Unit / integration**: `make test` (or `pytest --ignore=tests/e2e -n auto`) — currently 464 passing. Coverage gate ≥ 87% (TIK-54).
+- **Type check**: `mypy` is part of `make check` (TIK-53) and the `Quality & Tests` CI job — 0 errors on the source tree (78 files).
+- **Dependency audit**: `make audit-deps` (`pip-audit` on `requirements.txt` + `requirements-dev.txt`) runs in CI (TIK-52).
+- **Smoke e2e**: `tests/e2e/test_smoke.py` (Playwright, 42 scenarios). Locally: boot `make run`, then `python scripts/create_e2e_admin.py && make e2e`. CI runs the same script in the dedicated `E2E Smoke (Playwright)` job (TIK-55, PR #60). Excluded from `pytest` auto-collection via `tests/e2e/conftest.py`.
 - **Cache key partitioning**: any `@cache.cached` view that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`); a static prefix shares the bucket across `?season=` variants.
 
 ---
-_Last updated: 2026-04-28_
+_Last updated: 2026-05-03 — post-TIK-51 (mypy/pip-audit/e2e in CI, 87% coverage)._
