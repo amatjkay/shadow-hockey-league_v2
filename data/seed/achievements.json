@@ -264,7 +264,7 @@
     "icon_filename": "hockey-sticks-and-puck.svg"
   },
   {
-    "manager_name": "Denis Sanzharevskyi",
+    "manager_name": "Denys Sanzharevskyi",
     "type": "HOCKEY_STICKS_AND_PUCK",
     "league": "1",
     "season": "21/22",
@@ -460,6 +460,78 @@
     "type": "HOCKEY_STICKS_AND_PUCK",
     "league": "1",
     "season": "24/25",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Aliaksandr Naidzionau",
+    "type": "TOP1",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Aliaksandr Naidzionau",
+    "type": "BEST_REG",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "Best regular",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Denys Sanzharevskyi",
+    "type": "TOP2",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Ruslan Ivanov",
+    "type": "TOP3",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Konstantin Rumyantsev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Mike B",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Igor Deryabin",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Max Domchev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.2",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Sousse Sousse",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.2",
+    "season": "25/26",
     "title": "Round 1",
     "icon_filename": "hockey-sticks-and-puck.svg"
   }

@@ -245,6 +245,8 @@ class SeedService:
             leagues = [
                 ("1", "Elite League", None),
                 ("2", "Second League", None),
+                ("2.1", "League 2.1", "2"),
+                ("2.2", "League 2.2", "2"),
             ]
             for code, name, parent in leagues:
                 self.session.add(League(code=code, name=name, parent_code=parent))

@@ -14,7 +14,12 @@ Usage:
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+# Mirror of services/validation_service._LEAGUE_CODE_RE so seed JSON can reference
+# subleague codes such as "2.1" / "2.2" (League 2 inherits parent_code='2').
+_LEAGUE_CODE_RE = re.compile(r"^[1-9]\d*(\.\d+)?$")
 
 
 def validate_countries(data: Any) -> list[str]:
@@ -169,8 +174,8 @@ def _check_achievement_type(value: Any, prefix: str) -> list[str]:
 def _check_league_code(value: Any, prefix: str) -> list[str]:
     if value is None:
         return []
-    if not isinstance(value, str) or not value.isdigit() or int(value) < 1:
-        return [f"{prefix}: 'league' must be a positive number string"]
+    if not isinstance(value, str) or not _LEAGUE_CODE_RE.match(value):
+        return [f"{prefix}: 'league' must match format 'N' or 'N.M' (digits, no leading zeros)"]
     return []
 
 

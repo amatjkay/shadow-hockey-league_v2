@@ -214,6 +214,53 @@ class TestValidateAchievements:
         errors = validate_achievements([{}])
         assert any("Missing required field" in e for e in errors)
 
+    def test_subleague_code_accepted(self):
+        """Dotted subleague codes such as ``2.1`` / ``2.2`` must validate.
+
+        Subleagues inherit ``base_points_l2`` via ``League.parent_code='2'`` so
+        their seed entries are routinely tagged with the dotted code; the seed
+        validator must allow them.
+        """
+        data = [
+            {
+                "manager_name": "Test",
+                "type": "TOP1",
+                "league": "2.2",
+                "season": "25/26",
+                "title": "TOP1",
+                "icon_filename": "top1.svg",
+            },
+            {
+                "manager_name": "Test",
+                "type": "BEST_REG",
+                "league": "2.1",
+                "season": "25/26",
+                "title": "Best regular",
+                "icon_filename": "best-reg.svg",
+            },
+        ]
+        errors = validate_achievements(data)
+        assert errors == []
+
+    def test_invalid_league_code_rejected(self):
+        """Bogus league codes (leading zero, alpha, double dot) must fail."""
+        bad_codes = ["0", "01", "2.", ".2", "2.2.2", "abc", "1a"]
+        for code in bad_codes:
+            data = [
+                {
+                    "manager_name": "Test",
+                    "type": "TOP1",
+                    "league": code,
+                    "season": "25/26",
+                    "title": "TOP1",
+                    "icon_filename": "top1.svg",
+                }
+            ]
+            errors = validate_achievements(data)
+            assert any(
+                "'league'" in e for e in errors
+            ), f"expected league validation error for code={code!r}, got {errors!r}"
+
 
 class TestValidateAll:
     """Test validate_all function."""
