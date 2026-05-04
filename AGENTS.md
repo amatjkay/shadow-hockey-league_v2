@@ -29,7 +29,7 @@ All agents **MUST** follow this protocol at the start and end of every task:
 ### Database Safety
 
 - **NEVER** perform destructive operations (`DROP`, `DELETE`, `ALTER`, `UPDATE`) on `dev.db`
-  without first running a `SELECT` schema check via the `sqlite` MCP server.
+  without first running a `SELECT` schema check (via `sqlite3 dev.db '.schema <table>'` or a Python read).
 - **ALWAYS** use Alembic for schema migrations. Provide the migration command to the user;
   do not run `alembic upgrade head` automatically.
 - Before any bulk `DELETE`, run a `SELECT COUNT(*)` to confirm the scope of the operation.
@@ -53,13 +53,13 @@ All agents **MUST** follow this protocol at the start and end of every task:
 
 ### Role Separation
 
-| Agent | Primary Focus | Allowed MCP Servers | Detailed role file |
+| Agent | Primary Focus | Allowed tools / MCP | Detailed role file |
 | :--- | :--- | :--- | :--- |
-| `architect` | System design, planning, analysis | `sequential-thinking`, `notebooklm`, `sqlite` (read-only) | `.agents/agents/architect.md` |
-| `coder` | Implementation, refactoring, features | `filesystem`, `github`, `context7`, `duckduckgo` | `.agents/agents/coder.md` |
-| `reviewer` | QA, security audit, code review | `filesystem`, `github` | `.agents/agents/reviewer.md` |
-| `token-auditor` | Find token waste in repo, prompts, Memory Bank | `filesystem` | `.agents/agents/token-auditor.md` |
-| `doc-curator` | Rotate `progress.md` / `decisionLog.md`; maintain `docs/INDEX.md` | `filesystem` | `.agents/agents/doc-curator.md` |
+| `architect` | System design, planning, analysis | `read`/`grep` over the repo, `sqlite3` CLI (read-only), `context7` MCP | `.agents/agents/architect.md` |
+| `coder` | Implementation, refactoring, features | full filesystem (`read`/`edit`/`write`), `git`/`git_pr`/`git_comment`, `context7` MCP, `web_search`/`web_get_contents` | `.agents/agents/coder.md` |
+| `reviewer` | QA, security audit, code review | full filesystem, `git`/`git_pr` (view + comment) | `.agents/agents/reviewer.md` |
+| `token-auditor` | Find token waste in repo, prompts, Memory Bank | full filesystem (read mostly; writes only to `.gitignore`, `Makefile`, `docs/INDEX.md`, `.agents/prompts/`) | `.agents/agents/token-auditor.md` |
+| `doc-curator` | Rotate `progress.md` / `decisionLog.md`; maintain `docs/INDEX.md` | full filesystem (move-only — never reword) | `.agents/agents/doc-curator.md` |
 
 ### Role Constraints (NOT-DO)
 
@@ -94,18 +94,27 @@ All agents **MUST** follow this protocol at the start and end of every task:
 
 ---
 
-## 4. MCP Server Usage Rules
+## 4. Tools and MCP Server Usage Rules
 
-| MCP Server | Purpose | Safety Constraints |
+Devin sessions on this repo expose two layers:
+
+**Built-in tools** (always available, no MCP needed):
+
+| Tool family | Purpose | Safety constraints |
 | :--- | :--- | :--- |
-| `filesystem` | Read/write project files | Never write outside project root |
-| `github` | PRs, issues, code search | Always link PRs to Linear tickets (`Fixes TIK-ID`) |
-| `sqlite` | Query `dev.db` schema/data | **Read-only** unless explicit user approval |
-| `context7` | Fresh library documentation | Prefer over training data for API questions |
-| `duckduckgo` | Web search for solutions | Verify results before applying |
-| `sequential-thinking` | Complex problem decomposition | Use for multi-file changes or architecture decisions |
-| `notebooklm` | Internal knowledge management | For research synthesis, not code generation |
-| `linear` | Task management | Read tasks; update status only with user approval |
+| `read` / `edit` / `write` / `grep` / `find_file_by_name` | Filesystem access | Never write outside the repo root. |
+| `git` / `git_pr` / `git_comment` | PRs, issues, comments, CI checks | Always link PRs to a Linear ticket via `Closes TIK-NN`. Use `git_pr(action="fetch_template")` before opening a PR. |
+| `web_search` / `web_get_contents` | Web search + page fetching | Verify before applying; prefer `context7` for library APIs. |
+| `exec` (sqlite3, alembic, pytest, …) | Anything CLI | DB destructive ops only after a `SELECT` schema check (see § 2). |
+
+**MCP servers** (current install — verify with `mcp_tool` `command="list_servers"`):
+
+| MCP Server | Purpose | Safety constraints |
+| :--- | :--- | :--- |
+| `context7` | Fresh library documentation (1000+ packages) | Prefer over training data for API questions. |
+| `linear` | TIK-* ticket management | Read freely; transition state only with user approval; see `.agents/skills/linear-sync/SKILL.md`. |
+| `playwright` | Browser automation (e2e smoke locally + CI) | Run against local dev server only; do not point at production URLs. |
+| `redis` | Direct query access to local Redis | Read-only unless cache invalidation is explicitly the task. Production cache is owned by the app, not by agents. |
 
 ---
 
@@ -149,3 +158,4 @@ These are enforced by `.antigravityrules` and reiterated here for agent complian
 | 2026-05-01 | Add `token-auditor` + `doc-curator` sub-agents; add `token-budget`, `doc-rotation`, `codebase-map` skills; add `docs/INDEX.md`; commit SHL-OPTIMIZER prompt v2.0 to `.agents/prompts/` | AI |
 | 2026-05-03 | TIK-42 cleanup epic: split `services/api.py`, `blueprints/admin_api.py`, `services/admin.py` into per-resource Python packages; lower CC of 4 hot functions to ≤ C; dedup tests; archive `scratch/` to `scripts/oneoff/`; coverage 81 → 84%. Public imports unchanged. | AI |
 | 2026-05-03 | TIK-51 tech-debt continuation: `pip-audit` gate in CI; `mypy` back in `make check` and CI (0 errors); coverage 84 → 87% (enforced as CI gate); `tests/e2e/test_smoke.py` wired into a dedicated `E2E Smoke (Playwright)` GitHub Actions job. Updated skills `verification`, `codebase-map`, `linear-sync` to match the new toolchain. | AI |
+| 2026-05-04 | TIK-57 sub-agents/skills sanity check: rewrote `db-migration` + `feature-research` skills around built-in tools (`exec` for `sqlite3`/`alembic`, `web_search`/`web_get_contents`); replaced AGENTS § 4 + techContext MCP tables with the actual current install (`context7`, `linear`, `playwright`, `redis`); corrected test count 464 → 472 everywhere; added Redis-service caveat to `verification` skill. | AI |

@@ -49,7 +49,7 @@
 
 ## 5. Testing
 
-- **Unit / integration**: `make test` (or `pytest --ignore=tests/e2e -n auto`) — currently 464 passing. Coverage gate ≥ 87% (TIK-54).
+- **Unit / integration**: `make test` (or `pytest --ignore=tests/e2e -n auto`) — currently 472 passing. Coverage gate ≥ 87% (TIK-54).
 - **Type check**: `mypy` is part of `make check` (TIK-53) and the `Quality & Tests` CI job — 0 errors on the source tree (78 files).
 - **Dependency audit**: `make audit-deps` (`pip-audit` on `requirements.txt` + `requirements-dev.txt`) runs in CI (TIK-52).
 - **Smoke e2e**: `tests/e2e/test_smoke.py` (Playwright, 42 scenarios). Locally: boot `make run`, then `python scripts/create_e2e_admin.py && make e2e`. CI runs the same script in the dedicated `E2E Smoke (Playwright)` job (TIK-55, PR #60). Excluded from `pytest` auto-collection via `tests/e2e/conftest.py`.

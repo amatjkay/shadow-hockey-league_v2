@@ -22,7 +22,7 @@ tickets should land in Linear with their own scope.
 
 - **Branch:** `main` (post PR #60 merge).
 - **Goal:** Maintenance mode. Awaiting next feature/bug request.
-- **Tests:** 464 unit/integration (`make test`) + 42-scenario Playwright e2e
+- **Tests:** 472 unit/integration (`make test`) + 42-scenario Playwright e2e
   smoke (`make e2e` locally; `E2E Smoke (Playwright)` job in CI).
 - **Coverage gate:** ≥ 87% (TIK-54).
 - **Type check:** `mypy` is back in `make check` and CI as of TIK-53 — 0 errors
@@ -83,7 +83,7 @@ tickets should land in Linear with their own scope.
 - **HTTP compression**: Flask-Compress is wired in `app.py::register_extensions` (br + gzip, level 6, `>=500 B`). Disabled in `TESTING` so `test_client` responses stay byte-comparable.
 - **`?fields=` projection**: opt-in only, plumbed through `paginate_query` for listing endpoints (`GET /api/managers`, `GET /api/achievements`, ...). Single-record endpoints (`/<id>`) still return the full record.
 - **Testing**:
-  - Unit/integration: `venv/bin/pytest tests --ignore=tests/e2e -n auto`. ~40s, expect 464 pass.
+  - Unit/integration: `venv/bin/pytest tests --ignore=tests/e2e -n auto`. ~40s, expect 472 pass (or 470 + 2 skipped/failing locally if no Redis service is running — those 2 tests need a real Redis to set up Flask-Limiter).
   - Smoke e2e (local): boot `make run` in one shell; in another, run `python scripts/create_e2e_admin.py` then `make e2e`. The CI `E2E Smoke (Playwright)` job does the same in a fresh runner with a Redis service.
 - **Database**: `dev.db` is the primary SQLite database (untracked since PR #44); recreate locally via `make init-db` (or, for the e2e flow specifically, `python -c "from app import create_app; from models import db; app = create_app(); app.app_context().push(); db.create_all()"` — the bare schema bootstrap CI uses).
 - **Cache key**: any new `@cache.cached` decorator that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`).
