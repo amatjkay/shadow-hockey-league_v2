@@ -7,14 +7,13 @@
 
 ## Current Focus
 
-**Phase:** No active campaign. TIK-51 tech-debt continuation epic closed
-2026-05-03 (PR #60 merged).
-**Status:** `main` is green. Quality & Tests CI + the new E2E Smoke (Playwright)
-CI job both pass on every PR. Linear backlog empty (all 47 tickets in the
-Tikispace team are Done or Canceled).
+**Phase:** TIK-58 in flight — owner-driven feature: seed Season 25/26 League 2.2
+results (subleagues `2.1`/`2.2`, 14 new managers, 9 achievements, Denis → Denys
+rename, idempotent Alembic data migration).
+**Status:** PR open against `main`. Awaiting CI green + user review. `make
+check` / `make audit-deps` clean locally; coverage at 87% gate.
 
-Next milestone: owner-driven features. No campaign-level work in flight. New
-tickets should land in Linear with their own scope.
+Next milestone: merge TIK-58, then back to maintenance mode.
 
 ---
 

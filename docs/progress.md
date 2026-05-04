@@ -6,6 +6,77 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-04: TIK-58 — Season 25/26 League 2.2 results
+
+### Completed
+
+- [x] **TIK-58** ([linear](https://linear.app/tikispace/issue/TIK-58)) — added
+  Season 25/26 League 2.2 reference data (subleagues `2.1`, `2.2` with
+  `parent_code='2'`), 14 new managers (8 playoff + 6 placement; Sousse Sousse
+  and Denys Sanzharevskyi already existed), 9 achievement rows for the
+  25/26 L2.2 playoff bracket, and renamed manager
+  `Denis Sanzharevskyi` → `Denys Sanzharevskyi` (correct spelling per
+  league owner).
+
+### Files touched
+
+- `data/seed_service.py::_seed_reference_data` — leagues list now seeds
+  `("2.1", "League 2.1", "2")` and `("2.2", "League 2.2", "2")` on a fresh DB.
+- `data/schemas.py::_check_league_code` — replaced `value.isdigit()` with the
+  same `^[1-9]\d*(\.\d+)?$` regex the runtime validator uses, so dotted
+  subleague codes pass seed-JSON validation.
+- `data/seed/managers.json` — Denis → Denys (UKR preserved); appended
+  14 new managers (all RUS): Aliaksandr Naidzionau, Ruslan Ivanov,
+  Konstantin Rumyantsev, Mike B, Igor Deryabin, Max Domchev, Filipp M.,
+  Andrey Rumiantsev, Maksim V, Sergey Aksentyev, Alexey Garnov,
+  Sergey Bulgakov, Dmitry Koblev, Alex Polishchuk.
+- `data/seed/achievements.json` — Denis → Denys on the 21/22 L1 R1 row;
+  9 new rows for 25/26 L2.2 (TOP1+BEST_REG = Aliaksandr Naidzionau,
+  TOP2 = Denys Sanzharevskyi, TOP3 = Ruslan Ivanov, R3 = Konstantin
+  Rumyantsev, four R1 = Mike B / Igor Deryabin / Max Domchev / Sousse
+  Sousse).
+- `migrations/versions/c5e7f9a1b2d4_seed_subleagues_and_rename_denis.py` —
+  idempotent data migration: `INSERT … WHERE NOT EXISTS` for leagues 2.1/2.2
+  + `UPDATE managers SET name='Denys …' WHERE name='Denis …'`. `downgrade()`
+  reverses both, refusing to drop subleague rows that already have FK
+  references in `achievements`.
+- `tests/test_data_services.py` — two new cases on `validate_achievements`:
+  dotted subleague codes accepted (`2.1`, `2.2`); bogus codes rejected
+  (`0`, `01`, `2.`, `.2`, `2.2.2`, `abc`, `1a`).
+
+### Scoring contract
+
+L2.2 inherits `parent_code='2'` → `League.base_points_field == "base_points_l2"`,
+so `services/scoring_service.py::get_base_points()` returns L2 base points
+unchanged. Season 25/26 multiplier is `1.0`, so final = base. Verified via
+fresh-seed query against `dev.db`:
+
+| Manager | Type | Base | Final |
+| :--- | :--- | ---: | ---: |
+| Aliaksandr Naidzionau | TOP1 | 400 | **400** |
+| Aliaksandr Naidzionau | BEST | 100 | **100** |
+| Denys Sanzharevskyi | TOP2 | 200 | **200** |
+| Ruslan Ivanov | TOP3 | 100 | **100** |
+| Konstantin Rumyantsev | R3 | 50 | **50** |
+| Mike B / Igor Deryabin / Max Domchev / Sousse Sousse | R1 | 25 | **25** each |
+
+### Verification
+
+| Step | Command | Result |
+| :--- | :--- | :--- |
+| Lint + format + flake8 + mypy | `make check` | 0 errors |
+| Test suite (excluding 2 Redis-only env-fail tests) | `pytest tests` | 472 passed |
+| Coverage | `pytest --cov=...` | 87% (gate met) |
+| Dependency CVEs | `make audit-deps` | no known vulnerabilities |
+| Seed sanity | `python seed_db.py --check` | 56 managers, 67 achievements |
+| L2.2 row count | direct SQL on dev.db | 9 achievements, all `season='25/26'` |
+
+### Status
+
+- [x] PR open against `main`. Awaiting CI green + user review.
+
+---
+
 ## 2026-05-04: TIK-57 (Linear-tracked) — bootstrap obra/superpowers skill bridge
 
 ### Completed

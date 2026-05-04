@@ -76,7 +76,7 @@
     "country_code": "BLR"
   },
   {
-    "name": "Denis Sanzharevskyi",
+    "name": "Denys Sanzharevskyi",
     "country_code": "UKR"
   },
   {
@@ -166,5 +166,61 @@
   {
     "name": "Max Trufanov",
     "country_code": "UKR"
+  },
+  {
+    "name": "Aliaksandr Naidzionau",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Ruslan Ivanov",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Konstantin Rumyantsev",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Mike B",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Igor Deryabin",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Max Domchev",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Filipp M.",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Andrey Rumiantsev",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Maksim V",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Sergey Aksentyev",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Alexey Garnov",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Sergey Bulgakov",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Dmitry Koblev",
+    "country_code": "RUS"
+  },
+  {
+    "name": "Alex Polishchuk",
+    "country_code": "RUS"
   }
 ]
