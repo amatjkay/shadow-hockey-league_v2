@@ -5,6 +5,32 @@
 >
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md`.
 
+## 2026-05-04: TIK-57 — sub-agents/skills sanity check + tools/MCP table corrections
+
+### Completed
+- [x] **TIK-57** (PR follow-up to #61) — Walked the verification, codebase-map,
+  linear-sync, token-budget, db-migration, doc-rotation, and feature-research
+  skills against the current Devin session. Verified `make check` (black + isort
+  + flake8 + mypy ✅), `make audit-deps` (pip-audit ✅, no known CVEs), `make
+  test` (470 passed locally without Redis; 472 in CI). Found two skills (`db-migration`,
+  `feature-research`) and `AGENTS.md` § 4 / `docs/techContext.md` MCP tables
+  referencing MCP servers that no longer exist in this session: `filesystem`,
+  `github`, `sqlite`, `sequential-thinking`, `notebooklm`, `duckduckgo`. Live
+  install verified via `mcp_tool` `command="list_servers"` → `context7`,
+  `linear`, `playwright`, `redis`. Rewrote both skills around built-in tools
+  (`read`/`edit`, `git`/`git_pr`, `web_search`/`web_get_contents`, `exec` for
+  `sqlite3`/`alembic`) and refreshed the AGENTS / techContext tool tables to
+  match. Also: corrected the test count from `464` to `472` everywhere it
+  appeared (`docs/activeContext.md`, `docs/techContext.md`, `docs/progress.md`,
+  `PROJECT_KNOWLEDGE.md`, `.agents/skills/verification/SKILL.md`) and added a
+  caveat that 2 of the 472 tests need a real Redis service to pass (CI has it,
+  local runs without Redis don't — `470 passed, 2 failed` is expected).
+
+### Why it matters
+- Agents reading the old AGENTS.md / techContext / db-migration / feature-research
+  would call MCP tools that don't exist and waste a turn on the error. The
+  correction is purely informational, no code changes.
+
 ## 2026-05-03: TIK-51 tech-debt continuation — deps audit, mypy, coverage, e2e in CI
 
 ### Completed
@@ -17,7 +43,7 @@
 
 | Metric | Before (post-TIK-42) | After (post-TIK-55) |
 |---|--:|--:|
-| Tests | 423 | 464 |
+| Tests | 423 | 472 |
 | Coverage (services/blueprints/app/models) | 84% | 87% |
 | `mypy` errors in `make check` | 40 (skip in CI) | 0 (gate in CI) |
 | Dependency audit | manual | `pip-audit` in CI |

@@ -74,19 +74,31 @@
 
 ---
 
-## MCP Servers
+## Tools available in agent sessions
+
+Agent sessions on this repo combine **built-in Devin tools** with a small set of
+**MCP servers**. The MCP install is verified live with `mcp_tool` (command
+`list_servers`) — older docs that mention `filesystem`, `github`, `sqlite`,
+`sequential-thinking`, `notebooklm`, or `duckduckgo` MCP servers are out of
+date as of 2026-05-04.
+
+**Built-in tools** (always present):
+
+| Tool family | Purpose | Constraint |
+| :--- | :--- | :--- |
+| `read` / `edit` / `write` / `grep` / `find_file_by_name` | Filesystem access (replaces `filesystem` MCP) | Scoped to repo root. |
+| `git` / `git_pr` / `git_comment` | PRs, issues, comments, CI checks (replaces `github` MCP) | `git_pr(action="fetch_template")` first; use `git_pr(action="create")` for PRs (no `gh` CLI). |
+| `web_search` / `web_get_contents` | Web search + page fetch (replaces `duckduckgo` MCP) | Prefer `context7` for library API questions. |
+| `exec` | Any CLI tool — `sqlite3 dev.db`, `alembic`, `pytest`, `pip-audit`, `playwright` | DB destructive ops only after a `SELECT` schema check. |
+
+**MCP servers** (current install):
 
 | Server | Purpose | Constraint |
 | :--- | :--- | :--- |
-| `filesystem` | Read/write files in project root | Scoped to repo root |
-| `github` | Repository operations, PRs, issues | Token-authenticated |
-| `sqlite` | Direct query access to `dev.db` | **Read-only by default** (see AGENTS.md) |
-| `context7` | Fresh library/framework documentation | API-key authenticated |
-| `playwright` | Browser automation (e2e smoke locally + CI) | Headless Chromium installed via `playwright install chromium` |
-| `redis` | Direct query access to local cache | Optional; production cache is Redis, dev fallback is in-memory |
-| `sequential-thinking` | Structured problem decomposition | Stateless |
-| `notebooklm` | Research notebooks, source management | Cookie-authenticated |
-| `linear` | Task/issue management (TIK- prefix) | API-key authenticated; see `.agents/skills/linear-sync/SKILL.md` for current tool names |
+| `context7` | Fresh library/framework documentation (1000+ packages) | API-key authenticated. |
+| `linear` | Task/issue management (TIK- prefix) | API-key authenticated; see `.agents/skills/linear-sync/SKILL.md` for current tool names. |
+| `playwright` | Browser automation (e2e smoke locally + CI) | Headless Chromium installed via `playwright install chromium`. |
+| `redis` | Direct query access to local Redis | Read-only by default; production cache is owned by the app, not by agents. |
 
 ---
 
@@ -128,7 +140,7 @@ upstream issues are now handled natively by the pinned versions:
 If a future bump re-introduces either incompatibility, restore a small
 `utils/patches.py` and call `apply_patches()` from `create_app()` **before**
 `init_admin(app)`. The 42/42 Playwright smoke suite (`tests/e2e/test_smoke.py`)
-plus the 464 unit/integration tests are the regression net for this area.
+plus the 472 unit/integration tests are the regression net for this area.
 
 ---
 
@@ -137,7 +149,7 @@ plus the 464 unit/integration tests are the regression net for this area.
 ```bash
 make setup        # Install deps + init DB
 make run          # Dev server (port 5000)
-make test         # 464 unit/integration tests (excludes tests/e2e)
+make test         # 472 unit/integration tests (excludes tests/e2e)
 make check        # Black + isort + flake8 + mypy (the CI lint/type gate)
 make lint         # Flake8 only (subset of check)
 make format       # Black + isort (write mode)
@@ -200,4 +212,4 @@ The following modules were touched (or added) during the audit remediation. Futu
 
 ---
 
-Last updated: 2026-05-03 (post-TIK-51 — packages, mypy/pip-audit/e2e in CI, 87% coverage, 464 tests).
+Last updated: 2026-05-04 (post-TIK-51 — packages, mypy/pip-audit/e2e in CI, 87% coverage, 472 tests; tools/MCP table corrected against the live `mcp_tool list_servers` output).
