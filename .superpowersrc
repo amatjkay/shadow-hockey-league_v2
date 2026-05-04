@@ -1,0 +1,36 @@
+# .superpowersrc — config for the obra/superpowers skill bridge.
+# Source of truth: scripts/install_superpowers.sh reads this file.
+# Format: YAML 1.2. Validate with `python -c "import yaml; yaml.safe_load(open('.superpowersrc'))"`.
+version: 1
+
+# Upstream pinning. Update via `make superpowers-update` (re-points the
+# submodule HEAD; the new SHA is recorded in the next commit).
+upstream: https://github.com/obra/superpowers
+upstream_ref: v5.0.7  # https://github.com/obra/superpowers/releases/tag/v5.0.7
+
+# Install mode. `auto` lets the bootstrap script detect the platform.
+# Override with `scripts/install_superpowers.sh --mode=<value>`.
+# Allowed: auto | claudecode | cursor | codex-cli | codex-app | opencode |
+#          copilot-cli | gemini | kilocode | hermes | antigravity | devin |
+#          unknown
+install_mode: auto
+
+# Where the script vendors the upstream skills as a git submodule.
+# Used as the fallback root for platforms that lack a native plugin install.
+fallback_path: skills/superpowers
+
+# Active skill set. The literal `all` token means "every upstream skill".
+# To disable specific upstream skills, populate `disabled_skills` below.
+active_skills: all
+
+# Skills explicitly disabled for this project. Project skills in
+# .agents/skills/<name>/SKILL.md always take precedence (see AGENTS.md § 7).
+disabled_skills: []
+
+# Per-platform target paths. The bootstrap script is the only writer; do not
+# edit by hand. POSIX = symlink, Windows = junction (PowerShell variant).
+adapters:
+  kilocode: .kilocode/skills/superpowers
+  hermes:   ~/.hermes/skills/superpowers   # outside the repo (user dir)
+  devin:    .agents/skills/superpowers
+  antigravity: .agents/skills/superpowers

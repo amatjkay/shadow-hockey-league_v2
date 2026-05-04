@@ -1,4 +1,5 @@
-.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install audit-deps e2e
+.PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install audit-deps e2e \
+        superpowers-install superpowers-status superpowers-update precommit-install
 
 # ==============================================================================
 # INSTALLATION
@@ -132,3 +133,26 @@ run:
 # Run production server with gunicorn
 prod:
 	gunicorn --bind 0.0.0.0:5000 --workers 4 "app:create_app()"
+
+# ==============================================================================
+# AGENT TOOLING
+# ==============================================================================
+
+# Bootstrap obra/superpowers across the detected agent platform. See
+# docs/SUPERPOWERS.md and AGENTS.md § 7. Default is dry-run; pass APPLY=1 (or
+# call the script directly with --apply) to mutate the repo / user dir.
+superpowers-install:
+	scripts/install_superpowers.sh --apply
+
+superpowers-status:
+	scripts/install_superpowers.sh
+
+superpowers-update:
+	git submodule update --remote skills/superpowers
+
+# Wire up the project-local pre-commit hooks (.pre-commit-config.yaml).
+# `pre-commit` is in requirements-dev.txt; this target is a one-shot per
+# checkout. CI keeps the heavy lifting (`make check`, `make test`,
+# `make audit-deps`); these hooks are convenience-only.
+precommit-install:
+	$(VENV_BIN)pre-commit install

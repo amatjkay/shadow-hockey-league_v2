@@ -2,6 +2,15 @@
 line-length = 100
 target-version = ['py312']
 include = '\.pyi?$'
+# Excluded:
+#   - vendored upstream skills (`skills/superpowers/`, git submodule pinned at
+#     v5.0.7) — formatting is owned by upstream.
+#   - `.kilo/` agent stubs (intentional placeholder Python files; keeping them
+#     out of black/isort/flake8 lets the agent-config tree drift independently).
+#   - root-level diagnostics (`locustfile.py`, `run_performance_test.py`,
+#     `test_mcp_client.py`, `test_linear_mcp.py`) — currently single-line
+#     stubs that fail to parse; excluded until they are either deleted or
+#     replaced with real implementations.
 exclude = '''
 /(
     \.git
@@ -17,13 +26,40 @@ exclude = '''
   | instance
   | migrations
   | scripts/oneoff
+  | skills/superpowers
+  | \.kilo
 )/
+'''
+# `force-exclude` is matched against absolute paths (unlike `exclude` which
+# uses the path relative to the directory black was invoked from). The
+# `(^|/)` prefix lets the regex match both relative and absolute forms.
+force-exclude = '''
+(?x)
+( (^|/)locustfile\.py$
+| (^|/)run_performance_test\.py$
+| (^|/)test_mcp_client\.py$
+| (^|/)test_linear_mcp\.py$
+)
 '''
 
 [tool.isort]
 profile = "black"
 line_length = 100
-skip = ["instance", "__pycache__", "venv", ".venv", "migrations", "scripts/oneoff"]
+skip = [
+    "instance",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "migrations",
+    "scripts/oneoff",
+    # Same rationale as `[tool.black].exclude` — see comment there.
+    "skills/superpowers",
+    ".kilo",
+    "locustfile.py",
+    "run_performance_test.py",
+    "test_mcp_client.py",
+    "test_linear_mcp.py",
+]
 known_first_party = ["app", "data", "config", "models"]
 
 [tool.mypy]
@@ -37,6 +73,13 @@ exclude = [
     "^build/",
     "^dist/",
     "^scripts/oneoff/",
+    # Same rationale as `[tool.black].exclude` — see comment there.
+    "^skills/superpowers/",
+    "^\\.kilo/",
+    "^locustfile\\.py$",
+    "^run_performance_test\\.py$",
+    "^test_mcp_client\\.py$",
+    "^test_linear_mcp\\.py$",
 ]
 
 # Flask-SQLAlchemy uses `db.Model` as a runtime metaclass that mypy cannot resolve

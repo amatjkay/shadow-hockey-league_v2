@@ -1,0 +1,14 @@
+# Project-local pre-commit hooks.
+# Install with: make precommit-install (one-time per checkout).
+# Hooks are intentionally fast and stay offline; CI keeps the heavy lifting
+# (`make check`, `make test`, `make audit-deps`).
+repos:
+  - repo: local
+    hooks:
+      - id: superpowers-skills-check
+        name: superpowers skill bridge — sanity check
+        entry: scripts/install_superpowers.sh --check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
