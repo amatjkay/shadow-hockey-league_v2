@@ -37,6 +37,9 @@
 - `docs/archive/audits/` — past audit artefacts (analysis, plans, inventories).
   Reference only when explicitly asked.
 - `docs/archive/progress-pre-2026-04-29.md` — pre-cycle progress entries.
+- `docs/archive/2026-Q2.md` — rotated `progress.md` (4 entries 2026-04-30 →
+  2026-05-01) + `decisionLog.md` (8 entries 2026-04-23 → 2026-04-29). Verbatim
+  move; reference only when asked about pre-2026-04-30 design history.
 
 ## Conventions
 
