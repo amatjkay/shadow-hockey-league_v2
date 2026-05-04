@@ -28,6 +28,7 @@
 | `docs/TROUBLESHOOTING.md` | Investigating a bug or environmental flake. |
 | `docs/decisionLog.md` | About to make (or look up) a non-trivial design decision. Use `tail -5` or grep by date — never read whole. |
 | `docs/progress.md` | Need recent progress / open work items. Use `tail -50` — never read whole. |
+| `docs/SUPERPOWERS.md` | Per-platform install commands for the obra/superpowers skill bridge (`scripts/install_superpowers.sh`). See `AGENTS.md` § 7. |
 
 ## Archive (do NOT auto-load)
 

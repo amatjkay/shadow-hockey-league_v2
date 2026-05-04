@@ -35,3 +35,6 @@ temp/
 logs/
 *.tmp
 *.bak
+
+# Superpowers bootstrap marker (machine-specific; tracked path is .superpowersrc)
+.superpowers/

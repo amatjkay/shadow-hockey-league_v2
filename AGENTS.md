@@ -159,3 +159,59 @@ These are enforced by `.antigravityrules` and reiterated here for agent complian
 | 2026-05-03 | TIK-42 cleanup epic: split `services/api.py`, `blueprints/admin_api.py`, `services/admin.py` into per-resource Python packages; lower CC of 4 hot functions to ≤ C; dedup tests; archive `scratch/` to `scripts/oneoff/`; coverage 81 → 84%. Public imports unchanged. | AI |
 | 2026-05-03 | TIK-51 tech-debt continuation: `pip-audit` gate in CI; `mypy` back in `make check` and CI (0 errors); coverage 84 → 87% (enforced as CI gate); `tests/e2e/test_smoke.py` wired into a dedicated `E2E Smoke (Playwright)` GitHub Actions job. Updated skills `verification`, `codebase-map`, `linear-sync` to match the new toolchain. | AI |
 | 2026-05-04 | TIK-57 sub-agents/skills sanity check: rewrote `db-migration` + `feature-research` skills around built-in tools (`exec` for `sqlite3`/`alembic`, `web_search`/`web_get_contents`); replaced AGENTS § 4 + techContext MCP tables with the actual current install (`context7`, `linear`, `playwright`, `redis`); corrected test count 464 → 472 everywhere; added Redis-service caveat to `verification` skill. | AI |
+| 2026-05-04 | TIK-57 (Linear-tracked) — bootstrap obra/superpowers skill bridge: added § 7 below, `scripts/install_superpowers.{sh,ps1}`, `.superpowersrc`, `.pre-commit-config.yaml`, `Makefile` targets `superpowers-{install,status,update}` + `precommit-install`, `docs/SUPERPOWERS.md`, and the `skills/superpowers` git submodule pinned at upstream tag `v5.0.7`. Existing § 1–6 unchanged. | AI |
+
+---
+
+## 7. Superpowers Skill Bridge (since 2026-05-04)
+
+[obra/superpowers](https://github.com/obra/superpowers) is a *methodology-level*
+skill set (TDD, brainstorming, writing-plans, subagent-driven-development,
+requesting-code-review, finishing-a-development-branch, …) bootstrapped by
+[`scripts/install_superpowers.sh`](scripts/install_superpowers.sh) (POSIX) /
+[`.ps1`](scripts/install_superpowers.ps1) (Windows). Source of truth:
+[`.superpowersrc`](.superpowersrc).
+
+These skills **complement, not replace**, the project-specific skills in
+`.agents/skills/<name>/SKILL.md` (§ 3). On any name collision the project
+skill wins; explicitly disable an upstream skill via `disabled_skills` in
+`.superpowersrc`.
+
+### Per-platform install matrix
+
+| Platform | What the script does | Repo-modifying? |
+| :--- | :--- | :--- |
+| Claude Code | prints `/plugin install superpowers@claude-plugins-official` | no |
+| Cursor | prints `/add-plugin superpowers` | no |
+| Codex CLI | prints `/plugins → superpowers → Install` | no |
+| Codex App | prints sidebar walkthrough | no |
+| OpenCode | merges `superpowers@git+…` into `opencode.json[plugin]` | yes (`opencode.json`) |
+| Copilot CLI | prints `copilot plugin marketplace add … && plugin install …` | no |
+| Gemini CLI | prints `gemini extensions install …` | no |
+| Kilocode | submodule `skills/superpowers` + symlink `.kilocode/skills/superpowers` | yes |
+| Hermes | submodule + `external_skill_dirs` snippet for `~/.hermes/config.toml` | yes (submodule only) |
+| Antigravity / **Devin.io** / unknown | submodule + symlink `.agents/skills/superpowers` | yes |
+
+Devin/Antigravity expose superpowers skills under
+**`.agents/skills/superpowers/`** — the symlink target — so existing
+skill-discovery (which already scans `.agents/skills/<name>/SKILL.md`) picks
+them up alongside the seven project skills in § 3.
+
+### Verification
+
+- `make superpowers-status` — dry-run; prints detected platform + target path.
+- `git -C skills/superpowers describe --tags` — confirms the upstream pin.
+- `scripts/install_superpowers.sh --check` — pre-commit-friendly sanity check.
+- Native plugin platforms: `/superpowers status` slash command (or equivalent)
+  inside the agent.
+
+### Updating
+
+```bash
+make superpowers-update                       # remote-fast-forward submodule
+git -C skills/superpowers checkout v5.x.y     # or pin to a different tag
+git add skills/superpowers .superpowersrc     # bump upstream_ref: too
+git commit -m "chore(superpowers): bump to v5.x.y"
+```
+
+Full docs: [`docs/SUPERPOWERS.md`](docs/SUPERPOWERS.md).

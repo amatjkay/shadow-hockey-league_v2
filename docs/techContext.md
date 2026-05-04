@@ -100,6 +100,22 @@ date as of 2026-05-04.
 | `playwright` | Browser automation (e2e smoke locally + CI) | Headless Chromium installed via `playwright install chromium`. |
 | `redis` | Direct query access to local Redis | Read-only by default; production cache is owned by the app, not by agents. |
 
+**Skill layers** (since TIK-57 / 2026-05-04):
+
+| Layer | Path | Source of truth | Discovery |
+| :--- | :--- | :--- | :--- |
+| Project skills | `.agents/skills/<name>/SKILL.md` (7 skills) | In-tree, project-specific | Devin native skill discovery; `.antigravityrules`; AGENTS.md § 3 |
+| Superpowers skills | `.agents/skills/superpowers/<name>/SKILL.md` (symlink → `skills/superpowers/skills/`, 14 skills) | Git submodule pinned at `v5.0.7` | Same Devin skill discovery (the symlink makes the upstream tree look like a project skill) |
+
+The bootstrap is performed by `scripts/install_superpowers.{sh,ps1}`:
+`detect_platform()` → per-platform dispatch (Devin/Antigravity/Kilocode/Hermes
+get the submodule + symlink/junction; Claude Code/Cursor/Codex/Copilot/Gemini
+get a print-only slash-command; OpenCode gets an idempotent `opencode.json`
+plugin merge). Default is dry-run (`make superpowers-status`); `--apply`
+mutates (`make superpowers-install`); `--check` validates `.superpowersrc`
++ submodule + symlink (used by the `pre-commit` hook). Full doc:
+[`docs/SUPERPOWERS.md`](SUPERPOWERS.md). See also AGENTS.md § 7.
+
 ---
 
 ## Database Schema (Key Models)

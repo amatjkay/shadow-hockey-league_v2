@@ -232,6 +232,7 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 | [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md)         | Постановка задач для ИИ        |
 | [`docs/GITHUB_CLI.md`](docs/GITHUB_CLI.md)           | Работа с GitHub через CLI      |
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок           |
+| [`docs/SUPERPOWERS.md`](docs/SUPERPOWERS.md)         | obra/superpowers skill bridge  |
 | [`CHANGELOG.md`](CHANGELOG.md)                       | История изменений              |
 
 ---
