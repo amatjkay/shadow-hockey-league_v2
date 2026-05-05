@@ -18,6 +18,7 @@ from app import create_app
 from data.export_service import ExportService
 from data.seed_service import SeedService
 from models import db
+from services.cache_service import invalidate_leaderboard_cache
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -82,6 +83,17 @@ def main():
             sys.exit(1)
 
         print(f"\n{result}")
+
+        # SeedService bypasses the SQLAlchemy ``after_flush`` listener that
+        # normally calls ``invalidate_leaderboard_cache`` (it commits raw
+        # INSERTs in batches). Without this call the next page load would
+        # still see the pre-seed (often empty) cached leaderboard until the
+        # default TTL expires. Failures are non-fatal — a redis hiccup
+        # mustn't break a successful seed.
+        if invalidate_leaderboard_cache():
+            print("[INFO] Leaderboard cache invalidated.")
+        else:
+            print("[WARN] Could not invalidate leaderboard cache (Redis unreachable?).")
 
 
 if __name__ == "__main__":
