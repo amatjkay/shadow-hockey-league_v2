@@ -17,6 +17,7 @@ from flask_login import current_user
 from markupsafe import Markup
 from wtforms import PasswordField
 
+from data.admin_observers import validate_manager_name
 from models import (
     Achievement,
     AchievementType,
@@ -91,6 +92,12 @@ class ManagerModelView(SHLModelView):
         }
     }
 
+    def on_model_change(self, form: Any, model: Manager, is_created: bool) -> None:
+        """Block admin-observer tandem records that lack an explicit allowlist entry."""
+
+        validate_manager_name(model.name)
+        super().on_model_change(form, model, is_created)
+
 
 class AchievementModelView(SHLModelView):
     """View for managing individual achievements.
@@ -119,6 +126,16 @@ class AchievementModelView(SHLModelView):
 
     def on_model_change(self, form: Any, model: Achievement, is_created: bool) -> None:
         """Auto-calculate fields and validate uniqueness."""
+        # --- Admin-observer guardrail (defence-in-depth) ---
+        # Catches the rare case where an unsanctioned admin-observer
+        # tandem manager slipped past the ManagerModelView guardrail
+        # (e.g. legacy direct DB insert) before any achievement gets
+        # attributed to them.
+        if model.manager_id and not model.manager:
+            model.manager = db.session.get(Manager, model.manager_id)
+        if model.manager is not None:
+            validate_manager_name(model.manager.name)
+
         # --- Duplicate Validation (TIK-23) ---
         with db.session.no_autoflush:  # type: ignore[attr-defined]
             if model.manager_id and model.type_id and model.league_id and model.season_id:

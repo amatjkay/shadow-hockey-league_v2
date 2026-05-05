@@ -6,6 +6,20 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-05: TIK-58 follow-ups (data migrations + admin-observer guardrails)
+
+### Completed
+
+- [x] **PR #70** — `TIK-58 follow-up: data migration to backfill 14 managers + 9 achievements on prod`. Idempotent Alembic migration `d6f8a2b9c1e3` so already-initialised production / staging DBs (where `seed_db.py` is safe-mode) actually receive the L2.2 25/26 results that PR #65 only added to JSON seeds. Pattern: `INSERT … SELECT … WHERE NOT EXISTS` against `managers.name` + `uq_achievement_manager_league_season_type`. Symmetric `downgrade()` deletes achievements first, then drops only managers with no remaining achievements.
+- [x] **PR #71** — `TIK-58 follow-up: seed Season 25/26 League 2.1 results (4 managers + 9 achievements)`. Companion migration `e7a9b3d5c2f1` (revises `d6f8a2b9c1e3`) backfilling L2.1 / 25/26 — 4 new RUS managers (`Dmitry S.`, `Irina P.`, `Den Denverovich`, `Nikita Ignatenko`) + 9 achievements (TOP1 / TOP2 / TOP3 / R3 / BEST + 4 × R1). Variant A admin-observer carve-out inline: `whiplash 92` / `AleX TiiKii` get no ach in this migration (Volga Mafiozi → only Don Georgio R1; Team Femida 11th → no ach).
+- [x] **PR #72** — `TIK-58 follow-up: admin-observer guardrail for tandem manager records` (this PR). Variant B from the same conversation: system-level enforcement so future seasons don't need per-migration carve-outs. Adds `data/admin_observers.py` (canonical observer set + case-insensitive `validate_manager_name`), `data/seed/explicit_tandems.json` allowlist (currently `["Tandem: Vlad, whiplash 92"]`), and three enforcement points (`SeedService._seed_managers`, `ManagerModelView.on_model_change`, `AchievementModelView.on_model_change`). 53 new tests; 0 schema changes; 0 migrations. See `docs/decisionLog.md` 2026-05-05 entry for the full rationale.
+
+### Cumulative state after PR #72
+
+- 60 managers / 76 achievements / 5 seasons baseline (after PRs #70-#71 are applied to prod).
+- 527 tests passing locally (was 472 pre-PR #70).
+- `make check` clean (black / isort / flake8 / mypy).
+
 ## 2026-05-05: Sub-agents/skills sanity check round 2 (3 sequential PRs)
 
 ### Completed

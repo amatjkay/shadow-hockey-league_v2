@@ -3,6 +3,60 @@
 > Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
 > at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
 
+## 2026-05-05: Admin-observer guardrail for tandem manager records
+
+**Context**: Per the league owner, `whiplash 92` and `AleX TiiKii` are
+sometimes attached to another team's roster purely for *administrative
+observation* (Volga Mafiozi 25/26, Team Femida 25/26). The combined pair
+must NOT be recorded as a tandem manager — only the active partner gets
+the team's playoff achievement. At the same time, those two are also
+regular solo participants elsewhere (10 legitimate solo achievements
+across L1 and L2 in 21/22 → 24/25), so a blanket exclusion would be
+incorrect. The 22/23 L2 `Tandem: Vlad, whiplash 92` is a real exception:
+that pair *did* play as a true tandem, owner-confirmed.
+
+The previous L2.1 25/26 data migration (`e7a9b3d5c2f1`, PR #71) handled
+the carve-out **inline** (no `Tandem: Don Georgio, whiplash 92` row
+inserted). The owner asked for a **system-level** mechanism so this is
+enforced automatically for all future seasons rather than per-migration.
+
+**Decision** (Variant B; complements Variant A in PR #71):
+
+1. **Convention, not schema.** No new column on `managers`, no new
+   table, no Alembic migration. The existing solo achievements of
+   `whiplash 92` / `AleX TiiKii` keep flowing through scoring untouched.
+2. **`data/admin_observers.py`** — new module that owns the canonical
+   `ADMIN_OBSERVERS` set + helpers (`normalize`, `parse_tandem_members`,
+   `tandem_observer_members`, `validate_manager_name`,
+   `load_explicit_tandems`, `is_explicit_tandem`). Matching is
+   case-insensitive and whitespace-normalised so `Alex Tiikii`,
+   `AleX TiiKii`, and `alex   tiikii` all trigger the rule.
+3. **`data/seed/explicit_tandems.json`** — flat JSON list of
+   owner-sanctioned mixed tandem strings. Currently a single entry:
+   `["Tandem: Vlad, whiplash 92"]`. Order of members inside a tandem
+   string is irrelevant — comparisons are normalised to a frozenset of
+   member names.
+4. **Two enforcement points** — `data/seed_service.py::_seed_managers`
+   appends to `result.errors` and skips the row;
+   `services/admin/views.py::ManagerModelView.on_model_change` raises
+   `ValueError` (Flask-Admin surfaces this as a form-level error). A
+   third, defence-in-depth check sits in
+   `AchievementModelView.on_model_change` so legacy / out-of-band
+   inserts can't silently slip an observer-tandem an achievement.
+5. **Solo observer rows are unaffected.** The validator short-circuits
+   on non-tandem names — `whiplash 92` / `AleX TiiKii` themselves pass
+   through, as do all 60 unrelated managers in the seed.
+
+**Consequences**:
+
+- Admins introducing new tandems via Flask-Admin or seed JSON get a
+  clear error message pointing them at `data/seed/explicit_tandems.json`
+  if a real tandem with an observer needs to be registered.
+- Coverage of the new module is 98% (53 unit + integration tests in
+  `tests/test_admin_observers.py`).
+- No schema change → no production migration to coordinate. Deploying
+  this PR is a simple `git pull` + service restart.
+
 ## 2026-05-05: Kilocode adapter — auto-detect `.kilo/` vs `.kilocode/`
 
 **Context**: `scripts/install_superpowers.{sh,ps1}` shipped in TIK-57 with
