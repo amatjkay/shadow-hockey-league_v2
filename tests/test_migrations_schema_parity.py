@@ -171,9 +171,7 @@ def test_head_migration_is_idempotent(fresh_migrated_db: Path) -> None:
     )
 
 
-def test_orm_smoke_against_migrated_db(
-    fresh_migrated_db: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_orm_smoke_against_migrated_db(fresh_migrated_db: Path) -> None:
     """Run the exact ORM SELECTs that the failing prod homepage triggers.
 
     ``services/rating_service.build_leaderboard`` chains
@@ -182,24 +180,30 @@ def test_orm_smoke_against_migrated_db(
     These are the SELECTs that exploded on prod when ``is_active`` /
     ``start_year`` / ``end_year`` were missing — keep this smoke test
     runnable so we never ship that combination again.
+
+    We bypass Flask-SQLAlchemy here and bind a fresh SQLAlchemy engine
+    directly to the migrated DB. The session-scoped ``app`` fixture in
+    ``conftest.py`` is hard-wired to ``TestingConfig`` (``:memory:``)
+    via ``Config.SQLALCHEMY_DATABASE_URI`` evaluated at import time, so
+    we can't reuse ``db.session`` in this isolated test.
     """
 
-    # ``create_app`` reads ``DATABASE_URL`` from the environment at
-    # import time (see ``config.py::Config.get_database_url``). Pointing
-    # it at our freshly-migrated DB makes the SQLAlchemy session bind to
-    # exactly the schema produced by Alembic — same as what prod sees.
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{fresh_migrated_db}")
+    # Import inside the test so model metadata + columns are loaded against
+    # this engine — the conftest session-scoped app would otherwise have
+    # already bound them to its own ``:memory:`` engine.
+    from models import AchievementType, Country, League, Manager, Season
 
-    # Import inside the test to avoid Flask app initialisation at collection time.
-    from app import create_app, db
-    from models import AchievementType, Country, League, Manager, Season  # noqa: F401
-
-    app = create_app()
-    with app.app_context():
-        # These five queries each previously crashed prod with "no
-        # such column: ...". They must all complete.
-        assert db.session.query(AchievementType).count() >= 0
-        assert db.session.query(League).count() >= 0
-        assert db.session.query(Country).count() >= 0
-        assert db.session.query(Manager).count() >= 0
-        assert db.session.query(Season).count() >= 0
+    engine = sa.create_engine(f"sqlite:///{fresh_migrated_db}")
+    Session = sa.orm.sessionmaker(bind=engine)
+    session = Session()
+    try:
+        # Each of these five queries previously crashed prod with "no
+        # such column: ...". They must all complete on a freshly-migrated DB.
+        assert session.query(AchievementType).count() >= 0
+        assert session.query(League).count() >= 0
+        assert session.query(Country).count() >= 0
+        assert session.query(Manager).count() >= 0
+        assert session.query(Season).count() >= 0
+    finally:
+        session.close()
+        engine.dispose()
