@@ -3,6 +3,62 @@
 > Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
 > at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
 
+## 2026-05-05: Kilocode adapter — auto-detect `.kilo/` vs `.kilocode/`
+
+**Context**: `scripts/install_superpowers.{sh,ps1}` shipped in TIK-57 with
+`dispatch_kilocode()` hard-coded to symlink `.kilocode/skills/superpowers`
+(the documented Kilocode plugin path). But this repo, like several
+projects in the wild, ships an **in-repo Kilocode orchestrator** layout
+under `.kilo/`: `kilo.json`, `kilo.jsonc`, and project skills already at
+`.kilo/skills/{skill-creator,webapp-testing,grill-me}`. Running
+`make superpowers-install --mode=kilocode` here used to create a
+*parallel* `.kilocode/` tree that Kilocode never discovers — so on
+Kilocode the upstream superpowers skills were silently invisible.
+
+**Decision**:
+
+1. **Auto-detect, don't hard-code.** Both `dispatch_kilocode` (Bash) and
+   the `'kilocode'` switch case (PowerShell) now check whether the repo
+   already has `.kilo/` (or `.kilo/kilo.json`, `.kilo/kilo.jsonc`). If
+   present, the script symlinks `.kilo/skills/superpowers`; otherwise it
+   falls back to the canonical `.kilocode/skills/superpowers`.
+2. **Both layouts are uninstalled.** `run_uninstall` in `.sh` and `.ps1`
+   now removes both `.kilocode/skills/superpowers` and
+   `.kilo/skills/superpowers`, so a tear-down doesn't leave dangling
+   symlinks if a user toggles platforms or migrates layouts.
+3. **The in-repo `.kilo/skills/superpowers → ../../skills/superpowers/skills`
+   symlink is committed.** Parallel to the long-existing
+   `.agents/skills/superpowers` symlink, this gives Kilocode users in
+   *this* repo immediate parity with Devin / Antigravity / OpenCode users
+   without having to run the bootstrap script first.
+4. **`AGENTS.md` § 7 install matrix and `.superpowersrc`
+   `adapters.kilocode` comment** were updated to document the
+   auto-detection. The user-facing default in `.superpowersrc` stays
+   `.kilocode/skills/superpowers` (the Kilocode-platform-canonical path);
+   the inline comment explicitly says the script auto-rewrites to
+   `.kilo/skills/superpowers` when `.kilo/` exists.
+5. **`Makefile` `setup` target now runs `submodules-init` first** —
+   `git submodule update --init --recursive` — so on a fresh clone the
+   `skills/superpowers` submodule is populated before any of the adapter
+   symlinks (`.agents/skills/superpowers`, `.kilo/skills/superpowers`)
+   are dereferenced. README *Быстрый старт* mentions this.
+
+**Rationale**: the legacy `.kilocode/` path was the documented standard
+when TIK-57 wrote the bootstrap, but the in-repo orchestrator pattern
+(everything under `.kilo/`) is what this project (and the user's wider
+Kilocode workflow) actually uses. Both are valid; neither is wrong.
+Auto-detection is the only way the bootstrap stays correct without each
+project having to override `.superpowersrc::adapters.kilocode` by hand —
+and overrides are explicitly disallowed by the file's own header
+(*"do not edit by hand"*). The hard-coded path was a latent footgun:
+silent miss with no error. Auto-detection trades one branch in 4 lines
+of bash for a footgun-free behaviour.
+
+**Status**: Implemented in PR #68 (merged 2026-05-05).
+[github](https://github.com/amatjkay/shadow-hockey-league_v2/pull/68).
+
+---
+
 ## 2026-05-04: TIK-57 — bootstrap obra/superpowers as a parallel skill layer
 
 **Context**: User requested integration of [`obra/superpowers`](https://github.com/obra/superpowers)
