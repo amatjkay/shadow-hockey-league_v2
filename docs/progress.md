@@ -6,6 +6,60 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-05 (later): Prod data recovery after PR #74 deploy
+
+After PR #74 merged and was deployed to prod, `https://shadow-hockey-league.ru/`
+returned HTTP 200 but with an empty leaderboard (Рейтинг лиги → empty-state).
+Investigation on prod (`root@46.29.239.8:/home/shleague/shadow-hockey-league_v2`)
+revealed two SQLite files in inconsistent state:
+
+| File                  | alembic_version       | managers | achievements | Used by gunicorn? |
+| :-------------------- | :-------------------- | -------: | -----------: | :---------------- |
+| `dev.db` (project root) | `a3e91f4c7b28` (HEAD) | 0        | 0            | ✅ yes            |
+| `instance/dev.db`     | `1c8dd033101a` (old)  | 42       | 49           | ❌ no             |
+
+The historical data lived in `instance/dev.db` (Flask's default instance folder
+from before `instance_relative_config=False` was set). Earlier in the day, an
+unknown actor had run `bash scripts/deploy.sh` plus a one-off Python script that
+manually created tables and stamped a non-existent revision `b2c3d4e5f6a7`,
+leaving prod on a freshly-initialised `dev.db` at the project root with the
+correct (HEAD) schema but empty data.
+
+When PR #74's data migrations (`f1c8b2e4a9d6`, `e7a9b3d5c2f1`, `d6f8a2b9c1e3`)
+ran against this empty DB, all `INSERT … SELECT … WHERE EXISTS countries.RUS`
+clauses failed silently because `countries` had 0 rows — `seed_db.py` had never
+been run on the recreated DB.
+
+### Recovery — Variant B (re-seed from JSON)
+
+1. Snapshotted both DBs (`dev.db.before-seed-20260505-134030`,
+   `instance/dev.db.snapshot-20260505-134030`).
+2. Ran `./venv/bin/python seed_db.py` as `shleague` user → 8 countries, 63
+   managers, 85 achievements created (matches PR #65/#70/#71/#73 totals).
+3. `seed_db.py --check` confirmed counts.
+4. `systemctl restart shadow-hockey-league.service` (only that unit; VPN
+   containers `vless-reality` + `shadowbox` left untouched).
+5. Cleared stale leaderboard cache: `redis-cli DEL flask_cache_leaderboard
+   flask_cache_leaderboard:5` (per AGENTS.md § 5 cache-invalidation rule —
+   `seed_db.py` direct INSERTs bypass the SQLAlchemy `after_flush` listener
+   that normally calls `invalidate_leaderboard_cache()`).
+6. Smoke: `/`, `/?season=5`, `/?season=4`, `/?season=3` all HTTP 200, page
+   sizes 80–150 KB (vs. 5 KB empty-state), zero `empty-state` markers.
+
+`instance/dev.db` left in place as a read-only historical backup; not used by
+any process.
+
+### Forward guarantees
+
+- `seed_db.py` is the canonical bootstrap path for an empty prod DB. Alembic
+  data migrations alone cannot bootstrap a fresh DB because they assume base
+  reference data (`countries`, `seasons`, `achievement_types`) already exists
+  via JSON seeds.
+- After any operation that bypasses the SQLAlchemy session (raw `INSERT` via
+  Alembic, `seed_db.py`, `redis-cli` repair scripts), `flask_cache_leaderboard*`
+  must be invalidated explicitly. Adding this to the post-seed checklist in
+  the next pass.
+
 ## 2026-05-05: Prod 500 hotfix — schema drift between models.py and Alembic head
 
 ### Problem
