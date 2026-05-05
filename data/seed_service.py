@@ -18,6 +18,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from data.admin_observers import load_explicit_tandems, validate_manager_name
 from data.schemas import validate_all
 from data.static_paths import StaticPaths
 from models import Achievement, AchievementType, AuditLog, Country, League, Manager, Season
@@ -197,6 +198,11 @@ class SeedService:
 
     def _seed_managers(self, data: list[dict], result: SeedResult) -> None:
         """Seed managers from JSON data."""
+        # Load the explicit-tandem allowlist once; the validator below
+        # short-circuits on non-tandem names so this is essentially free
+        # for the 50+ ordinary manager rows.
+        allowlist = load_explicit_tandems()
+
         for item in data:
             name = item["name"]
             country_code = item["country_code"]
@@ -205,6 +211,13 @@ class SeedService:
             if existing:
                 logger.debug(f"Skipping existing manager: {name}")
                 result.managers_skipped += 1
+                continue
+
+            try:
+                validate_manager_name(name, allowlist)
+            except ValueError as exc:
+                result.errors.append(str(exc))
+                logger.warning("Rejected manager %r: %s", name, exc)
                 continue
 
             country = self.session.query(Country).filter_by(code=country_code).first()
