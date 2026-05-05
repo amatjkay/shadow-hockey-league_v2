@@ -99,7 +99,7 @@ if ($Check) {
 }
 
 if ($Uninstall) {
-    foreach ($t in @('.kilocode/skills/superpowers', '.agents/skills/superpowers')) {
+    foreach ($t in @('.kilocode/skills/superpowers', '.kilo/skills/superpowers', '.agents/skills/superpowers')) {
         if (Test-Path $t) { Invoke-OrSay "rm $t" { Remove-Item -Force -Recurse $t } }
     }
     if (Test-Path 'skills/superpowers') {
@@ -121,7 +121,16 @@ switch ($mode) {
     'opencode'    {
         Write-Host "[superpowers] Add to opencode.json[plugin]: superpowers@git+https://github.com/obra/superpowers.git"
     }
-    'kilocode'    { Ensure-Submodule; New-Junction '.kilocode/skills/superpowers' 'skills/superpowers/skills' }
+    'kilocode'    {
+        Ensure-Submodule
+        # Prefer existing .kilo/ over .kilocode/ — see install_superpowers.sh dispatch_kilocode().
+        $kiloTarget = '.kilocode/skills/superpowers'
+        if ((Test-Path '.kilo') -or (Test-Path '.kilo/kilo.json') -or (Test-Path '.kilo/kilo.jsonc')) {
+            $kiloTarget = '.kilo/skills/superpowers'
+        }
+        Write-Host "[superpowers] kilocode adapter target: $kiloTarget"
+        New-Junction $kiloTarget 'skills/superpowers/skills'
+    }
     'hermes'      { Ensure-Submodule; Write-Host '[superpowers] Add to ~\.hermes\config.toml: external_skill_dirs += skills/superpowers/skills' }
     'devin'       { Ensure-Submodule; New-Junction '.agents/skills/superpowers' 'skills/superpowers/skills' }
     'antigravity' { Ensure-Submodule; New-Junction '.agents/skills/superpowers' 'skills/superpowers/skills' }

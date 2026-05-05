@@ -251,7 +251,18 @@ dispatch_hermes() {
 
 dispatch_kilocode() {
   ensure_submodule
-  ln_to_skills ".kilocode/skills/superpowers"
+  # Two layouts coexist in the wild:
+  #   - .kilocode/skills/  — the documented Kilocode plugin path
+  #   - .kilo/skills/      — the in-repo orchestrator layout some projects
+  #                          ship (kilo.json + kilo.jsonc + project skills).
+  # Prefer the layout already present so we don't create a parallel,
+  # never-discovered .kilocode/ tree next to an existing .kilo/.
+  local target=".kilocode/skills/superpowers"
+  if [[ -d ".kilo" || -f ".kilo/kilo.json" || -f ".kilo/kilo.jsonc" ]]; then
+    target=".kilo/skills/superpowers"
+  fi
+  log "kilocode adapter target: $target"
+  ln_to_skills "$target"
 }
 
 dispatch_devin() {
@@ -277,7 +288,7 @@ dispatch_unknown() {
 
 run_uninstall() {
   log "uninstall: tearing down submodule + symlinks"
-  for adapter in .kilocode/skills/superpowers .agents/skills/superpowers; do
+  for adapter in .kilocode/skills/superpowers .kilo/skills/superpowers .agents/skills/superpowers; do
     unlink_adapter "$adapter"
   done
   remove_submodule
