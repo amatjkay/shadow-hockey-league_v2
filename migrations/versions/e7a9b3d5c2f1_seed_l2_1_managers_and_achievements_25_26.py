@@ -108,10 +108,9 @@ def upgrade() -> None:
     #    the RUS row.
     for name in NEW_MANAGERS_RUS:
         op.execute(f"""
-            INSERT INTO managers (name, country_id, is_active)
+            INSERT INTO managers (name, country_id)
             SELECT '{_esc(name)}',
-                   (SELECT id FROM countries WHERE code = 'RUS'),
-                   1
+                   (SELECT id FROM countries WHERE code = 'RUS')
             WHERE NOT EXISTS (SELECT 1 FROM managers WHERE name = '{_esc(name)}')
               AND EXISTS (SELECT 1 FROM countries WHERE code = 'RUS')
             """)

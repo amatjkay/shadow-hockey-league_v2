@@ -3,6 +3,89 @@
 > Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
 > at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
 
+## 2026-05-05: Inspector-based idempotent column backfill (model ↔ Alembic drift)
+
+**Context**: Six columns declared in `models.py`
+(`achievement_types.is_active`, `leagues.is_active`, `countries.is_active`,
+`managers.is_active`, `seasons.start_year`, `seasons.end_year`) were never
+added by any Alembic migration. Local dev DBs were bootstrapped through
+`db.create_all()` so the columns existed; prod was bootstrapped through
+Alembic only, so they didn't. The discrepancy was masked by the
+leaderboard cache for an unknown duration; PR #73's seed-data mutation
+invalidated the cache and the very next homepage request crashed with
+`sqlite3.OperationalError: no such column: achievement_types.is_active`.
+
+We needed a column-backfill migration that's safe to run on both:
+1. **Prod / staging** — column missing → must add it with the right
+   default so existing rows are treated as `is_active = 1`.
+2. **Dev DBs** — column already present (from `db.create_all()` or a
+   previous hot-fix) → must be a no-op.
+
+**Decision**: Use a **runtime `sa.inspect()` check before each
+`add_column`** rather than relying on either `IF NOT EXISTS` (SQLite
+doesn't support it for `ADD COLUMN`) or per-environment branching.
+
+```python
+@dataclass(frozen=True)
+class _MissingColumn:
+    table: str
+    column: str
+    sa_type: type[sa.types.TypeEngine]
+    nullable: bool
+    server_default: str | None
+
+def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    for spec in TARGET_COLUMNS:
+        if _has_column(inspector, spec.table, spec.column):
+            continue                       # idempotent — column already there
+        new_column = sa.Column(
+            spec.column, spec.sa_type(),
+            nullable=spec.nullable, server_default=spec.server_default,
+        )
+        if bind.dialect.name == "sqlite":
+            with op.batch_alter_table(spec.table) as batch_op:
+                batch_op.add_column(new_column)
+        else:
+            op.add_column(spec.table, new_column)
+```
+
+The `dataclass`-driven spec list is the canonical place to add future
+drift fixes; the loop and inspector check stay constant.
+
+**Alternatives considered**:
+
+- **Backfill into earlier migrations**: would force a renaming /
+  re-stamping of every later revision and break prod's `alembic_version`
+  pointer. Rejected.
+- **Per-dialect raw `IF NOT EXISTS`**: SQLite doesn't support the
+  syntax; would require dialect-specific code paths. The inspector
+  approach works uniformly on SQLite + Postgres + MySQL.
+- **Just delete the columns from `models.py`**: would silently lose
+  application semantics (`Manager.is_active`, `Country.is_active` are
+  used by admin filtering UIs and by the rating service to skip retired
+  managers in future iterations). Rejected.
+- **`db.create_all()` on app startup as a safety net**: hides drift
+  rather than fixing it; couples startup to schema mutations. Rejected.
+
+**Forward contract**: A new test file
+`tests/test_migrations_schema_parity.py` runs in `make test` (and
+therefore in the `Quality & Tests` CI job). It builds a fresh SQLite DB
+from migrations only, then asserts every column in
+`db.metadata.tables` exists in the inspected schema. Any future model
+column without a matching migration fails the test with a precise drift
+list — *before* it can reach production.
+
+Companion edits made in the same PR for replay safety:
+
+- Removed `is_active` from the `INSERT INTO leagues / managers (...)` clauses
+  in the four data migrations
+  `c5e7f9a1b2d4` / `d6f8a2b9c1e3` / `e7a9b3d5c2f1` / `f1c8b2e4a9d6`
+  (`server_default` from `a3e91f4c7b28` does the right thing).
+- Guarded `9a30d278d31d_remove_obsolete_match_model::upgrade()` with
+  `inspector.get_table_names()` so it's a no-op on fresh DBs.
+
 ## 2026-05-05: Admin-observer guardrail for tandem manager records
 
 **Context**: Per the league owner, `whiplash 92` and `AleX TiiKii` are
