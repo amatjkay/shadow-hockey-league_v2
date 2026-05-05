@@ -97,29 +97,25 @@
   text-shadow: none;
 }
 
-/* League table specific column widths */
+/* League table specific column widths (5 columns: Place, Points, Participant, Achievements, Calc) */
 .league-table .table-header:nth-child(1) {
   width: 7%;
 }
 
 .league-table .table-header:nth-child(2) {
-  width: 4%;
-}
-
-.league-table .table-header:nth-child(3) {
   width: 7%;
 }
 
+.league-table .table-header:nth-child(3) {
+  width: 20%;
+}
+
 .league-table .table-header:nth-child(4) {
-  width: 22%;
+  width: 36%;
 }
 
 .league-table .table-header:nth-child(5) {
-  width: 38%;
-}
-
-.league-table .table-header:nth-child(6) {
-  width: 14%;
+  width: 30%;
 }
 
 .table-header--narrow {

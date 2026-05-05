@@ -10,7 +10,7 @@ import time
 from flask import Blueprint, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response
 
-from models import Season, db
+from models import AchievementType, Season, db
 from services.cache_service import cache
 from services.rating_service import build_leaderboard
 
@@ -61,6 +61,16 @@ def index() -> str | tuple[str, int]:
         # Newest season first matches the prod sort order.
         seasons = db.session.query(Season).order_by(Season.code.desc()).all()
 
+        # Tooltip data (T5/TIK-61): expose multipliers and base points so the
+        # template can render them from the DB instead of hard-coded HTML.
+        season_multipliers = {s.code: s.multiplier for s in seasons}
+        achievement_types = (
+            db.session.query(AchievementType)
+            .filter_by(is_active=True)
+            .order_by(AchievementType.base_points_l1.desc())
+            .all()
+        )
+
         elapsed_ms = round((time.time() - start_time) * 1000)
 
         # Store generation time for health check
@@ -73,6 +83,8 @@ def index() -> str | tuple[str, int]:
             rating_rows=leaderboard_data,
             seasons=seasons,
             selected_season_id=season_id,
+            season_multipliers=season_multipliers,
+            achievement_types=achievement_types,
         )
 
     except Exception as e:
@@ -89,7 +101,7 @@ def index() -> str | tuple[str, int]:
                 error_code=500,
                 error_type=type(e).__name__,
                 traceback=error_traceback,
-                show_details=True,
+                show_details=current_app.debug,
             ),
             500,
         )

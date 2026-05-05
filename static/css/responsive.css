@@ -5,6 +5,11 @@
     display: inline-block; /* Show flag in mobile version */
   }
 
+  /* Hide desktop nav on mobile (mobile menu replaces it) */
+  .desktop-nav {
+    display: none;
+  }
+
   /* Container */
   .container {
     padding-top: 60px;
