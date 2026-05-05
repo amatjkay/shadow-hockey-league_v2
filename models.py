@@ -159,10 +159,17 @@ class AchievementType(db.Model):
         return f"<AchievementType {self.code}>"
 
     def get_icon_url(self) -> str:
-        """Return icon URL with fallback."""
+        """Return icon URL with a known-existing fallback.
+
+        Returns ``self.icon_path`` if set, else ``/static/img/cups/default.svg``.
+        Constructing a path from ``self.code`` (the previous behaviour) leaked
+        broken paths like ``/static/img/cups/r3.svg`` because not every code
+        has a matching SVG file (TIK-77).
+        """
+
         if self.icon_path:
             return self.icon_path
-        return f"/static/img/cups/{self.code.lower()}.svg"
+        return "/static/img/cups/default.svg"
 
 
 class League(db.Model):

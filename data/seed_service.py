@@ -236,18 +236,53 @@ class SeedService:
         # Aligning with Season 25/26 baseline: TOP1 = 800
         if self.session.query(AchievementType).count() == 0:
             logger.info("Seeding default AchievementTypes...")
+            # ``icon_path`` matches the canonical SVG filenames seeded by
+            # the L1/L2.1/L2.2 25/26 data migrations and shipped under
+            # ``static/img/cups/``. Without this, ``get_icon_url()`` used to
+            # synthesise paths like ``r3.svg`` that never existed (TIK-77).
             types_data = [
-                {"code": "TOP1", "name": "Top 1", "base_points_l1": 800, "base_points_l2": 400},
-                {"code": "TOP2", "name": "Top 2", "base_points_l1": 400, "base_points_l2": 200},
-                {"code": "TOP3", "name": "Top 3", "base_points_l1": 200, "base_points_l2": 100},
+                {
+                    "code": "TOP1",
+                    "name": "Top 1",
+                    "base_points_l1": 800,
+                    "base_points_l2": 400,
+                    "icon_path": "/static/img/cups/top1.svg",
+                },
+                {
+                    "code": "TOP2",
+                    "name": "Top 2",
+                    "base_points_l1": 400,
+                    "base_points_l2": 200,
+                    "icon_path": "/static/img/cups/top2.svg",
+                },
+                {
+                    "code": "TOP3",
+                    "name": "Top 3",
+                    "base_points_l1": 200,
+                    "base_points_l2": 100,
+                    "icon_path": "/static/img/cups/top3.svg",
+                },
                 {
                     "code": "BEST",
                     "name": "Best Regular",
                     "base_points_l1": 200,
                     "base_points_l2": 100,
+                    "icon_path": "/static/img/cups/best-reg.svg",
                 },
-                {"code": "R3", "name": "Round 3", "base_points_l1": 100, "base_points_l2": 50},
-                {"code": "R1", "name": "Round 1", "base_points_l1": 50, "base_points_l2": 25},
+                {
+                    "code": "R3",
+                    "name": "Round 3",
+                    "base_points_l1": 100,
+                    "base_points_l2": 50,
+                    "icon_path": "/static/img/cups/hockey-sticks-and-puck.svg",
+                },
+                {
+                    "code": "R1",
+                    "name": "Round 1",
+                    "base_points_l1": 50,
+                    "base_points_l2": 25,
+                    "icon_path": "/static/img/cups/hockey-sticks-and-puck.svg",
+                },
             ]
             for data in types_data:
                 self.session.add(AchievementType(**data))

@@ -27,7 +27,11 @@ def test_achievement_auto_calculation(app, db_session):
     db.session.add(manager)
 
     ach_type = AchievementType(
-        code="TOP1", name="Top 1", base_points_l1=800.0, base_points_l2=400.0
+        code="TOP1",
+        name="Top 1",
+        base_points_l1=800.0,
+        base_points_l2=400.0,
+        icon_path="/static/img/cups/top1.svg",
     )
     db.session.add(ach_type)
 
@@ -57,11 +61,71 @@ def test_achievement_auto_calculation(app, db_session):
     view.on_model_change(None, achievement, True)
 
     # Assertions
-    assert achievement.title == "Top 1 League 1 Season 25/26"
+    # Title = AchievementType.name only (TIK-78). League + season are added
+    # by ``Achievement.to_html`` for the hover tooltip, so duplicating them
+    # in ``title`` produced redundant strings.
+    assert achievement.title == "Top 1"
     assert achievement.icon_path == "/static/img/cups/top1.svg"
     assert achievement.base_points == 800.0
     assert achievement.multiplier == 1.5
     assert achievement.final_points == 1200.0
+
+
+def test_get_icon_url_falls_back_to_default(app, db_session):
+    """``AchievementType.get_icon_url`` must return an existing SVG.
+
+    Regression for TIK-77: the previous implementation built
+    ``/static/img/cups/{code.lower()}.svg`` when ``icon_path`` was NULL,
+    leaking 404-prone paths like ``r3.svg`` / ``r1.svg`` / ``best.svg``
+    into the public leaderboard. The fallback now points at
+    ``default.svg`` (which exists on disk).
+    """
+
+    t_no_icon = AchievementType(
+        code="R3", name="Round 3", base_points_l1=100.0, base_points_l2=50.0
+    )
+    assert t_no_icon.get_icon_url() == "/static/img/cups/default.svg"
+
+    t_with_icon = AchievementType(
+        code="R3",
+        name="Round 3",
+        base_points_l1=100.0,
+        base_points_l2=50.0,
+        icon_path="/static/img/cups/hockey-sticks-and-puck.svg",
+    )
+    assert t_with_icon.get_icon_url() == "/static/img/cups/hockey-sticks-and-puck.svg"
+
+
+def test_seed_service_populates_canonical_icon_paths(db_session):
+    """``SeedService`` must populate canonical ``icon_path`` for default types.
+
+    Regression for TIK-77: ``data/seed_service.py`` used to leave
+    ``icon_path`` NULL, so every fresh DB started with broken icons
+    until an admin manually edited each AchievementType row.
+    """
+
+    from data.seed_service import SeedService
+
+    # Run only the AchievementType branch by calling _seed_reference_data
+    # via the public ``seed_all`` against an already-migrated empty DB.
+    service = SeedService(db.session, seed_dir="data/seeds")
+    service._seed_reference_data()  # type: ignore[attr-defined]
+    db.session.commit()
+
+    expected = {
+        "TOP1": "/static/img/cups/top1.svg",
+        "TOP2": "/static/img/cups/top2.svg",
+        "TOP3": "/static/img/cups/top3.svg",
+        "BEST": "/static/img/cups/best-reg.svg",
+        "R3": "/static/img/cups/hockey-sticks-and-puck.svg",
+        "R1": "/static/img/cups/hockey-sticks-and-puck.svg",
+    }
+    for code, path in expected.items():
+        row = db.session.query(AchievementType).filter_by(code=code).first()
+        assert row is not None, f"Seed missing AchievementType {code}"
+        assert row.icon_path == path, (
+            f"AchievementType {code} icon_path={row.icon_path!r} " f"expected {path!r}"
+        )
 
 
 def test_api_calculate_points(auth_client, seeded_db):

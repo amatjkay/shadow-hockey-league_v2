@@ -174,8 +174,12 @@ class AchievementModelView(SHLModelView):
             league_resolved = cast(League, model.league)
             season_resolved = cast(Season, model.season)
 
-            # 1. Generate Title: "Top 1 League 1 Season 23/24"
-            model.title = f"{type_resolved.name} {league_resolved.name} {season_resolved.name}"
+            # 1. Generate Title: just the type label (e.g. "Top 1", "Round 3").
+            #    The HTML tooltip wrapper in ``Achievement.to_html`` already
+            #    includes the league + season, so duplicating them here makes
+            #    the hover read like ``Shadow 2.1 league Top 1 League 1
+            #    Season 23/24 s23/24`` (TIK-78).
+            model.title = type_resolved.name
 
             # 2. Resolve Icon Path
             model.icon_path = type_resolved.get_icon_url()
