@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
 [![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-388%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-472%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
@@ -88,27 +88,46 @@ shadow-hockey-league_v2/
 ├── blueprints/                 # Flask blueprints
 │   ├── main.py                 #   Главная страница, leaderboard
 │   ├── health.py               #   Health check
-│   └── admin_api.py            #   Admin API endpoints
+│   └── admin_api/              #   Admin API package (post-TIK-42)
+│       ├── __init__.py         #     admin_api_bp blueprint
+│       ├── _helpers.py
+│       ├── lookups.py
+│       └── achievements.py
 ├── services/                   # Бизнес-логика
 │   ├── rating_service.py       #   Расчёт рейтинга
+│   ├── recalc_service.py       #   Пересчёт рейтинга (admin)
+│   ├── scoring_service.py      #   base_points × multiplier (TIK-58: subleague-aware)
 │   ├── cache_service.py        #   Кэширование и инвалидация
-│   ├── api.py                  #   REST API
-│   ├── admin.py                #   Flask-Admin
+│   ├── extensions.py           #   Flask-Limiter и др. shared extensions
+│   ├── metrics_service.py      #   Prometheus метрики
+│   ├── api/                    #   REST API package (post-TIK-42)
+│   │   ├── __init__.py         #     api blueprint
+│   │   ├── _helpers.py
+│   │   ├── countries.py
+│   │   ├── managers.py
+│   │   └── achievements.py
+│   ├── admin/                  #   Flask-Admin package (post-TIK-42)
+│   │   ├── __init__.py         #     init_admin()
+│   │   ├── base.py             #     SHLModelView
+│   │   ├── views.py            #     ModelView'ы
+│   │   └── _rate_limit.py
 │   ├── api_auth.py             #   API Key auth
 │   ├── audit_service.py        #   Audit Log
 │   ├── validation_service.py   #   Валидация данных
 │   ├── seed_service.py         #   JSON Seed импорт
-│   └── export_service.py       #   Экспорт из БД
+│   ├── export_service.py       #   Экспорт из БД
+│   └── _types.py               #   SessionLike + mypy shim (TIK-53)
 ├── data/                       # Справочные данные
 │   ├── seed/                   #   Исходные данные (JSON)
 │   ├── export/                 #   Экспорт из БД (JSON)
 │   └── schemas.py              #   Валидация JSON схем
-├── tests/                      # Pytest тесты (388 тестов, ~87%)
+├── tests/                      # Pytest тесты (472 теста, ≥ 87% gate)
 │   ├── integration/            #   Интеграционные тесты
 │   └── e2e/                    #   Playwright smoke (запуск вручную, см. README ниже)
 ├── docs/                       # Документация
-├── scripts/                    # Утилиты (create_admin, check_*)
-├── .qwen/                      # AI Agent конфигурация
+├── scripts/                    # Утилиты (create_admin, check_*, install_superpowers)
+├── .agents/                    # Sub-agent роли, скиллы, промпты, workflows
+├── skills/superpowers/         # obra/superpowers submodule (см. AGENTS.md § 7)
 ├── requirements.txt            # Python зависимости
 ├── Makefile                    # Команды разработки
 └── alembic.ini                 # Alembic миграции
@@ -122,7 +141,7 @@ shadow-hockey-league_v2/
 | ------------- | ----------------------------------------- |
 | `make setup`  | Установка зависимостей + инициализация БД |
 | `make run`    | Запуск сервера разработки                 |
-| `make test`   | Запуск тестов (388 unit/integration)      |
+| `make test`   | Запуск тестов (472 unit/integration)      |
 | `make lint`   | Проверка кода (flake8)                    |
 | `make format` | Форматирование (black + isort)            |
 | `make clean`  | Очистка временных файлов                  |
@@ -131,7 +150,7 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-**388 unit/integration тестов** (~87% покрытие) + **42-сценарный Playwright smoke**:
+**472 unit/integration теста** (≥ 87% покрытие — CI gate с TIK-54) + **42-сценарный Playwright smoke**:
 
 - **Unit:** rating service, validation, cache, API auth, models
 - **Integration:** routes, API CRUD, database constraints, cache invalidation

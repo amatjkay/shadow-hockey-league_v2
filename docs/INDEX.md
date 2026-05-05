@@ -5,12 +5,18 @@
 
 ## Always-on (read on session start, per `AGENTS.md`)
 
+`AGENTS.md` itself is loaded by the agent runtime as the rule set and is
+already in context. The Memory Bank Protocol (`AGENTS.md` § 1) explicitly
+mandates the three `docs/`+`PROJECT_KNOWLEDGE.md` files marked **MB** below;
+`AGENTS.md` is listed here for completeness so this table doubles as the
+"what's in your initial context window" view.
+
 | File | Purpose |
 | :--- | :--- |
 | `AGENTS.md` (repo root) | Single source of truth for rules, guardrails, MCP usage. Supersedes `.antigravityrules`. |
-| `PROJECT_KNOWLEDGE.md` (repo root) | Business rules: point formula, baselines, achievement codes. |
-| `docs/activeContext.md` | What's in flight right now + immediate next steps. |
-| `docs/techContext.md` | Stack/architecture diagram. Skim only the sections relevant to your task. |
+| `PROJECT_KNOWLEDGE.md` (repo root) **MB** | Business rules: point formula, baselines, achievement codes. |
+| `docs/activeContext.md` **MB** | What's in flight right now + immediate next steps. |
+| `docs/techContext.md` **MB** | Stack/architecture diagram. Skim only the sections relevant to your task. |
 
 ## On-demand (load only when working in that area)
 
