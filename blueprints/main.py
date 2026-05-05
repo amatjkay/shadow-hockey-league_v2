@@ -8,6 +8,7 @@ from __future__ import annotations
 import time
 
 from flask import Blueprint, redirect, render_template, request, url_for
+from flask_login import current_user
 from werkzeug.wrappers import Response
 
 from models import AchievementType, Season, db
@@ -36,10 +37,27 @@ def _leaderboard_cache_key() -> str:
     return "leaderboard"
 
 
+def _is_authenticated() -> bool:
+    """Return True when an admin is logged in (skip cache for them).
+
+    The leaderboard template branches on ``current_user.is_authenticated`` to
+    render the desktop-nav admin links (TIK-64). Caching the rendered HTML by
+    season alone would let the first visitor's auth state leak into every
+    subsequent visitor's response. Anon traffic still hits the shared
+    ``leaderboard[:season]`` cache; admin requests skip it entirely so they
+    always see fresh, login-aware markup.
+    """
+    return bool(current_user.is_authenticated)
+
+
 @main.route("/")
 # Flask-Caching accepts a callable for ``key_prefix`` (resolved per-request) but
 # its bundled type stubs declare ``str``-only; we trust the runtime contract here.
-@cache.cached(timeout=300, key_prefix=_leaderboard_cache_key)  # type: ignore[arg-type]  # 5 min
+@cache.cached(
+    timeout=300,  # 5 min
+    key_prefix=_leaderboard_cache_key,  # type: ignore[arg-type]
+    unless=_is_authenticated,
+)
 def index() -> str | tuple[str, int]:
     """Render the leaderboard page.
 
