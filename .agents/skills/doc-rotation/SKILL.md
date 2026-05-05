@@ -10,11 +10,16 @@ Move stale entries from `docs/progress.md` and `docs/decisionLog.md` into quarte
 - Triggered manually by `doc-curator` agent.
 - Quarterly maintenance (calendar Q-end).
 
-## MCP / CLI Tools Used
+## Tools used (verified 2026-05-05)
 
-- `filesystem` (read/write `docs/`).
+This skill uses only tools that are actually present in the current Devin
+session. Older versions referenced a `filesystem` MCP server — it was retired
+in TIK-57 and replaced by built-in equivalents.
+
+- `read` / `edit` / `write` for `docs/` access (replaces the retired
+  `filesystem` MCP).
 - `grep` for header indexing.
-- `sed` / `awk` for section extraction.
+- `exec` running `sed` / `awk` / `wc` for section extraction and line counts.
 
 ## Workflow
 
