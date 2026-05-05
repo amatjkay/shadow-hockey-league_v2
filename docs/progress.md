@@ -6,6 +6,72 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-05: Sub-agents/skills sanity check round 2 (3 sequential PRs)
+
+### Completed
+
+- [x] **PR #66** — `docs(agents): sync per-role + doc-rotation files to current toolchain` ([github](https://github.com/amatjkay/shadow-hockey-league_v2/pull/66)).
+  Brought four stale files in line with the TIK-57 toolchain rewrite:
+  `.agents/agents/architect.md` / `coder.md` / `reviewer.md` /
+  `.agents/skills/doc-rotation/SKILL.md` (replaced retired `duckduckgo` /
+  `sqlite` / `filesystem` / `replace_file_content` / `github` MCP refs with
+  built-in `read` / `edit` / `write` / `exec` + `sqlite3` / `git` /
+  `git_pr` / `git_comment` / `web_search` / `web_get_contents`); also
+  re-pointed `.github/copilot-instructions.md` directly at `AGENTS.md`
+  instead of the legacy `.antigravityrules` pointer file. Docs only.
+- [x] **PR #67** — `docs: align README test count + structure tree + token-auditor allowed-edits + Memory Bank/INDEX` ([github](https://github.com/amatjkay/shadow-hockey-league_v2/pull/67)).
+  README test count `388 → 472` in 4 places + `Tests-388-passed` badge
+  refreshed; structure tree refreshed for the post-TIK-42 packages
+  (`services/api/`, `services/admin/`, `blueprints/admin_api/`) and new
+  files (`scoring_service.py`, `recalc_service.py`, `extensions.py`,
+  `metrics_service.py`, `_types.py`, `.agents/`, `skills/superpowers/`).
+  AGENTS.md § 3 `token-auditor` "Allowed tools / MCP" cell expanded to
+  enumerate Memory Bank files (matches NOT-DO and
+  `.agents/agents/token-auditor.md`). AGENTS.md § 1 + `docs/INDEX.md`:
+  reconciled the 3-file Memory Bank Protocol list with the 4-file
+  "Always-on" view (added clarifying paragraph + **MB** marker). Docs only.
+- [x] **PR #68** — `build(setup): submodules-init in make setup + Kilocode adapter auto-detection` ([github](https://github.com/amatjkay/shadow-hockey-league_v2/pull/68)).
+  New `Makefile` target `submodules-init`
+  (`git submodule update --init --recursive`) wired in front of
+  `make setup` so the obra/superpowers bridge populates
+  `skills/superpowers/` before any agent reads `.agents/skills/`. README
+  *Быстрый старт* documents this. `scripts/install_superpowers.{sh,ps1}`
+  `dispatch_kilocode` now auto-detects `.kilo/` (in-repo orchestrator
+  layout) vs `.kilocode/` (default plugin path) and symlinks accordingly;
+  the project's actual `.kilo/skills/superpowers` symlink is added to
+  git here so Kilocode picks up superpowers alongside
+  `.kilo/skills/{skill-creator,webapp-testing,grill-me}`. `.superpowersrc`
+  `adapters.kilocode` documents the auto-rewrite. AGENTS.md § 7 install
+  matrix updated. No source-code, test, or schema changes.
+
+### Verification
+
+| Step | Command | Result |
+| :--- | :--- | :--- |
+| Quality & Tests (PR #66) | GitHub Actions | passed |
+| E2E Smoke (PR #66) | GitHub Actions | passed |
+| Quality & Tests (PR #67) | GitHub Actions | passed |
+| E2E Smoke (PR #67) | GitHub Actions | passed |
+| Quality & Tests (PR #68) | GitHub Actions | passed |
+| Pre-commit (`scripts/install_superpowers.sh --check`) | local | passed |
+| Submodule status | `git submodule status` | `1f20bef…` (v5.0.7) on disk |
+| Kilocode adapter target | `bash scripts/install_superpowers.sh --mode=kilocode` | resolves to `.kilo/skills/superpowers` (auto-detected) |
+
+### Known cosmetic Vercel failures
+
+All three PRs show a red **Vercel** check on the GitHub PR page. This is
+the unrelated owner-action blocker tracked in `docs/activeContext.md`
+(Vercel CI noise — project not deployed there). Not a real CI failure;
+ignored at merge time.
+
+### Status
+
+- [x] All three PRs merged into `main` (PR #66, #67, #68).
+- [ ] Linear ticket attachment deferred — owner can wire `Closes TIK-NN`
+  retrospectively if desired.
+
+---
+
 ## 2026-05-04: TIK-58 — Season 25/26 League 2.2 results
 
 ### Completed
