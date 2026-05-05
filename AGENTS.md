@@ -8,7 +8,12 @@
 
 ## 1. Memory Bank Protocol
 
-All agents **MUST** follow this protocol at the start and end of every task:
+All agents **MUST** follow this protocol at the start and end of every task.
+This file (`AGENTS.md`) is loaded by the agent runtime as the project's rule
+set and is therefore **already in context** before any task begins; the
+Memory Bank Protocol covers the three additional docs that capture *current
+state* — not rules. `docs/INDEX.md` repeats this list under "Always-on" plus
+`AGENTS.md` itself for completeness; the two views are equivalent.
 
 ### On Start (Before ANY Action)
 
@@ -58,7 +63,7 @@ All agents **MUST** follow this protocol at the start and end of every task:
 | `architect` | System design, planning, analysis | `read`/`grep` over the repo, `sqlite3` CLI (read-only), `context7` MCP | `.agents/agents/architect.md` |
 | `coder` | Implementation, refactoring, features | full filesystem (`read`/`edit`/`write`), `git`/`git_pr`/`git_comment`, `context7` MCP, `web_search`/`web_get_contents` | `.agents/agents/coder.md` |
 | `reviewer` | QA, security audit, code review | full filesystem, `git`/`git_pr` (view + comment) | `.agents/agents/reviewer.md` |
-| `token-auditor` | Find token waste in repo, prompts, Memory Bank | full filesystem (read mostly; writes only to `.gitignore`, `Makefile`, `docs/INDEX.md`, `.agents/prompts/`) | `.agents/agents/token-auditor.md` |
+| `token-auditor` | Find token waste in repo, prompts, Memory Bank | full filesystem (read mostly; writes only to `.gitignore`, `Makefile`, `docs/INDEX.md`, Memory Bank — `docs/activeContext.md`, `docs/progress.md`, `docs/decisionLog.md`, `.agents/prompts/`) | `.agents/agents/token-auditor.md` |
 | `doc-curator` | Rotate `progress.md` / `decisionLog.md`; maintain `docs/INDEX.md` | full filesystem (move-only — never reword) | `.agents/agents/doc-curator.md` |
 
 ### Role Constraints (NOT-DO)
@@ -74,7 +79,7 @@ All agents **MUST** follow this protocol at the start and end of every task:
     - **NEVER** ignore `mypy` or `flake8` errors.
 - **token-auditor**:
     - **NEVER** delete or rewrite source files. Only flags waste; coder/doc-curator execute changes.
-    - Allowed edits: `.gitignore`, `Makefile`, `docs/INDEX.md`, Memory Bank, `.agents/prompts/`.
+    - Allowed edits: `.gitignore`, `Makefile`, `docs/INDEX.md`, Memory Bank (`docs/activeContext.md`, `docs/progress.md`, `docs/decisionLog.md`), `.agents/prompts/`.
 - **doc-curator**:
     - **NEVER** delete or reword content — always move verbatim to `docs/archive/`.
     - **NEVER** drop ADR forward-contracts; keep stub anchors for any cross-referenced entry.
@@ -161,6 +166,7 @@ These are enforced by `.antigravityrules` and reiterated here for agent complian
 | 2026-05-04 | TIK-57 sub-agents/skills sanity check: rewrote `db-migration` + `feature-research` skills around built-in tools (`exec` for `sqlite3`/`alembic`, `web_search`/`web_get_contents`); replaced AGENTS § 4 + techContext MCP tables with the actual current install (`context7`, `linear`, `playwright`, `redis`); corrected test count 464 → 472 everywhere; added Redis-service caveat to `verification` skill. | AI |
 | 2026-05-04 | TIK-57 (Linear-tracked) — bootstrap obra/superpowers skill bridge: added § 7 below, `scripts/install_superpowers.{sh,ps1}`, `.superpowersrc`, `.pre-commit-config.yaml`, `Makefile` targets `superpowers-{install,status,update}` + `precommit-install`, `docs/SUPERPOWERS.md`, and the `skills/superpowers` git submodule pinned at upstream tag `v5.0.7`. Existing § 1–6 unchanged. | AI |
 | 2026-05-05 | Sub-agents/skills sanity check round 2: brought four stale files into line with the TIK-57 toolchain rewrite — `.agents/agents/architect.md` / `coder.md` / `reviewer.md` (replaced retired `duckduckgo` / `sqlite` / `filesystem` / `replace_file_content` / `github` MCP refs with built-in `read` / `edit` / `write` / `exec` + `sqlite3` / `git` / `git_pr` / `git_comment` / `web_search` / `web_get_contents`); `.agents/skills/doc-rotation/SKILL.md` (same `filesystem` MCP retirement); `.github/copilot-instructions.md` (now points directly at `AGENTS.md` instead of the `.antigravityrules` pointer file). No source-code or test changes. | AI |
+| 2026-05-05 | Doc accuracy & internal alignment: `README.md` test count `388 → 472` in 4 places + `Tests-388-passed` badge → `Tests-472-passed`, plus structure tree refreshed for the post-TIK-42 packages (`services/api/`, `services/admin/`, `blueprints/admin_api/`) + new files (`scoring_service.py`, `recalc_service.py`, `extensions.py`, `metrics_service.py`, `_types.py`, `.agents/`, `skills/superpowers/`). § 3: `token-auditor` "Allowed tools / MCP" cell expanded to enumerate Memory Bank files (matches NOT-DO and `.agents/agents/token-auditor.md`). § 1: added a clarifying paragraph reconciling the 3-file Memory Bank list with `docs/INDEX.md`'s 4-file "Always-on" view; `docs/INDEX.md` now marks the three Memory-Bank-mandated files with **MB**. No source-code or test changes. | AI |
 
 ---
 
