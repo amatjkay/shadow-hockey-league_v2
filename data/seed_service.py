@@ -267,17 +267,26 @@ class SeedService:
         # 3. Seasons
         if self.session.query(Season).count() == 0:
             logger.info("Seeding default Seasons...")
-            # Updated multipliers: current is 1.0, older are significantly less
+            # Updated multipliers: current is 1.0, older are significantly less.
+            # ``start_year``/``end_year`` are populated so VR-004 League 2.1/2.2
+            # filtering (``Season.start_year >= 2025``) works on a fresh DB.
             seasons = [
-                ("21/22", "Season 2021/22", 0.20),
-                ("22/23", "Season 2022/23", 0.30),
-                ("23/24", "Season 2023/24", 0.50),
-                ("24/25", "Season 2024/25", 0.80),
-                ("25/26", "Season 2025/26", 1.00),
+                ("21/22", "Season 2021/22", 0.20, 2021, 2022),
+                ("22/23", "Season 2022/23", 0.30, 2022, 2023),
+                ("23/24", "Season 2023/24", 0.50, 2023, 2024),
+                ("24/25", "Season 2024/25", 0.80, 2024, 2025),
+                ("25/26", "Season 2025/26", 1.00, 2025, 2026),
             ]
-            for code, name, mult in seasons:
+            for code, name, mult, start_year, end_year in seasons:
                 self.session.add(
-                    Season(code=code, name=name, multiplier=mult, is_active=(code == "25/26"))
+                    Season(
+                        code=code,
+                        name=name,
+                        multiplier=mult,
+                        is_active=(code == "25/26"),
+                        start_year=start_year,
+                        end_year=end_year,
+                    )
                 )
 
     def _seed_achievements(self, data: list[dict], result: SeedResult) -> None:
