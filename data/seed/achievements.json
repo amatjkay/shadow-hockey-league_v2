@@ -606,5 +606,77 @@
     "season": "25/26",
     "title": "Round 1",
     "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "whiplash 92",
+    "type": "TOP1",
+    "league": "1",
+    "season": "25/26",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Yoze Marino",
+    "type": "TOP2",
+    "league": "1",
+    "season": "25/26",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Е. Медведев",
+    "type": "TOP3",
+    "league": "1",
+    "season": "25/26",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "AleX TiiKii",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "25/26",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Е. Медведев",
+    "type": "BEST_REG",
+    "league": "1",
+    "season": "25/26",
+    "title": "Best regular",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Feel Good",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "V. Shamanov",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "N. Yessengaliev",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Павел Роевнев",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
   }
 ]
