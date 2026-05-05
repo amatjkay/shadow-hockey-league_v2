@@ -1,5 +1,5 @@
 .PHONY: install dev test lint format clean clean-db run validate init-db seed-db setup mcp-install audit-deps e2e \
-        superpowers-install superpowers-status superpowers-update precommit-install
+        superpowers-install superpowers-status superpowers-update precommit-install submodules-init
 
 # ==============================================================================
 # INSTALLATION
@@ -7,6 +7,13 @@
 
 # Use venv binaries if available
 VENV_BIN = venv/bin/
+
+# Initialize git submodules (currently: skills/superpowers).
+# Idempotent — safe to re-run. Required before make setup so the
+# .agents/skills/superpowers and .kilo/skills/superpowers adapter symlinks
+# resolve to a non-empty directory (see AGENTS.md sect.7).
+submodules-init:
+	git submodule update --init --recursive
 
 # Install dependencies
 install:
@@ -97,8 +104,11 @@ seed-db:
 clean-db:
 	python -c "from app import create_app; from models import db; app = create_app(); app.app_context().push(); db.drop_all(); db.create_all(); print('Database cleaned')"
 
-# Full setup (install + init-db)
-setup: install init-db
+# Full setup (submodules + install + init-db).
+# submodules-init runs first so the obra/superpowers skill bridge
+# (skills/superpowers + .agents/skills/superpowers + .kilo/skills/superpowers
+# symlinks) is populated before any agent reads .agents/skills/.
+setup: submodules-init install init-db
 	@echo ""
 	@echo "=========================================="
 	@echo "Setup complete!"

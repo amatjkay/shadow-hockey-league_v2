@@ -29,8 +29,13 @@ disabled_skills: []
 
 # Per-platform target paths. The bootstrap script is the only writer; do not
 # edit by hand. POSIX = symlink, Windows = junction (PowerShell variant).
+#
+# `kilocode` is auto-detected at install time: if the repo already has
+# `.kilo/` (with kilo.json or kilo.jsonc), the script symlinks
+# `.kilo/skills/superpowers` instead, to match the in-repo orchestrator
+# layout. The default below is the documented Kilocode plugin path.
 adapters:
-  kilocode: .kilocode/skills/superpowers
-  hermes:   ~/.hermes/skills/superpowers   # outside the repo (user dir)
-  devin:    .agents/skills/superpowers
+  kilocode:    .kilocode/skills/superpowers   # auto-rewrites to .kilo/skills/superpowers if .kilo/ exists
+  hermes:      ~/.hermes/skills/superpowers   # outside the repo (user dir)
+  devin:       .agents/skills/superpowers
   antigravity: .agents/skills/superpowers
