@@ -206,7 +206,8 @@
   pointer-events: none;
 }
 
-.header-with-tooltip:hover .tooltip-content {
+.header-with-tooltip:hover .tooltip-content,
+.tooltip-content.tooltip-visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -317,7 +318,8 @@
     margin-top: 0;
   }
   
-  .header-with-tooltip:hover .tooltip-content {
+  .header-with-tooltip:hover .tooltip-content,
+  .tooltip-content.tooltip-visible {
     transform: translate(-50%, -50%);
   }
   

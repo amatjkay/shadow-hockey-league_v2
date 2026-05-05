@@ -30,6 +30,35 @@
   filter: drop-shadow(0 0 15px rgba(0, 166, 255, 0.4));
 }
 
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: auto;
+}
+
+.desktop-nav-link {
+  color: #00a6ff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border: 1px solid rgba(0, 166, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 166, 255, 0.1);
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: #00a6ff;
+  transition: all 0.3s ease;
+}
+
+.desktop-nav-link:hover {
+  background: rgba(0, 166, 255, 0.2);
+  transform: translateY(-1px);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
 /* Footer */
 .footer {
   position: relative;

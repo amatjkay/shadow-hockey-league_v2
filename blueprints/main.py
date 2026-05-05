@@ -8,9 +8,10 @@ from __future__ import annotations
 import time
 
 from flask import Blueprint, redirect, render_template, request, url_for
+from flask_login import current_user
 from werkzeug.wrappers import Response
 
-from models import Season, db
+from models import AchievementType, Season, db
 from services.cache_service import cache
 from services.rating_service import build_leaderboard
 
@@ -36,10 +37,27 @@ def _leaderboard_cache_key() -> str:
     return "leaderboard"
 
 
+def _is_authenticated() -> bool:
+    """Return True when an admin is logged in (skip cache for them).
+
+    The leaderboard template branches on ``current_user.is_authenticated`` to
+    render the desktop-nav admin links (TIK-64). Caching the rendered HTML by
+    season alone would let the first visitor's auth state leak into every
+    subsequent visitor's response. Anon traffic still hits the shared
+    ``leaderboard[:season]`` cache; admin requests skip it entirely so they
+    always see fresh, login-aware markup.
+    """
+    return bool(current_user.is_authenticated)
+
+
 @main.route("/")
 # Flask-Caching accepts a callable for ``key_prefix`` (resolved per-request) but
 # its bundled type stubs declare ``str``-only; we trust the runtime contract here.
-@cache.cached(timeout=300, key_prefix=_leaderboard_cache_key)  # type: ignore[arg-type]  # 5 min
+@cache.cached(
+    timeout=300,  # 5 min
+    key_prefix=_leaderboard_cache_key,  # type: ignore[arg-type]
+    unless=_is_authenticated,
+)
 def index() -> str | tuple[str, int]:
     """Render the leaderboard page.
 
@@ -61,6 +79,16 @@ def index() -> str | tuple[str, int]:
         # Newest season first matches the prod sort order.
         seasons = db.session.query(Season).order_by(Season.code.desc()).all()
 
+        # Tooltip data (T5/TIK-61): expose multipliers and base points so the
+        # template can render them from the DB instead of hard-coded HTML.
+        season_multipliers = {s.code: s.multiplier for s in seasons}
+        achievement_types = (
+            db.session.query(AchievementType)
+            .filter_by(is_active=True)
+            .order_by(AchievementType.base_points_l1.desc())
+            .all()
+        )
+
         elapsed_ms = round((time.time() - start_time) * 1000)
 
         # Store generation time for health check
@@ -73,6 +101,8 @@ def index() -> str | tuple[str, int]:
             rating_rows=leaderboard_data,
             seasons=seasons,
             selected_season_id=season_id,
+            season_multipliers=season_multipliers,
+            achievement_types=achievement_types,
         )
 
     except Exception as e:
@@ -89,7 +119,7 @@ def index() -> str | tuple[str, int]:
                 error_code=500,
                 error_type=type(e).__name__,
                 traceback=error_traceback,
-                show_details=True,
+                show_details=current_app.debug,
             ),
             500,
         )

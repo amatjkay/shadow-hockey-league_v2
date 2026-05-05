@@ -28,3 +28,58 @@
   font-weight: normal;
   line-height: 1.45;
 }
+
+/* Season filter bar */
+.filters-bar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filters-bar__label {
+  font-weight: 600;
+  color: #282828;
+}
+
+.filters-bar__select {
+  max-width: 200px;
+  padding: 6px 10px;
+  border: 1px solid skyblue;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+/* Loading overlay (toggled by JS when navigating to a different season) */
+.is-loading::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 20, 40, 0.5);
+  z-index: 9999;
+}
+
+.is-loading::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 3px solid rgba(0, 166, 255, 0.3);
+  border-top-color: #00a6ff;
+  border-radius: 50%;
+  animation: filters-bar-spin 0.8s linear infinite;
+  z-index: 10000;
+}
+
+@keyframes filters-bar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
