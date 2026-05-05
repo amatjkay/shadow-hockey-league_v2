@@ -6,6 +6,81 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-05: Prod 500 hotfix — schema drift between models.py and Alembic head
+
+### Problem
+
+After PR #73 merged and the prod migrations ran, `https://shadow-hockey-league.ru/`
+returned **HTTP 500** with `sqlite3.OperationalError: no such column:
+achievement_types.is_active` (traceback through
+`services/rating_service._get_base_points_from_db ← session.query(AchievementType).all()`).
+
+Root cause: long-standing drift between `models.py` and the migration
+history. Six columns were declared on the SQLAlchemy model but never
+added by any Alembic migration:
+
+| Table              | Column        | Type    | Where it's referenced            |
+| :----------------- | :------------ | :------ | :------------------------------- |
+| `achievement_types`| `is_active`   | Boolean | `models.py:156`, ORM SELECT      |
+| `leagues`          | `is_active`   | Boolean | `models.py:190`, ORM SELECT      |
+| `countries`        | `is_active`   | Boolean | `models.py:244`, ORM SELECT      |
+| `managers`         | `is_active`   | Boolean | `models.py:289`, ORM SELECT      |
+| `seasons`          | `start_year`  | Integer | `models.py:217`                  |
+| `seasons`          | `end_year`    | Integer | `models.py:218`                  |
+
+Local dev DBs were initialised through `db.create_all()` (which builds
+from the model metadata) so the columns existed there. Prod was
+initialised through Alembic only, so they didn't. The leaderboard cache
+masked the bug until PRs #70/#71/#72/#73 mutated data → cache
+invalidated → next page load hit the broken ORM SELECT → 500.
+
+Three earlier data migrations (`c5e7f9a1b2d4`, `d6f8a2b9c1e3`,
+`e7a9b3d5c2f1`, `f1c8b2e4a9d6`) referenced `is_active` directly in their
+INSERTs, which compounded the drift on fresh DBs (couldn't replay history
+end-to-end). Migration `9a30d278d31d` was also non-idempotent on fresh
+DBs (dropped a `matches` table that never existed).
+
+### Completed
+
+- [x] **New migration `a3e91f4c7b28_backfill_is_active_columns`** —
+  idempotent, inspector-based: `sa.inspect(bind).get_columns(table)`
+  decides whether each missing column needs an `ADD COLUMN`. Adds the
+  six drifted columns with sensible `server_default` values
+  (`is_active='1'`, year columns nullable). Symmetric `downgrade()` only
+  drops what's actually present.
+- [x] **Defensive backfill of older migrations** — removed `is_active`
+  from the four INSERT statements in `c5e7f9a1b2d4`, `d6f8a2b9c1e3`,
+  `e7a9b3d5c2f1`, `f1c8b2e4a9d6`. New rows now rely on the
+  `server_default` set by `a3e91f4c7b28`. No effect on prod (rows already
+  exist there from earlier replays).
+- [x] **Made `9a30d278d31d` idempotent** — guard `inspector.get_table_names()`
+  before dropping `matches`; per-index `try/except` around `drop_index`.
+- [x] **Regression tests** — `tests/test_migrations_schema_parity.py` (3
+  tests, all green): replay migrations on a brand-new SQLite DB and
+  assert `db.metadata.tables` matches the inspected schema; rerun
+  `upgrade head` to assert idempotency; smoke-test the exact ORM
+  queries from `services/rating_service` that crashed prod.
+- [x] **Local verification** — fresh-DB upgrade head clean; replay on
+  dev.db (already at head) is no-op; `make check` clean (black / isort /
+  flake8 / mypy); `make test` 530 passed (was 527 → +3 from the
+  regression tests; 0 regressions).
+- [ ] **PR creation + CI green + prod migration applied** — pending.
+
+### How prod recovers
+
+```bash
+./venv/bin/alembic upgrade head     # applies a3e91f4c7b28
+python seed_db.py --check           # sanity check
+# Cache will rebuild on next page load; 500 disappears.
+```
+
+### Forward-looking guarantees
+
+`tests/test_migrations_schema_parity.py::test_migrations_match_models`
+runs in CI (`Quality & Tests` job, `make test`). Any future model column
+without a matching migration fails the test with a precise drift list,
+before reaching prod.
+
 ## 2026-05-05: TIK-58 follow-ups (data migrations + admin-observer guardrails)
 
 ### Completed

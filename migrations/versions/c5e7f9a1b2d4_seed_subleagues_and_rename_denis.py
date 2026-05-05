@@ -34,14 +34,23 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # 1. Seed subleagues 2.1 and 2.2 (idempotent — skip rows that already exist).
+    #
+    # Originally the INSERT also set ``is_active = 1``. The ``leagues.is_active``
+    # column was missing from the linear migration history (it was only present
+    # on DBs bootstrapped through ``db.create_all()``), which broke fresh-DB
+    # migration replays. Migration ``a3e91f4c7b28`` now backfills the column
+    # *after* this one runs, with ``server_default='1'`` — every row inserted
+    # below ends up ``is_active = TRUE`` regardless of whether the column
+    # exists yet at this point in the timeline. Keeping this INSERT
+    # ``is_active``-free lets it succeed on both fresh and production DBs.
     op.execute("""
-        INSERT INTO leagues (code, name, parent_code, is_active)
-        SELECT '2.1', 'League 2.1', '2', 1
+        INSERT INTO leagues (code, name, parent_code)
+        SELECT '2.1', 'League 2.1', '2'
         WHERE NOT EXISTS (SELECT 1 FROM leagues WHERE code = '2.1')
         """)
     op.execute("""
-        INSERT INTO leagues (code, name, parent_code, is_active)
-        SELECT '2.2', 'League 2.2', '2', 1
+        INSERT INTO leagues (code, name, parent_code)
+        SELECT '2.2', 'League 2.2', '2'
         WHERE NOT EXISTS (SELECT 1 FROM leagues WHERE code = '2.2')
         """)
 
