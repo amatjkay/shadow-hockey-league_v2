@@ -534,5 +534,77 @@
     "season": "25/26",
     "title": "Round 1",
     "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Юрий Shestakov",
+    "type": "TOP1",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "TOP1",
+    "icon_filename": "top1.svg"
+  },
+  {
+    "manager_name": "Tandem: Sergey Dorokhov, Maxim Shvetsov",
+    "type": "TOP2",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "TOP2",
+    "icon_filename": "top2.svg"
+  },
+  {
+    "manager_name": "Dmitry S.",
+    "type": "TOP3",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "TOP3",
+    "icon_filename": "top3.svg"
+  },
+  {
+    "manager_name": "Dima ATC",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "Round 3",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Dima ATC",
+    "type": "BEST_REG",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "Best regular",
+    "icon_filename": "best-reg.svg"
+  },
+  {
+    "manager_name": "Don Georgio",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Irina P.",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Den Denverovich",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
+  },
+  {
+    "manager_name": "Nikita Ignatenko",
+    "type": "HOCKEY_STICKS_AND_PUCK",
+    "league": "2.1",
+    "season": "25/26",
+    "title": "Round 1",
+    "icon_filename": "hockey-sticks-and-puck.svg"
   }
 ]
