@@ -13,6 +13,7 @@ from typing import Any, cast
 
 from flask import flash, redirect, request, url_for
 from flask_admin import AdminIndexView, expose
+from flask_admin.actions import action
 from flask_login import current_user
 from markupsafe import Markup
 from wtforms import PasswordField
@@ -76,11 +77,24 @@ class ManagerModelView(SHLModelView):
     edit_template = "admin/manager_edit.html"
 
     column_list = ("name", "country", "achievements_count", "is_active")
-    column_searchable_list = ("name",)
+    # TIK-80: search now also matches the related Country's name and code,
+    # so typing ``Russia`` returns every manager whose country is Russia.
+    column_searchable_list = ("name", "country.name", "country.code")
+    # TIK-80: sidebar filters by country and active flag.
+    column_filters = ("country.name", "is_active")
+    column_default_sort = ("name", False)
 
-    column_labels = {"achievements_count": "Achievements"}
+    column_labels = {
+        "name": "Менеджер",
+        "country": "Страна",
+        "achievements_count": "Достижений",
+        "is_active": "Активен",
+    }
 
-    column_formatters = {"achievements_count": lambda v, c, m, p: len(m.achievements)}
+    column_formatters = {
+        "achievements_count": lambda v, c, m, p: len(m.achievements),
+        "country": lambda v, c, m, p: str(m.country) if m.country else "—",
+    }
 
     # Use Select2 for country selection
     form_ajax_refs = {
@@ -112,6 +126,35 @@ class AchievementModelView(SHLModelView):
     """
 
     column_list = ("manager", "type", "league", "season", "final_points", "updated_at")
+
+    # TIK-80: searchable across the four FK relations + the title column,
+    # so the search bar accepts ``Felix``, ``Top 1``, ``League 2.1`` or
+    # ``25/26`` and resolves the obvious matches.
+    column_searchable_list = (
+        "manager.name",
+        "type.name",
+        "type.code",
+        "league.name",
+        "league.code",
+        "season.name",
+        "season.code",
+        "title",
+    )
+    # TIK-80: sidebar filters — the four FK columns. We intentionally
+    # stop at single-relation depth: Flask-Admin's
+    # ``tools.is_hybrid_property`` walks dotted column references via
+    # ``getattr(mapper, name)`` and that returns ``AttributeError`` for
+    # the second hop on a 3-level chain like ``manager.country.name``.
+    # Filtering "by country" is still possible from the manager list
+    # — this view exposes the manager filter, and the manager list has
+    # its own ``country.name`` filter.
+    column_filters = (
+        "type.name",
+        "league.name",
+        "season.code",
+        "manager.name",
+    )
+    column_default_sort = ("updated_at", True)
 
     column_labels = {
         "manager": "Менеджер",
@@ -226,6 +269,52 @@ class AchievementModelView(SHLModelView):
         """Trigger cache invalidation."""
         invalidate_leaderboard_cache()
 
+    @action(
+        "recalculate_points",
+        "Пересчитать очки",
+        (
+            "Пересчитать очки для выбранных достижений? Это пересчитает "
+            "base_points / multiplier / final_points по текущим значениям "
+            "в справочниках (AchievementType.base_points_l1/l2 + "
+            "Season.multiplier)."
+        ),
+    )
+    def action_recalculate_points(self, ids: list[Any]) -> None:
+        """Bulk action: recalculate base/multiplier/final points for selected rows.
+
+        TIK-80: lets the admin re-apply scoring after editing reference data
+        (changed multiplier on a season, changed base_points_l1 on a type)
+        without poking each achievement individually. Calls the canonical
+        ``recalc_single_achievement_id`` helper so behaviour stays identical
+        to the existing per-row recalc paths.
+        """
+
+        from services.recalc_service import recalc_single_achievement_id
+
+        success = 0
+        failed: list[int] = []
+        for raw_id in ids:
+            try:
+                achievement_id = int(raw_id)
+            except (TypeError, ValueError):
+                continue
+            if recalc_single_achievement_id(achievement_id):
+                success += 1
+            else:
+                failed.append(achievement_id)
+
+        invalidate_leaderboard_cache()
+
+        if success and not failed:
+            flash(f"Пересчитано {success} достижений.", "success")
+        elif success and failed:
+            flash(
+                f"Пересчитано {success}, пропущены ID: {failed}.",
+                "warning",
+            )
+        else:
+            flash(f"Не удалось пересчитать. ID: {failed}.", "error")
+
 
 # ==================== Reference Views ====================
 
@@ -235,6 +324,10 @@ class AchievementTypeModelView(SHLModelView):
 
     column_list = ("code", "name", "base_points_l1", "base_points_l2", "icon_path", "is_active")
     column_editable_list = ("name", "base_points_l1", "base_points_l2", "is_active")
+    # TIK-80: search & filter across reference lists.
+    column_searchable_list = ("code", "name")
+    column_filters = ("is_active",)
+    column_default_sort = ("code", False)
 
 
 class LeagueModelView(SHLModelView):
@@ -242,6 +335,10 @@ class LeagueModelView(SHLModelView):
 
     column_list = ("code", "name", "parent_code", "is_active")
     form_ajax_refs = {"parent": {"fields": (League.code,), "placeholder": "Select parent league"}}
+    # TIK-80: search & filter for the leagues reference list.
+    column_searchable_list = ("code", "name", "parent_code")
+    column_filters = ("is_active", "parent_code")
+    column_default_sort = ("code", False)
 
 
 class SeasonModelView(SHLModelView):
@@ -251,6 +348,9 @@ class SeasonModelView(SHLModelView):
     column_editable_list = ("multiplier", "is_active")
     column_sortable_list = ("code", "start_year", "multiplier")
     column_default_sort = ("start_year", True)
+    # TIK-80: search & filter for the seasons reference list.
+    column_searchable_list = ("code", "name")
+    column_filters = ("is_active", "start_year")
 
 
 # ==================== Audit Log View ====================
