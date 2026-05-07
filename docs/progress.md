@@ -6,6 +6,56 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-07: TIK-74…TIK-80 round-2 QA — code + E2E complete, awaiting merge
+
+PR [#79](https://github.com/amatjkay/shadow-hockey-league_v2/pull/79)
+(`devin/1778008520-post-qa-fixes` → `staging`) consolidates all of TIK-74,
+TIK-75, TIK-76, TIK-77, TIK-78, TIK-79, TIK-80 (children of TIK-72). Code is
+complete, CI is green (`Quality & Tests` + `E2E Smoke (Playwright)` passed;
+`Vercel` canceled is a known non-issue for this Flask project), and a single
+continuous browser E2E was run against the staging tunnel
+`https://7b61b28494e0-tunnel-zzc1nhky.devinapps.com/` covering all 12
+assertions in `test-plan.md`. Full results in `test-report.md` + the
+PR #79 comment.
+
+### Snapshot
+
+| Ticket | Surface | Status |
+| :--- | :--- | :--- |
+| TIK-74 | hide `Войти` for anon users | shipped (E2E ✅) |
+| TIK-75 | pill-shaped season selector | shipped (E2E ✅) |
+| TIK-76 | empty Season dropdown for L2.1/L2.2 in admin Add-Achievement modal | shipped + Alembic backfill (E2E ✅) |
+| TIK-77 | `404 GET /static/img/cups/r3.svg` after admin save | shipped + Alembic backfill (E2E ✅) |
+| TIK-78 | concise hover tooltip without `League/Season` duplication | shipped + Alembic normalisation (E2E ✅) |
+| TIK-77/78 AJAX-bypass fix | `blueprints/admin_api/achievements.py` bulk-add path | shipped + regression test (E2E ✅) |
+| TIK-79 | human-readable `__str__` across ORM models, formatters in admin lists + audit log | shipped + 9 regression tests (E2E ✅) |
+| TIK-80 | search across FK relations, FK-based filter sidebar, default sort `updated_at desc`, bulk action `Пересчитать очки` | shipped + admin polish migration (E2E ✅) |
+
+`models.py` keeps the original `__repr__` for debugging. Subleagues render as
+`League 2.1 (2.1)` so 2.1/2.2 stay distinguishable in dropdowns. The
+`recalculate_points` bulk action calls into `services/scoring_service` so it
+re-uses the same engine the live endpoints use.
+
+### Awaiting merge
+
+1. Merge **PR #79** (`devin/1778008520-post-qa-fixes` → `staging`).
+2. Then merge **PR #78** (`staging` → `main`) so the whole TIK-59 + TIK-72 +
+   TIK-74…TIK-80 stack lands in production.
+3. Optional follow-ups (do **not** block merge):
+   - Re-deploy staging and prod, sanity-check live `/` for icons + tooltips.
+   - Transition TIK-74…TIK-80 to Done in Linear with links to the merged PRs
+     (use the `linear-sync` skill).
+   - Continue the Flask-Admin UX epic only if needed (variants (c)/(d) from
+     the design discussion in this round); not blocking anything.
+
+### Test artefacts
+
+- `test-plan.md` (committed)
+- `test-report.md` (committed; full assertion table + screenshots + recording link)
+- Annotated recording:
+  https://app.devin.ai/attachments/39149772-924e-402a-822e-79b2616222c8/rec-d0caef92-9a71-4d6f-b68a-0110d30c52c3-edited.mp4
+- Devin session: https://app.devin.ai/sessions/7b61b28494e040cfb7923168919a1979
+
 ## 2026-05-05 (later): Prod data recovery after PR #74 deploy
 
 After PR #74 merged and was deployed to prod, `https://shadow-hockey-league.ru/`
