@@ -344,12 +344,7 @@ def get_achievement_types() -> Any:
                 "items": [
                     {
                         "id": t.id,
-                        "text": t.name
-                        + " (L1: "
-                        + str(t.base_points_l1)
-                        + ", L2: "
-                        + str(t.base_points_l2)
-                        + ")",
+                        "text": f"{t.name} (L1: {t.base_points_l1}, L2: {t.base_points_l2})",
                     }
                     for t in types
                 ]

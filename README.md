@@ -145,14 +145,15 @@ shadow-hockey-league_v2/
 
 ## 🔧 Команды Makefile
 
-| Команда       | Описание                                  |
-| ------------- | ----------------------------------------- |
-| `make setup`  | Установка зависимостей + инициализация БД |
-| `make run`    | Запуск сервера разработки                 |
-| `make test`   | Запуск тестов (472 unit/integration)      |
-| `make lint`   | Проверка кода (flake8)                    |
-| `make format` | Форматирование (black + isort)            |
-| `make clean`  | Очистка временных файлов                  |
+| Команда       | Описание                                         |
+| ------------- | ------------------------------------------------ |
+| `make setup`  | Установка зависимостей + инициализация БД        |
+| `make run`    | Запуск сервера разработки                        |
+| `make test`   | Запуск тестов (472 unit/integration)             |
+| `make check`  | Все проверки (black + isort + flake8 + mypy)     |
+| `make lint`   | Проверка кода (flake8)                           |
+| `make format` | Форматирование (black + isort)                   |
+| `make clean`  | Очистка временных файлов                         |
 
 ---
 
@@ -230,7 +231,7 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 
 ### Prometheus Metrics (`/metrics`)
 
-`http_requests_total`, `http_request_duration_seconds`
+`shadow_hockey_league_http_request_total`, `shadow_hockey_league_http_request_duration_seconds`, `shadow_hockey_league_http_request_exceptions_total`, `shadow_hockey_league_exporter_info`
 
 ---
 
