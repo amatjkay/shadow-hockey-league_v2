@@ -158,6 +158,16 @@ class AchievementType(db.Model):
     def __repr__(self) -> str:
         return f"<AchievementType {self.code}>"
 
+    def __str__(self) -> str:
+        """Human-readable label rendered by Flask-Admin in lists / FK pickers.
+
+        Returns the long form ``name`` (e.g. ``"Top 1"``, ``"Round 3"``).
+        Without this method Flask-Admin falls back to ``__repr__`` and the
+        admin UI ends up showing ``<AchievementType TOP1>`` (TIK-79).
+        """
+
+        return self.name or self.code
+
     def get_icon_url(self) -> str:
         """Return icon URL with a known-existing fallback.
 
@@ -204,6 +214,17 @@ class League(db.Model):
     def __repr__(self) -> str:
         return f"<League {self.code}>"
 
+    def __str__(self) -> str:
+        """Human-readable label for Flask-Admin lists / FK pickers (TIK-79).
+
+        Subleagues append their canonical code so they remain distinguishable
+        in dropdowns: e.g. ``"League 2.1"`` rather than just ``"League 2"``.
+        """
+
+        if self.parent_code and self.code != self.parent_code:
+            return f"{self.name} ({self.code})"
+        return self.name or self.code
+
     @property
     def base_points_field(self) -> str:
         """Return which base_points field to use for this league."""
@@ -226,6 +247,11 @@ class Season(db.Model):
 
     def __repr__(self) -> str:
         return f"<Season {self.code}>"
+
+    def __str__(self) -> str:
+        """Human-readable label for Flask-Admin lists / FK pickers (TIK-79)."""
+
+        return self.name or self.code
 
 
 # ==================== Core tables ====================
@@ -253,6 +279,11 @@ class Country(db.Model):
 
     def __repr__(self) -> str:
         return f"<Country {self.name} ({self.code})>"
+
+    def __str__(self) -> str:
+        """Human-readable label for Flask-Admin lists / FK pickers (TIK-79)."""
+
+        return self.name or self.code
 
     @property
     def flag_display_url(self) -> str:
@@ -300,6 +331,15 @@ class Manager(db.Model):
 
     def __repr__(self) -> str:
         return f"<Manager {self.name}>"
+
+    def __str__(self) -> str:
+        """Human-readable label for Flask-Admin lists / FK pickers (TIK-79).
+
+        Strips the legacy ``"Tandem:"`` prefix that we keep in the column
+        for legacy data integrity but is noise in the UI.
+        """
+
+        return self.display_name
 
     @property
     def is_tandem(self) -> bool:
@@ -362,6 +402,28 @@ class Achievement(db.Model):
 
     def __repr__(self) -> str:
         return f"<Achievement {self.type_id}/{self.league_id}/{self.season_id}>"
+
+    def __str__(self) -> str:
+        """Human-readable label for Flask-Admin lists / audit log links.
+
+        Returns ``"<Manager> — <Type> (<League>, <Season>)"`` when all the
+        relationships are available, falling back to whichever pieces are
+        loaded. Without this method Flask-Admin falls back to ``__repr__``
+        and the admin UI ends up showing ``<Achievement 1/1/2>`` (TIK-79).
+        """
+
+        manager_part = self.manager.display_name if self.manager else None
+        type_part = self.type.name if self.type else None
+        league_part = self.league.name if self.league else None
+        season_part = self.season.name if self.season else None
+
+        if manager_part and type_part and league_part and season_part:
+            return f"{manager_part} — {type_part} ({league_part}, {season_part})"
+        if type_part and league_part and season_part:
+            return f"{type_part} ({league_part}, {season_part})"
+        if self.title:
+            return self.title
+        return f"Achievement #{self.id}" if self.id else "Achievement (unsaved)"
 
     def to_html(self) -> str:
         """Generate HTML img tag for this achievement."""

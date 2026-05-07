@@ -113,6 +113,28 @@ class AchievementModelView(SHLModelView):
 
     column_list = ("manager", "type", "league", "season", "final_points", "updated_at")
 
+    column_labels = {
+        "manager": "Менеджер",
+        "type": "Тип",
+        "league": "Лига",
+        "season": "Сезон",
+        "final_points": "Очки",
+        "updated_at": "Обновлено",
+    }
+
+    # TIK-79: render relationships as their human-readable ``str(...)``.
+    # Without explicit formatters Flask-Admin can resolve to ``__repr__`` for
+    # related objects and the user sees ``<Manager Felix>`` instead of
+    # ``Felix``. Forcing ``str`` keeps the rendering tied to the canonical
+    # ``__str__`` we just added on each model.
+    column_formatters = {
+        "manager": lambda v, c, m, p: str(m.manager) if m.manager else "—",
+        "type": lambda v, c, m, p: str(m.type) if m.type else "—",
+        "league": lambda v, c, m, p: str(m.league) if m.league else "—",
+        "season": lambda v, c, m, p: str(m.season) if m.season else "—",
+        "final_points": lambda v, c, m, p: f"{m.final_points:.2f}" if m.final_points else "0.00",
+    }
+
     # Validation Rules
     form_ajax_refs = {
         "manager": {"fields": (Manager.name,), "placeholder": "Select Manager"},
@@ -284,36 +306,68 @@ def _format_audit_changes(changes_json: str | None) -> Markup:
         return Markup(f'<code class="small text-muted">{changes_json}</code>')
 
 
+# Map model names to their admin view endpoints + ORM class for str() lookup.
+# Flask-Admin default endpoint is usually lowercase model name. Typed as
+# ``Any`` for the class slot because ``db.Model`` is dynamically generated
+# via Flask-SQLAlchemy and cannot be used as a static type expression.
+_TARGET_MODEL_REGISTRY: dict[str, tuple[str, Any]] = {
+    "Country": ("country", Country),
+    "Manager": ("manager", Manager),
+    "Achievement": ("achievement", Achievement),
+    "AchievementType": ("achievementtype", AchievementType),
+    "League": ("league", League),
+    "Season": ("season", Season),
+    "AdminUser": ("adminuser", AdminUser),
+    "ApiKey": ("apikey", ApiKey),
+}
+
+
+def _resolve_target_label(target_model: str, target_id: int) -> str:
+    """Resolve a human-readable label for an audit-log target row.
+
+    Returns ``str(row)`` (which goes through each model's ``__str__``) when
+    the row still exists, else falls back to ``"<Model> #<id>"``.
+    Wrapped in a try/except so a stale audit row pointing at a deleted
+    parent never crashes the audit list (TIK-79).
+    """
+
+    entry = _TARGET_MODEL_REGISTRY.get(target_model)
+    if not entry:
+        return f"{target_model} #{target_id}"
+    _, model_cls = entry
+    try:
+        row = db.session.get(model_cls, target_id)
+    except Exception:
+        row = None
+    if row is None:
+        return f"{target_model} #{target_id} (deleted)"
+    return f"{str(row)} — #{target_id}"
+
+
 def _format_target_link(model: AuditLog) -> Markup:
-    """Generate a link to the target model's edit view."""
+    """Generate a link to the target model's edit view.
+
+    The link text is the human-readable ``str(target_row)`` plus its ID,
+    so the audit log reads e.g.
+    ``Felix — Top 1 (League 1, Season 23/24) — #42`` instead of
+    ``Achievement #42`` (TIK-79).
+    """
+
     if not model.target_model or not model.target_id:
         return Markup(f'<span class="text-muted">{model.target_id or "-"}</span>')
 
-    # Map model names to their admin view endpoints
-    # Flask-Admin default endpoint is usually lowercase model name
-    endpoint_map = {
-        "Country": "country",
-        "Manager": "manager",
-        "Achievement": "achievement",
-        "AchievementType": "achievementtype",
-        "League": "league",
-        "Season": "season",
-        "AdminUser": "adminuser",
-        "ApiKey": "apikey",
-    }
+    label = _resolve_target_label(model.target_model, model.target_id)
+    entry = _TARGET_MODEL_REGISTRY.get(model.target_model)
+    if not entry:
+        return Markup(f"<span>{label}</span>")
 
-    endpoint = endpoint_map.get(model.target_model)
-    if not endpoint:
-        return Markup(f"<span>{model.target_model} #{model.target_id}</span>")
-
+    endpoint, _ = entry
     try:
         url = url_for(f"{endpoint}.edit_view", id=model.target_id)
-        return Markup(
-            f'<a href="{url}" class="target-link">{model.target_model} #{model.target_id}</a>'
-        )
+        return Markup(f'<a href="{url}" class="target-link">{label}</a>')
     except Exception:
         # Fallback if endpoint or route doesn't exist (e.g. if can_edit is False)
-        return Markup(f"<span>{model.target_model} #{model.target_id}</span>")
+        return Markup(f"<span>{label}</span>")
 
 
 class AuditLogModelView(SHLModelView):
