@@ -28,3 +28,105 @@
   font-weight: normal;
   line-height: 1.45;
 }
+
+/* Season filter bar — themed to match header / tooltip / desktop-nav */
+.filters-bar {
+  margin: 0 auto 24px;
+  padding: 14px 18px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 420px;
+  background: rgba(0, 30, 60, 0.55);
+  border: 1px solid rgba(0, 166, 255, 0.25);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 18px rgba(0, 30, 60, 0.35);
+}
+
+.filters-bar__label {
+  font-weight: 600;
+  color: #cde9ff;
+  letter-spacing: 0.02em;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.filters-bar__label::before {
+  content: "\1F4C5";
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.filters-bar__select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 8px 38px 8px 14px;
+  border: 1px solid rgba(0, 166, 255, 0.4);
+  border-radius: 999px;
+  background-color: rgba(0, 20, 40, 0.7);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2300a6ff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.filters-bar__select:hover {
+  border-color: rgba(0, 166, 255, 0.7);
+  background-color: rgba(0, 30, 60, 0.85);
+}
+
+.filters-bar__select:focus {
+  outline: none;
+  border-color: #00a6ff;
+  box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.25);
+}
+
+.filters-bar__select option {
+  background: #001428;
+  color: #ffffff;
+}
+
+/* Loading overlay (toggled by JS when navigating to a different season) */
+.is-loading::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 20, 40, 0.5);
+  z-index: 9999;
+}
+
+.is-loading::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 3px solid rgba(0, 166, 255, 0.3);
+  border-top-color: #00a6ff;
+  border-radius: 50%;
+  animation: filters-bar-spin 0.8s linear infinite;
+  z-index: 10000;
+}
+
+@keyframes filters-bar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

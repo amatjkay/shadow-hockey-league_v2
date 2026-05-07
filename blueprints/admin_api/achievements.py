@@ -138,7 +138,11 @@ def _process_bulk_create_manager(
         type_id=ach_type.id,
         league_id=league.id,
         season_id=season.id,
-        title=f"{ach_type.name} {league.name} {season.name}",
+        # Title: just the type label (e.g. "Round 3"). The HTML tooltip
+        # wrapper in ``Achievement.to_html`` adds league + season already, so
+        # duplicating them here yields verbose hovers like
+        # ``Shadow 2.1 league Round 3 League 2.1 Season 25/26 s25/26`` (TIK-78).
+        title=ach_type.name,
         icon_path=icon_path,
         base_points=points["base"],
         multiplier=points["multiplier"],
@@ -186,7 +190,10 @@ def bulk_create_achievements() -> Any:
             )
             .all()
         }
-        icon_path = f"/static/img/cups/{ach_type.code.lower()}.svg"
+        # Use the canonical icon_path on AchievementType (with default.svg
+        # fallback). Constructing from ``code`` produced broken paths like
+        # ``r3.svg`` / ``r1.svg`` / ``best.svg`` (TIK-77).
+        icon_path = ach_type.get_icon_url()
 
         created: list[int] = []
         skipped: list[dict] = []
@@ -418,8 +425,15 @@ def _create_achievement_for_manager(
         type_id=type_id,
         league_id=league_id,
         season_id=season_id,
-        title=f"{ach_type.name} {league.name} {season.name}",
-        icon_path=f"/static/img/cups/{ach_type.code.lower()}.svg",
+        # Title: just the type label (e.g. "Round 3"). The HTML tooltip
+        # wrapper in ``Achievement.to_html`` adds league + season already, so
+        # duplicating them here yields verbose hovers like
+        # ``Shadow 2.1 league Round 3 League 2.1 Season 25/26 s25/26`` (TIK-78).
+        title=ach_type.name,
+        # Use the canonical icon_path on AchievementType (with default.svg
+        # fallback). Constructing from ``code`` produced broken paths like
+        # ``r3.svg`` / ``r1.svg`` / ``best.svg`` (TIK-77).
+        icon_path=ach_type.get_icon_url(),
         base_points=base_points,
         multiplier=multiplier,
         final_points=final_points,
