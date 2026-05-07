@@ -357,8 +357,9 @@ class TestAchievementModelViewGuardrail:
         bad_manager = Manager(name="Tandem: Foo, whiplash 92", country_id=country.id)
         db_session.add(bad_manager)
 
+        # Compact-10 scale (TIK-80).
         ach_type = AchievementType(
-            code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400
+            code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=6.0
         )
         league = League(code="1", name="League 1")
         season = Season(code="25/26", name="Season 25/26", multiplier=1.0, is_active=True)

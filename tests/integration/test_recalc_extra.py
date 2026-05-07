@@ -45,7 +45,8 @@ def seeded(db_session):
     db.session.add(manager)
     db.session.flush()
 
-    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
+    # Compact-10 scale (TIK-80).
+    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=6.0)
     league = League(code="1", name="League 1")
     season = Season(code="24/25", name="Season 24/25", multiplier=1.0, is_active=True)
     db.session.add_all([ach_type, league, season])
@@ -58,9 +59,9 @@ def seeded(db_session):
         season_id=season.id,
         title="TOP1",
         icon_path="/static/img/cups/top1.svg",
-        base_points=800.0,
+        base_points=10.0,
         multiplier=1.0,
-        final_points=800.0,
+        final_points=10.0,
     )
     db.session.add(achievement)
     db.session.commit()
@@ -91,7 +92,9 @@ class TestNotFoundAndEmpty:
 
     def test_recalc_by_type_empty(self, db_session):
         """Type exists but has zero achievements → no-op success."""
-        ach_type = AchievementType(code="EMPTY", name="Empty", base_points_l1=10, base_points_l2=5)
+        ach_type = AchievementType(
+            code="EMPTY", name="Empty", base_points_l1=2.0, base_points_l2=1.0
+        )
         db.session.add(ach_type)
         db.session.commit()
 
@@ -180,7 +183,7 @@ class TestCommitFailure:
     """If ``db.session.commit()`` raises, the function must rollback and surface the error."""
 
     def test_recalc_by_type_rollback_on_commit_failure(self, seeded):
-        seeded["ach_type"].base_points_l1 = 1500
+        seeded["ach_type"].base_points_l1 = 13.0
         db.session.commit()  # bake the change so commit() inside is the second one
 
         with patch.object(db.session, "commit", side_effect=RuntimeError("commit fail")):
@@ -210,7 +213,7 @@ class TestAuditLogPath:
             patch("services.recalc_service._get_user_id", return_value=42),
             patch("services.audit_service.log_action") as mock_log,
         ):
-            seeded["ach_type"].base_points_l1 = 1234
+            seeded["ach_type"].base_points_l1 = 11.0
             db.session.commit()
 
             recalc_by_achievement_type(seeded["ach_type"].id)

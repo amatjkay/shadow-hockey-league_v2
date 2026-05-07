@@ -6,6 +6,81 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-07 (later): TIK-80 fairer rating system — compact-10 scale + smooth decay
+
+Owner-driven request: "Более справедливый расчёт рейтингов" — recalibrate the
+scoring formula without changing its architecture, and **drop the legacy
+hundreds-based scale** (explicit user constraint: «не в сотнях»). After
+analysis (`docs/archive/rating_analysis.md`-style notes shared in chat) the
+owner picked **Variant B + COMPACT_10**: minimal recalibration on a single-
+to low-double-digit scale. Linear ticket TIK-80 created.
+
+### Changes (single PR `devin/1778171266-tik80-fairer-rating`)
+
+1. **`models.py`** — `AchievementType.base_points_l1` / `_l2` widened from
+   `Integer` to `Float`. The compact-10 scale uses `2.5`, `1.8`, `0.75`,
+   `0.45`; rounding them to integers would silently collapse `TOP3 == BEST`
+   and zero-out `R1 L2`.
+
+2. **`services/rating_service.py`** — fallback constants
+   (`BASE_POINTS`, `SEASON_MULTIPLIER`) rewritten to compact-10 + smooth
+   `0.7 ^ years_ago` decay so seedless deployments observe the new scale.
+
+3. **`data/seed_service.py`** — seed values updated to the same numbers so
+   fresh installs and migrated installs converge bit-for-bit.
+
+4. **`migrations/versions/a4f1e9b2c5d7_tik80_fairer_rating_compact_scale.py`**
+   — single Alembic migration that
+   (a) widens the two columns via `batch_alter_table`,
+   (b) `UPDATE`s six `achievement_types` rows + five `seasons` rows, and
+   (c) re-derives `base_points` / `multiplier` / `final_points` for every
+   `achievements` row using a `parent_code`-aware root-code resolver that
+   mirrors `services.scoring_service.get_base_points`. Downgrade restores
+   the legacy hundreds scale and uneven decay, recalcs again, then narrows
+   the columns back to `Integer` (lossless because the legacy values are
+   whole numbers).
+
+5. **Test suite (16 files updated)** — every fixture / assertion that
+   hard-coded the legacy `800 / 400 / 200 / 100 / 50 / 25` (L1) and
+   `400 / 200 / 100 / 50 / 25` (L2) values, plus the legacy
+   `1.0 / 0.8 / 0.5 / 0.3 / 0.2` season decay, was rewritten to the
+   compact-10 numbers. No tests were deleted. `559 passed, 0 failed`.
+
+### Compact-10 scale
+
+| Code | L1     | L2     | Rationale                                        |
+| :--- | :---:  | :---:  | :---                                             |
+| TOP1 | 10.0   | 6.0    | champion = cap; L2 ≈ 60 % of L1 (was 50 %)       |
+| TOP2 | 5.0    | 3.0    |                                                  |
+| TOP3 | 2.5    | 1.5    | bronze now ranks **below** regular-season MVP    |
+| BEST | 3.0    | 1.8    | full-season MVP > one bronze series              |
+| R3   | 1.5    | 0.9    |                                                  |
+| R1   | 0.75   | 0.45   | no longer "1/16 of TOP1" noise (was 50 / 800)    |
+
+### Smooth season decay
+
+| Season | New     | Old    | Formula        |
+| :---   | :---:   | :---:  | :---           |
+| 25/26  | 1.000   | 1.00   | baseline       |
+| 24/25  | 0.700   | 0.80   | 0.7 ^ 1        |
+| 23/24  | 0.490   | 0.50   | 0.7 ^ 2        |
+| 22/23  | 0.343   | 0.30   | 0.7 ^ 3        |
+| 21/22  | 0.240   | 0.20   | 0.7 ^ 4        |
+
+### Status
+
+- `make check` (black + isort + flake8 + mypy) ✅
+- `make test` ✅ (559 passed, 4 deprecation warnings unrelated to TIK-80)
+- PR open against `main`; awaiting CI green and owner review.
+
+### Deferred (not in TIK-80)
+
+- **Variant C** (per-subleague `difficulty_factor` so 2.1 / 2.2 differ
+  from each other instead of inheriting the parent verbatim) requires a
+  new column on `League` and was held back. Track as a follow-up if the
+  owner wants finer-grained subleague balance later.
+- **Task 2** (UI redesign) starts only after TIK-80 ships.
+
 ## 2026-05-07: TIK-74…TIK-80 round-2 QA — code + E2E complete, awaiting merge
 
 PR [#79](https://github.com/amatjkay/shadow-hockey-league_v2/pull/79)

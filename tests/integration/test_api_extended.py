@@ -36,7 +36,8 @@ def api_data(db_session):
     db.session.add(country)
     db.session.flush()
 
-    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
+    # Compact-10 scale (TIK-80).
+    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=6.0)
     league = League(code="1", name="League 1")
     season = Season(code="24/25", name="Season 24/25", multiplier=1.0, is_active=True)
     db.session.add_all([ach_type, league, season])
@@ -53,9 +54,9 @@ def api_data(db_session):
         title="TOP1",
         icon_path="/static/img/cups/top1.svg",
         manager_id=manager.id,
-        base_points=800.0,
+        base_points=10.0,
         multiplier=1.0,
-        final_points=800.0,
+        final_points=10.0,
     )
     db.session.add(achievement)
     db.session.commit()
@@ -184,9 +185,9 @@ class TestListAchievements:
         assert ach["title"] == "TOP1"
         assert ach["manager_id"] == api_data["manager"].id
         assert ach["manager_name"] == api_data["manager"].name
-        assert ach["base_points"] == 800.0
+        assert ach["base_points"] == 10.0
         assert ach["multiplier"] == 1.0
-        assert ach["final_points"] == 800.0
+        assert ach["final_points"] == 10.0
 
     def test_list_achievements_filtered_by_manager_id(self, api_client, api_data):
         """Filtering by ``manager_id`` should return only that manager's rows."""

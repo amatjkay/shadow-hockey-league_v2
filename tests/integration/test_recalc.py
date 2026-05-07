@@ -31,7 +31,8 @@ def recalc_data(db_session):
     db.session.add(manager)
     db.session.flush()
 
-    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
+    # Compact-10 scale (TIK-80): TOP1 L1 = 10.0, L2 = 6.0.
+    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=6.0)
     league = League(code="1", name="League 1")
     league2 = League(code="2", name="League 2")  # Parent for subleagues
     season = Season(code="24/25", name="Season 24/25", multiplier=1.0, is_active=True)
@@ -46,9 +47,9 @@ def recalc_data(db_session):
         season_id=season.id,
         title="TOP1",
         icon_path="/static/img/cups/top1.svg",
-        base_points=800.0,
+        base_points=10.0,
         multiplier=1.0,
-        final_points=800.0,
+        final_points=10.0,
     )
     db.session.add(achievement)
     db.session.commit()
@@ -74,16 +75,16 @@ class TestRecalcByType:
         ach_type = recalc_data["ach_type"]
         achievement = recalc_data["achievement"]
 
-        # Change base points
-        ach_type.base_points_l1 = 1000
+        # Bump base points to 12.0 (still in compact-10 range).
+        ach_type.base_points_l1 = 12.0
         db.session.commit()
 
         result = recalc_by_achievement_type(ach_type.id)
 
         db.session.refresh(achievement)
         assert result["affected"] == 1
-        assert achievement.base_points == 1000.0
-        assert achievement.final_points == 1000.0  # 1000 * 1.0
+        assert achievement.base_points == 12.0
+        assert achievement.final_points == 12.0  # 12.0 × 1.0
 
     def test_recalc_respects_league(self, recalc_data):
         """Should use base_points_l2 for League 2."""
@@ -91,16 +92,16 @@ class TestRecalcByType:
         league2 = recalc_data["league2"]
         achievement = recalc_data["achievement"]
 
-        # Switch achievement to League 2
+        # Switch achievement to League 2 and bump L2 base to a known value.
         achievement.league_id = league2.id
-        ach_type.base_points_l2 = 500
+        ach_type.base_points_l2 = 7.5
         db.session.commit()
 
         result = recalc_by_achievement_type(ach_type.id)
 
         db.session.refresh(achievement)
         assert result["affected"] == 1
-        assert achievement.base_points == 500.0
+        assert achievement.base_points == 7.5
 
     def test_recalc_with_parent_code(self, recalc_data):
         """Should use base_points_l2 for subleague (2.1)."""
@@ -109,22 +110,22 @@ class TestRecalcByType:
         league2 = recalc_data["league2"]  # Parent league
         achievement = recalc_data["achievement"]
 
-        # Change league to 2.1 with parent 2
+        # Change league to 2.1 with parent 2 — must inherit base_points_l2.
         league.code = "2.1"
         league.parent_code = league2.code  # Now '2' exists
-        ach_type.base_points_l2 = 400
+        ach_type.base_points_l2 = 6.0
         db.session.commit()
 
         result = recalc_by_achievement_type(ach_type.id)
 
         db.session.refresh(achievement)
         assert result["affected"] == 1
-        assert achievement.base_points == 400.0
+        assert achievement.base_points == 6.0
 
     def test_recalc_audit_log(self, recalc_data, app_context):
         """Should NOT create audit log if no user is logged in (system action)."""
         ach_type = recalc_data["ach_type"]
-        ach_type.base_points_l1 = 900
+        ach_type.base_points_l1 = 11.0
         db.session.commit()
 
         # In tests without login, user_id is None, so log is skipped
@@ -152,7 +153,7 @@ class TestRecalcBySeason:
 
         db.session.refresh(achievement)
         assert result["affected"] == 1
-        assert achievement.final_points == 400.0  # 800 * 0.5
+        assert achievement.final_points == 5.0  # 10.0 × 0.5
 
 
 # ==================== Recalc Single Achievement Tests ====================
@@ -166,14 +167,14 @@ class TestRecalcSingleAchievement:
         achievement = recalc_data["achievement"]
         ach_type = recalc_data["ach_type"]
 
-        ach_type.base_points_l1 = 1200
+        ach_type.base_points_l1 = 15.0
         db.session.commit()
 
         success = recalc_single_achievement_id(achievement.id)
 
         db.session.refresh(achievement)
         assert success is True
-        assert achievement.base_points == 1200.0
+        assert achievement.base_points == 15.0
 
     def test_recalc_single_not_found(self, db_session):
         """Should return False for non-existent achievement."""

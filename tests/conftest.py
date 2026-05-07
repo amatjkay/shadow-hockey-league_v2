@@ -196,29 +196,31 @@ def seeded_db(app, app_context):
         # canonical SVG so ``AchievementType.get_icon_url()`` does not fall
         # back to ``default.svg`` (TIK-77 contract: every type carries a
         # real icon path).
+        # Compact-10 scale + ``0.7 ^ years_ago`` decay (TIK-80).
         ach_type_top1 = AchievementType(
             code="TOP1",
             name="Top 1",
-            base_points_l1=800,
-            base_points_l2=400,
+            base_points_l1=10.0,
+            base_points_l2=6.0,
             icon_path="/static/img/cups/top1.svg",
         )
         ach_type_top2 = AchievementType(
             code="TOP2",
             name="Top 2",
-            base_points_l1=400,
-            base_points_l2=200,
+            base_points_l1=5.0,
+            base_points_l2=3.0,
             icon_path="/static/img/cups/top2.svg",
         )
         db.session.add_all([ach_type_top1, ach_type_top2])
         league = League(code="1", name="League 1")
         db.session.add(league)
-        season_2324 = Season(code="23/24", name="Season 23/24", multiplier=0.5, is_active=False)
-        season_2122 = Season(code="21/22", name="Season 21/22", multiplier=0.2, is_active=False)
+        season_2324 = Season(code="23/24", name="Season 23/24", multiplier=0.490, is_active=False)
+        season_2122 = Season(code="21/22", name="Season 21/22", multiplier=0.240, is_active=False)
         db.session.add_all([league, season_2324, season_2122])
         db.session.flush()
 
-        # Create achievements with FK fields
+        # Create achievements with FK fields. ``final_points`` is rounded to
+        # 2 dp to match :py:func:`services.rating_service.calculate_achievement_points`.
         achievements = [
             Achievement(
                 type_id=ach_type_top1.id,
@@ -227,9 +229,9 @@ def seeded_db(app, app_context):
                 title="TOP1",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=manager.id,
-                base_points=800.0,
-                multiplier=0.5,
-                final_points=400.0,
+                base_points=10.0,
+                multiplier=0.490,
+                final_points=4.9,
             ),
             Achievement(
                 type_id=ach_type_top2.id,
@@ -238,9 +240,9 @@ def seeded_db(app, app_context):
                 title="TOP2",
                 icon_path="/static/img/cups/top2.svg",
                 manager_id=manager.id,
-                base_points=400.0,
-                multiplier=0.2,
-                final_points=80.0,
+                base_points=5.0,
+                multiplier=0.240,
+                final_points=1.2,
             ),
         ]
         for ach in achievements:

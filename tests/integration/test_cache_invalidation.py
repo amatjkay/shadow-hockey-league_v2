@@ -30,7 +30,14 @@ def _seed_reference_data():
         leagues[code] = lg
 
     seasons = {}
-    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    # Smooth ``0.7 ^ years_ago`` decay (TIK-80).
+    multipliers = {
+        "25/26": 1.000,
+        "24/25": 0.700,
+        "23/24": 0.490,
+        "22/23": 0.343,
+        "21/22": 0.240,
+    }
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
         s = Season(
             code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
@@ -38,13 +45,14 @@ def _seed_reference_data():
         db.session.add(s)
         seasons[code] = s
 
+    # Compact-10 scale (TIK-80): single-/low-double-digit values, BEST > TOP3.
     type_points = {
-        "TOP1": (800, 400),
-        "TOP2": (400, 200),
-        "TOP3": (200, 100),
-        "BEST": (50, 40),
-        "R3": (30, 20),
-        "R1": (10, 5),
+        "TOP1": (10.0, 6.0),
+        "TOP2": (5.0, 3.0),
+        "TOP3": (2.5, 1.5),
+        "BEST": (3.0, 1.8),
+        "R3": (1.5, 0.9),
+        "R1": (0.75, 0.45),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -95,9 +103,9 @@ class TestAPICacheInvalidation(unittest.TestCase):
                 title="TOP1 1 25/26",
                 icon_path="/static/img/cups/top1.svg",
                 manager_id=self.manager_id,
-                base_points=800.0,
+                base_points=10.0,
                 multiplier=1.0,
-                final_points=800.0,
+                final_points=10.0,
             )
             db.session.add(achievement)
             db.session.flush()
@@ -369,7 +377,8 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
         self.assertEqual(response3.status_code, 200)
         updated_html = response3.data.decode("utf-8")
 
-        self.assertIn("800", updated_html)
+        # Compact-10 scale (TIK-80): TOP1 in active 25/26 → 10.0 × 1.000 = 10.0.
+        self.assertIn("10", updated_html)
 
     def test_delete_achievement_removes_from_leaderboard(self) -> None:
         """Test that deleting an achievement via API removes it from score."""
@@ -389,7 +398,8 @@ class TestAPILeaderboardRefresh(unittest.TestCase):
         response1 = self.client.get("/")
         self.assertEqual(response1.status_code, 200)
         initial_html = response1.data.decode("utf-8")
-        self.assertIn("800", initial_html)
+        # Compact-10 scale (TIK-80): TOP1 in active 25/26 → 10.0.
+        self.assertIn("10", initial_html)
 
         response2 = self._delete(f"/api/achievements/{achievement_id}")
         self.assertEqual(response2.status_code, 200)

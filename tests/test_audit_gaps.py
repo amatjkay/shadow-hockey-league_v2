@@ -76,11 +76,14 @@ def scoring_app():
     ctx.push()
     db.create_all()
 
+    # Compact-10 scale (TIK-80). The L2 value (3.5) is intentionally an
+    # "odd" number so the parametrised test below catches accidental routing
+    # through ``base_points_l1``.
     ach_type = AchievementType(
         code="TOP1",
         name="Top 1",
-        base_points_l1=800,
-        base_points_l2=300,
+        base_points_l1=10.0,
+        base_points_l2=3.5,
     )
     db.session.add(ach_type)
 
@@ -107,17 +110,17 @@ def scoring_app():
     "league_code, expected_points",
     [
         # League "1" routes to base_points_l1 (the only L1 root).
-        ("1", 800.0),
+        ("1", 10.0),
         # Hypothetical subleague "1.1" — must inherit parent's L1 column.
-        ("1.1", 800.0),
+        ("1.1", 10.0),
         # League "2" and its subleagues — base_points_l2.
-        ("2", 300.0),
-        ("2.1", 300.0),
-        ("2.2", 300.0),
+        ("2", 3.5),
+        ("2.1", 3.5),
+        ("2.2", 3.5),
         # League "3" — non-L1, so base_points_l2 (the current behaviour
         # documented in `audit-2026-04-28-analysis.md` §1.3).
-        ("3", 300.0),
-        ("3.1", 300.0),
+        ("3", 3.5),
+        ("3.1", 3.5),
     ],
 )
 def test_get_base_points_routes_via_league_base_points_field(
