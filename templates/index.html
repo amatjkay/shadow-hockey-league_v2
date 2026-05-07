@@ -76,8 +76,8 @@
             alt="ESPN"
             onerror="this.style.display='none'"
           />
+          {% if current_user.is_authenticated %}
           <nav class="desktop-nav">
-            {% if current_user.is_authenticated %}
             <a
               href="{{ url_for('admin.index') }}"
               class="desktop-nav-link"
@@ -88,14 +88,8 @@
               class="desktop-nav-link"
               >Выйти ({{ current_user.username }})</a
             >
-            {% else %}
-            <a
-              href="{{ url_for('admin.login') }}"
-              class="desktop-nav-link"
-              >Войти</a
-            >
-            {% endif %}
           </nav>
+          {% endif %}
         </div>
       </header>
 
@@ -127,8 +121,8 @@
               onerror="this.style.display='none'"
             />
           </div>
+          {% if current_user.is_authenticated %}
           <nav class="mobile-menu-nav">
-            {% if current_user.is_authenticated %}
             <a href="{{ url_for('admin.index') }}" class="mobile-menu-link"
               >Админ-панель</a
             >
@@ -137,14 +131,8 @@
               class="mobile-menu-link"
               >Выйти ({{ current_user.username }})</a
             >
-            {% else %}
-            <a
-              href="{{ url_for('admin.login') }}"
-              class="mobile-menu-link"
-              >Войти</a
-            >
-            {% endif %}
           </nav>
+          {% endif %}
           <div class="mobile-menu-footer">
             <div class="copyright">© Hockey Shadow League</div>
             <div class="mobile-menu-creators">

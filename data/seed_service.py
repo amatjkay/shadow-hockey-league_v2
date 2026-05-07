@@ -236,18 +236,53 @@ class SeedService:
         # Aligning with Season 25/26 baseline: TOP1 = 800
         if self.session.query(AchievementType).count() == 0:
             logger.info("Seeding default AchievementTypes...")
+            # ``icon_path`` matches the canonical SVG filenames seeded by
+            # the L1/L2.1/L2.2 25/26 data migrations and shipped under
+            # ``static/img/cups/``. Without this, ``get_icon_url()`` used to
+            # synthesise paths like ``r3.svg`` that never existed (TIK-77).
             types_data = [
-                {"code": "TOP1", "name": "Top 1", "base_points_l1": 800, "base_points_l2": 400},
-                {"code": "TOP2", "name": "Top 2", "base_points_l1": 400, "base_points_l2": 200},
-                {"code": "TOP3", "name": "Top 3", "base_points_l1": 200, "base_points_l2": 100},
+                {
+                    "code": "TOP1",
+                    "name": "Top 1",
+                    "base_points_l1": 800,
+                    "base_points_l2": 400,
+                    "icon_path": "/static/img/cups/top1.svg",
+                },
+                {
+                    "code": "TOP2",
+                    "name": "Top 2",
+                    "base_points_l1": 400,
+                    "base_points_l2": 200,
+                    "icon_path": "/static/img/cups/top2.svg",
+                },
+                {
+                    "code": "TOP3",
+                    "name": "Top 3",
+                    "base_points_l1": 200,
+                    "base_points_l2": 100,
+                    "icon_path": "/static/img/cups/top3.svg",
+                },
                 {
                     "code": "BEST",
                     "name": "Best Regular",
                     "base_points_l1": 200,
                     "base_points_l2": 100,
+                    "icon_path": "/static/img/cups/best-reg.svg",
                 },
-                {"code": "R3", "name": "Round 3", "base_points_l1": 100, "base_points_l2": 50},
-                {"code": "R1", "name": "Round 1", "base_points_l1": 50, "base_points_l2": 25},
+                {
+                    "code": "R3",
+                    "name": "Round 3",
+                    "base_points_l1": 100,
+                    "base_points_l2": 50,
+                    "icon_path": "/static/img/cups/hockey-sticks-and-puck.svg",
+                },
+                {
+                    "code": "R1",
+                    "name": "Round 1",
+                    "base_points_l1": 50,
+                    "base_points_l2": 25,
+                    "icon_path": "/static/img/cups/hockey-sticks-and-puck.svg",
+                },
             ]
             for data in types_data:
                 self.session.add(AchievementType(**data))
@@ -267,17 +302,26 @@ class SeedService:
         # 3. Seasons
         if self.session.query(Season).count() == 0:
             logger.info("Seeding default Seasons...")
-            # Updated multipliers: current is 1.0, older are significantly less
+            # Updated multipliers: current is 1.0, older are significantly less.
+            # ``start_year``/``end_year`` are populated so VR-004 League 2.1/2.2
+            # filtering (``Season.start_year >= 2025``) works on a fresh DB.
             seasons = [
-                ("21/22", "Season 2021/22", 0.20),
-                ("22/23", "Season 2022/23", 0.30),
-                ("23/24", "Season 2023/24", 0.50),
-                ("24/25", "Season 2024/25", 0.80),
-                ("25/26", "Season 2025/26", 1.00),
+                ("21/22", "Season 2021/22", 0.20, 2021, 2022),
+                ("22/23", "Season 2022/23", 0.30, 2022, 2023),
+                ("23/24", "Season 2023/24", 0.50, 2023, 2024),
+                ("24/25", "Season 2024/25", 0.80, 2024, 2025),
+                ("25/26", "Season 2025/26", 1.00, 2025, 2026),
             ]
-            for code, name, mult in seasons:
+            for code, name, mult, start_year, end_year in seasons:
                 self.session.add(
-                    Season(code=code, name=name, multiplier=mult, is_active=(code == "25/26"))
+                    Season(
+                        code=code,
+                        name=name,
+                        multiplier=mult,
+                        is_active=(code == "25/26"),
+                        start_year=start_year,
+                        end_year=end_year,
+                    )
                 )
 
     def _seed_achievements(self, data: list[dict], result: SeedResult) -> None:

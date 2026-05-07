@@ -68,6 +68,20 @@ def init_admin(app: Flask) -> None:
     Args:
         app: Flask application instance.
     """
+    # TIK-80: Flask-Admin's ``column_filters`` / ``column_searchable_list``
+    # accept dotted-relation strings (e.g. ``"country.name"``). At
+    # view-instantiation time Flask-Admin walks the SQLAlchemy mapper to
+    # resolve those strings to ``RelationshipProperty`` objects. Backrefs
+    # (``Country.managers`` ⇄ ``Manager.country``) are wired during mapper
+    # *configuration*, which SQLAlchemy normally does lazily on first
+    # query. Without an explicit ``configure_mappers()`` call here, the
+    # mapper for ``Manager`` does not yet expose ``country`` and the
+    # ``ModelView`` constructor crashes with
+    # ``'Mapper' object has no attribute 'country'``.
+    from sqlalchemy.orm import configure_mappers
+
+    configure_mappers()
+
     # Initialize LoginManager
     login_manager = LoginManager()
     login_manager.init_app(app)

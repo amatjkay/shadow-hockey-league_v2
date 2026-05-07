@@ -192,12 +192,23 @@ def seeded_db(app, app_context):
         db.session.add(manager)
         db.session.flush()
 
-        # Create reference data for achievements
+        # Create reference data for achievements. ``icon_path`` is set to the
+        # canonical SVG so ``AchievementType.get_icon_url()`` does not fall
+        # back to ``default.svg`` (TIK-77 contract: every type carries a
+        # real icon path).
         ach_type_top1 = AchievementType(
-            code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400
+            code="TOP1",
+            name="Top 1",
+            base_points_l1=800,
+            base_points_l2=400,
+            icon_path="/static/img/cups/top1.svg",
         )
         ach_type_top2 = AchievementType(
-            code="TOP2", name="Top 2", base_points_l1=400, base_points_l2=200
+            code="TOP2",
+            name="Top 2",
+            base_points_l1=400,
+            base_points_l2=200,
+            icon_path="/static/img/cups/top2.svg",
         )
         db.session.add_all([ach_type_top1, ach_type_top2])
         league = League(code="1", name="League 1")
