@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from typing import Any, Optional
+from typing import Any
 
 from flask import g
 from sqlalchemy import event
@@ -27,10 +27,10 @@ _audit_lock = threading.Lock()
 def log_action(
     user_id: int,
     action: str,
-    target_model: Optional[str] = None,
-    target_id: Optional[int] = None,
-    changes: Optional[dict[str, Any]] = None,
-) -> Optional[AuditLog]:
+    target_model: str | None = None,
+    target_id: int | None = None,
+    changes: dict[str, Any] | None = None,
+) -> AuditLog | None:
     """Log an admin action to the audit trail.
 
     Args:
@@ -95,9 +95,9 @@ def log_action(
 
 
 def get_audit_logs(
-    user_id: Optional[int] = None,
-    action: Optional[str] = None,
-    target_model: Optional[str] = None,
+    user_id: int | None = None,
+    action: str | None = None,
+    target_model: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[AuditLog]:
@@ -133,7 +133,7 @@ def get_audit_logs(
 
 
 def get_audit_log_count(
-    user_id: Optional[int] = None, action: Optional[str] = None, target_model: Optional[str] = None
+    user_id: int | None = None, action: str | None = None, target_model: str | None = None
 ) -> int:
     """Get count of audit log entries matching filters.
 
@@ -283,7 +283,7 @@ def _log_model_change(session: Session, user_id: int, action: str, obj: Any) -> 
         logger.error(f"Error logging model change: {e}")
 
 
-def set_current_user_for_audit(user_id: Optional[int]) -> None:
+def set_current_user_for_audit(user_id: int | None) -> None:
     """Set current user ID for audit logging in Flask context."""
     g.current_user_id = user_id
 

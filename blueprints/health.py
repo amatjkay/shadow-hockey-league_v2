@@ -5,7 +5,6 @@ Provides /health endpoint with comprehensive system status.
 
 from __future__ import annotations
 
-import os
 import time
 from pathlib import Path
 from typing import Any
@@ -70,38 +69,36 @@ def health_check() -> dict[str, Any]:
         health_status["database_status"] = "error"
         health_status["database_error"] = str(e)
 
-    # Check Redis connection
+    # Check Redis connection using the already-resolved config values
+    # instead of re-reading env vars.
     try:
         import redis
 
         redis_client = redis.Redis(
-            host=os.environ.get("REDIS_HOST", "localhost"),
-            port=int(os.environ.get("REDIS_PORT", 6379)),
+            host=current_app.config.get("CACHE_REDIS_HOST", "localhost"),
+            port=current_app.config.get("CACHE_REDIS_PORT", 6379),
             socket_connect_timeout=2,
             socket_timeout=1.0,
         )
         redis_client.ping()
         health_status["redis_status"] = "connected"
 
-        # Get Redis info
         redis_info = redis_client.info("memory")
         health_status["redis_used_memory_bytes"] = redis_info.get("used_memory", 0)
         health_status["redis_used_memory_mb"] = round(
             redis_info.get("used_memory", 0) / 1024 / 1024, 2
         )
 
-        # Check cache functionality
         cache.set("_health_check", "ok", timeout=5)
         if cache.get("_health_check") == "ok":
             health_status["cache_status"] = "working"
         else:
             health_status["cache_status"] = "error"
             health_status["status"] = "degraded"
-    except (redis.ConnectionError, redis.TimeoutError, ImportError) as e:
+    except (redis.ConnectionError, redis.TimeoutError, ImportError):
         health_status["redis_status"] = "disconnected"
         health_status["cache_status"] = "fallback"
         health_status["cache_type"] = current_app.config.get("CACHE_TYPE", "unknown")
-        # Not critical - fallback to simple cache
 
     health_status["response_time_ms"] = round((time.time() - start_time) * 1000)
 

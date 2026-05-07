@@ -6,12 +6,7 @@ when managers, achievements, or countries are modified.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from flask_caching import Cache
-
-if TYPE_CHECKING:
-    pass
 
 # Cache instance - to be initialized in create_app
 cache: Cache = Cache()

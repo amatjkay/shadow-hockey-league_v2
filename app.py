@@ -131,6 +131,35 @@ def configure_logging(app: Flask) -> None:
     app.logger.setLevel(log_level)
 
 
+def _is_redis_available(app: Flask) -> bool:
+    """Probe Redis once and cache the result on the app for the startup phase.
+
+    Avoids opening multiple throw-away connections when both the rate limiter
+    and the cache subsystem need to know whether Redis is reachable.
+    """
+    sentinel = "_redis_available"
+    cached = app.config.get(sentinel)
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+
+    redis_url = os.environ.get("REDIS_URL")
+    if not redis_url:
+        app.config[sentinel] = False
+        return False
+
+    try:
+        import redis
+
+        client = redis.from_url(redis_url, socket_connect_timeout=2)
+        client.ping()
+        app.config[sentinel] = True
+        return True
+    except Exception as exc:  # noqa: BLE001 - logging fallback path
+        app.logger.warning("Redis unavailable (%s), falling back to in-process backends", exc)
+        app.config[sentinel] = False
+        return False
+
+
 def _configure_rate_limiter(app: Flask) -> None:
     """Set ``RATELIMIT_*`` config values before the limiter is initialised.
 
@@ -142,25 +171,12 @@ def _configure_rate_limiter(app: Flask) -> None:
     """
     if app.config.get("TESTING"):
         app.config.setdefault("RATELIMIT_STORAGE_URI", "memory://")
-        # Tests can pre-set RATELIMIT_ENABLED=True (e.g. via a config subclass)
-        # to exercise the rate-limit path; otherwise it stays disabled for speed.
         app.config.setdefault("RATELIMIT_ENABLED", False)
         return
 
-    storage_uri = "memory://"
-    redis_url = os.environ.get("REDIS_URL")
-    if redis_url:
-        try:
-            import redis
-
-            client = redis.from_url(redis_url, socket_connect_timeout=2)
-            client.ping()
-            storage_uri = redis_url
-        except Exception as exc:  # noqa: BLE001 - logging fallback path
-            app.logger.warning(
-                "Rate limiter Redis unavailable (%s), falling back to memory://",
-                exc,
-            )
+    storage_uri = (
+        os.environ.get("REDIS_URL", "memory://") if _is_redis_available(app) else "memory://"
+    )
     app.config.setdefault("RATELIMIT_STORAGE_URI", storage_uri)
     app.config.setdefault("RATELIMIT_ENABLED", True)
 
@@ -218,33 +234,29 @@ def register_extensions(app: Flask) -> None:
     else:
         app.logger.info("Rate limiting disabled (RATELIMIT_ENABLED=False)")
 
-    # Initialize caching with Redis (or fallback to simple cache)
-    cache_config = {
-        "CACHE_TYPE": "RedisCache",
-        "CACHE_REDIS_HOST": os.environ.get("REDIS_HOST", "localhost"),
-        "CACHE_REDIS_PORT": int(os.environ.get("REDIS_PORT", 6379)),
-        "CACHE_REDIS_DB": int(os.environ.get("REDIS_DB", 0)),
-        "CACHE_REDIS_PASSWORD": os.environ.get("REDIS_PASSWORD", None),
+    # Initialize caching with Redis (or fallback to simple cache).
+    # Reuses the cached _is_redis_available() probe so we don't open a
+    # second throw-away connection (the rate limiter already checked).
+    cache_config: dict[str, Any] = {
         "CACHE_DEFAULT_TIMEOUT": 300,  # 5 minutes
     }
 
-    # Fallback to simple cache if Redis is not available
-    try:
-        import redis
-
-        redis_client = redis.Redis(
-            host=cache_config["CACHE_REDIS_HOST"],
-            port=cache_config["CACHE_REDIS_PORT"],
-            db=cache_config["CACHE_REDIS_DB"],
-            password=cache_config["CACHE_REDIS_PASSWORD"],
-            socket_connect_timeout=2,
+    if _is_redis_available(app):
+        cache_config.update(
+            {
+                "CACHE_TYPE": "RedisCache",
+                "CACHE_REDIS_HOST": os.environ.get("REDIS_HOST", "localhost"),
+                "CACHE_REDIS_PORT": int(os.environ.get("REDIS_PORT", 6379)),
+                "CACHE_REDIS_DB": int(os.environ.get("REDIS_DB", 0)),
+                "CACHE_REDIS_PASSWORD": os.environ.get("REDIS_PASSWORD", None),
+            }
         )
-        redis_client.ping()
         app.logger.info(
-            f"Redis connection established: {cache_config['CACHE_REDIS_HOST']}:{cache_config['CACHE_REDIS_PORT']}"
+            "Redis cache: %s:%s",
+            cache_config["CACHE_REDIS_HOST"],
+            cache_config["CACHE_REDIS_PORT"],
         )
-    except (redis.ConnectionError, redis.TimeoutError, ImportError) as e:
-        app.logger.warning(f"Redis not available, falling back to simple cache: {e}")
+    else:
         cache_config["CACHE_TYPE"] = "SimpleCache"
 
     app.config.update(cache_config)
