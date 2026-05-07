@@ -177,6 +177,54 @@ def test_api_bulk_add_achievement(auth_client, seeded_db):
     assert ach.icon_path == "/static/img/cups/top1.svg"
 
 
+def test_api_bulk_add_uses_canonical_icon_path_and_short_title(auth_client, seeded_db):
+    """``/admin/api/managers/<id>/achievements/bulk-add`` must use the
+    canonical ``AchievementType.icon_path`` and store a short ``title``.
+
+    Regression for TIK-77/78 bypass: this AJAX write path used to construct
+    ``/static/img/cups/{code.lower()}.svg`` (broken for ``R3`` / ``R1`` /
+    ``BEST``) and a verbose ``"{type} {league} {season}"`` title that
+    duplicated the league + season already added by
+    ``Achievement.to_html``. The endpoint now mirrors the corrections
+    applied in ``services/admin/views.py::on_model_change``.
+    """
+
+    manager = db.session.query(Manager).first()
+    league = db.session.query(League).filter_by(code="1").first()
+
+    # AchievementType with code that previously synthesised a broken path
+    r3 = AchievementType(
+        code="R3",
+        name="Round 3",
+        base_points_l1=100.0,
+        base_points_l2=50.0,
+        icon_path="/static/img/cups/hockey-sticks-and-puck.svg",
+    )
+    db.session.add(r3)
+    season = Season(code="25/26", name="Season 25/26", multiplier=1.0, is_active=True)
+    db.session.add(season)
+    db.session.commit()
+
+    payload = {"achievements": [{"type_id": r3.id, "league_id": league.id, "season_id": season.id}]}
+    resp = auth_client.post(f"/admin/api/managers/{manager.id}/achievements/bulk-add", json=payload)
+    assert resp.status_code == 200
+    assert resp.get_json()["summary"]["created"] == 1
+
+    ach = (
+        db.session.query(Achievement)
+        .filter_by(manager_id=manager.id, type_id=r3.id, season_id=season.id)
+        .first()
+    )
+    assert ach is not None
+    # TIK-77: never the synthesised /static/img/cups/r3.svg.
+    assert ach.icon_path == "/static/img/cups/hockey-sticks-and-puck.svg"
+    assert "r3.svg" not in ach.icon_path
+    # TIK-78: title is just the type label; league + season come from to_html.
+    assert ach.title == "Round 3"
+    assert "League" not in ach.title
+    assert "Season" not in ach.title
+
+
 def test_api_delete_achievement(auth_client, seeded_db):
     """Test deleting an achievement."""
     manager = db.session.query(Manager).first()
