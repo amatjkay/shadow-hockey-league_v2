@@ -239,7 +239,7 @@
               {% for row in rating_rows %}
               <tr class="table-row">
                 <td class="table-items rank-cell">{{ row.rank }}</td>
-                <td class="table-items score-cell">{{ row.total }}</td>
+                <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
                 <td class="table-items manager-cell">
                   <img
                     src="{{ row.country }}"
