@@ -6,6 +6,64 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-08 (later): Linear backlog audit — closed 7 stale-Done tickets
+
+Owner request: «Давай разберём беклог». Audit pulled all 82 issues in the
+`Tikispace` team (filter by team, not project — handoff §3 — to catch any
+project-membership drift). Findings:
+
+| Status type | Count |
+|---|---:|
+| `completed` (Done) | 65 → **72** after this audit |
+| `started` (In Progress / In Review) | **7** → **0** |
+| `canceled` | 10 |
+| `backlog` / `unstarted` / `triage` | 0 |
+
+All 7 incomplete tickets had been merged into `main` weeks ago — only the
+Linear status was never closed. Verified each in code/git before transitioning.
+
+### Transitions applied (no code changes — Linear-only)
+
+| TIK | Action | Evidence |
+|---|---|---|
+| TIK-56 | `state=Done` (no milestone — docs sync was a one-shot) | PR #61 merged (`bcbe8e1`), `6129b12 docs: sync agents+skills+memory-bank to post-TIK-51 state` |
+| TIK-74 | `state=Done`, `milestone=M1` | `rg 'Войти' templates/` ⇒ 0 hits; round-2 commit `7e6f8c8` |
+| TIK-75 | `state=Done`, `milestone=M1` | `static/css/sections.css:32-99` already dark-cyan with custom SVG caret |
+| TIK-76 | `state=Done`, `milestone=M1` | `blueprints/admin_api/lookups.py:158-235` — `seasons-by-league` returns sub-leagues correctly |
+| TIK-77 | `state=Done`, `milestone=M1` | `2c92a56 fix(achievements): canonical icon paths` + `88de6f9 fix(admin-api): TIK-77/78 …` |
+| TIK-78 | `state=Done`, `milestone=M1` | same fix-set as TIK-77 |
+| TIK-79 | `state=Done`, `milestone=M1` | `25e10fb feat(admin): TIK-79 — human-readable __str__ on ORM models for admin UI`; `models.py` has 6 explicit `__str__` overrides |
+
+Verification: `list_issues team=Tikispace state=started` ⇒ `[]`. Backlog drained.
+
+### Why each is in M1 — Compact-10 рейтинг: стабилизация
+
+TIK-74…79 were the round-2 stabilisation batch landed alongside TIK-80
+(compact-10 rating). They belong to the same milestone scope: cleanup of
+admin/UI regressions surfaced during compact-10 QA. TIK-56 was a docs-only
+sync from the earlier TIK-51 cleanup campaign — left without milestone on
+purpose.
+
+### Side observations (no action needed)
+
+- **Project-membership.** 78 of 82 issues attached to project
+  `b22a4831-12d5-42ec-925e-831c38c9d842`. The 4 unattached are the default
+  Linear onboarding tasks `TIK-1..TIK-4` (Canceled). Handoff §1 explicitly
+  says "не трогать, в проект не включать" — left as-is.
+- **Russian-only Linear.** No English titles among incomplete issues. The 6
+  English Canceled issues (TIK-12/14/15/17/18/19) are pre-2026-05-01 legacy —
+  not retroactively renamed.
+- **Open backlog.** 0. Any new work needs a fresh ticket; no idle ideas
+  parked in `Backlog`/`Todo`.
+
+### Forward-looking
+
+- Milestone **M2 — Современный UI-редизайн (Task 2)** is empty. Next session
+  will populate it once the user picks a redesign concept (handoff §4
+  Priority 4).
+- Milestone **M3 — Variant C: тонкая балансировка рейтинга** stays untouched
+  per handoff §4 (deferred until owner explicitly requests).
+
 ## 2026-05-08: TIK-82 — automate `ensure_owner_admin.py` in `scripts/deploy.sh`
 
 Follow-up to the 2026-05-08 prod admin recovery (an empty `admin_users` table
@@ -44,7 +102,8 @@ complete and before the gunicorn restart.
 - `make check` (black + isort + flake8 + mypy) ✅
 - `make test` ✅ (559 passed, no new flakes; pre-existing `TestConcurrentRequests`
   flake under high load tracked separately)
-- PR open against `main`; awaiting CI green.
+- PR #84 merged into `main` 2026-05-08 (`be9c786`). Linear TIK-82 auto-closed
+  to `Done` on merge.
 
 ### Follow-ups (not in this PR)
 
