@@ -11,6 +11,7 @@ Migrated from tests_integration.py
 """
 
 import os
+import re
 import tempfile
 import threading
 import time
@@ -660,6 +661,80 @@ class TestDatabaseConstraints(unittest.TestCase):
 
             with self.assertRaises(Exception):
                 db.session.commit()
+
+
+class TestLeaderboardTotalFormatting(unittest.TestCase):
+    """TIK-81: leaderboard total must render as ``XX.XX`` (no float-noise).
+
+    Without explicit ``"%.2f"|format`` in ``templates/index.html``, sums of
+    round-2 floats can render as e.g. ``20.380000000000003`` (TIK-80 T6).
+    """
+
+    def setUp(self) -> None:
+        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
+        self.app = create_app("config.TestingConfig")
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
+        self.client = self.app.test_client()
+        with self.app.app_context():
+            db.create_all()
+
+    def tearDown(self) -> None:
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+        os.close(self.db_fd)
+        try:
+            os.unlink(self.db_path)
+        except OSError:
+            pass
+
+    def test_score_cell_formatted_to_two_decimals(self) -> None:
+        """Score-cell renders as ``\\d+\\.\\d{2}`` without float-noise tail."""
+        with self.app.app_context():
+            league_ids, season_ids, type_map = _seed_reference_data()
+            db.session.commit()
+
+            country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
+            db.session.add(country)
+            db.session.commit()
+
+            manager = Manager(name="Format Test", country_id=country.id)
+            db.session.add(manager)
+            db.session.commit()
+
+            for season_code in ["25/26", "24/25", "23/24", "22/23", "21/22"]:
+                achievement = Achievement(
+                    type_id=type_map["TOP1"].id,
+                    league_id=league_ids["1"],
+                    season_id=season_ids[season_code],
+                    title="TOP1",
+                    icon_path="/static/img/cups/top1.svg",
+                    manager_id=manager.id,
+                )
+                db.session.add(achievement)
+            db.session.commit()
+
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        html = response.data.decode("utf-8")
+
+        score_cells = re.findall(
+            r'<td class="table-items score-cell">([^<]+)</td>',
+            html,
+        )
+        self.assertTrue(score_cells, "expected at least one score-cell row")
+        for cell in score_cells:
+            value = cell.strip()
+            self.assertNotRegex(
+                value,
+                r"^\d+\.\d{4,}$",
+                f"score-cell {value!r} has float-noise (>=4 decimals)",
+            )
+            self.assertRegex(
+                value,
+                r"^\d+\.\d{2}$",
+                f"score-cell {value!r} not formatted to two decimals",
+            )
 
 
 if __name__ == "__main__":
