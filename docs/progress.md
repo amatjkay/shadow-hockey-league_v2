@@ -6,6 +6,56 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-08: TIK-82 — automate `ensure_owner_admin.py` in `scripts/deploy.sh`
+
+Follow-up to the 2026-05-08 prod admin recovery (an empty `admin_users` table
+on prod was traced back to `scripts/ensure_owner_admin.py` never running on
+deploy). To prevent the same incident from re-occurring, the deploy script now
+invokes the owner-admin provisioning step right after Alembic migrations
+complete and before the gunicorn restart.
+
+### Change (single PR `devin/1778242302-tik82-deploy-ensure-admin`)
+
+- **`scripts/deploy.sh`** — after `log_info "Migrations complete"` and before
+  the `Restarting $SERVICE_NAME` block, run
+  `python scripts/ensure_owner_admin.py` only if **both** `OWNER_ADMIN_USER`
+  and `OWNER_ADMIN_PASSWORD` are present in the loaded `.env`. The variables
+  are forwarded to the script alongside `DATABASE_URL` so the existing
+  `create_app()` config picks up the same prod database. If the script
+  exits non-zero, deploy logs a `WARN` and continues — provisioning a stale
+  admin password is never reason to roll back a working release. If either
+  variable is missing, the step is skipped with a clear `INFO` message
+  (preserves backward compatibility with deployments that haven't populated
+  the variables yet).
+
+### Why this is safe
+
+- `scripts/ensure_owner_admin.py` is already idempotent (existing user → reset
+  password + role; missing user → INSERT). Calling it on every deploy is a
+  no-op when nothing changes.
+- The step is gated on both env vars; missing env never breaks the deploy.
+- The non-zero exit from the script is downgraded to a `log_warn`. Migrations
+  + service restart + health check still gate the deploy outcome, so a busted
+  admin row never aborts a release.
+
+### Status
+
+- `bash -n scripts/deploy.sh` ✅
+- `make check` (black + isort + flake8 + mypy) ✅
+- `make test` ✅ (559 passed, no new flakes; pre-existing `TestConcurrentRequests`
+  flake under high load tracked separately)
+- PR open against `main`; awaiting CI green.
+
+### Follow-ups (not in this PR)
+
+- On the prod server, append `OWNER_ADMIN_USER=s3ifer` + `OWNER_ADMIN_PASSWORD=…`
+  to `/home/shleague/shadow-hockey-league_v2/.env` (back the file up first via
+  `cp .env .env.bak.$(date +%s)`). Without those two vars the deploy logs the
+  skip line but does not provision the admin — same effect as today.
+- Two `dev.db` files on prod (`instance/dev.db` legacy, `dev.db` active —
+  `scripts/deploy.sh:71` still backs up the legacy path) — separate ticket,
+  out of scope for TIK-82.
+
 ## 2026-05-07 (later): TIK-80 fairer rating system — compact-10 scale + smooth decay
 
 Owner-driven request: "Более справедливый расчёт рейтингов" — recalibrate the
