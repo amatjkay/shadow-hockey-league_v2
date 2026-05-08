@@ -148,6 +148,17 @@ else
 fi
 log_info "Migrations complete"
 
+# Provision/refresh owner admin from .env (idempotent; no-op if vars unset).
+# Without this step a fresh prod DB ends up with an empty admin_users table —
+# see docs/progress.md (2026-05-08, "Production admin доступ восстановлен").
+log_info "=== Ensuring owner admin ==="
+if [ -n "${OWNER_ADMIN_USER:-}" ] && [ -n "${OWNER_ADMIN_PASSWORD:-}" ]; then
+    DATABASE_URL="${DATABASE_URL:-}" python scripts/ensure_owner_admin.py 2>&1 \
+        || log_warn "ensure_owner_admin.py failed; continuing deploy"
+else
+    log_info "OWNER_ADMIN_USER/OWNER_ADMIN_PASSWORD not set in .env — skipping"
+fi
+
 # Restart service
 log_info "=== Restarting $SERVICE_NAME ==="
 
