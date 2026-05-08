@@ -6,6 +6,105 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-08 (later²): TIK-83 — M2 UI-редизайн, Концепт A (Refresh)
+
+After PR #85 (backlog audit) merged, M2 milestone «Современный UI-редизайн
+(Task 2)» was empty. Owner request: разобрать и предложить редизайн. Audit
+phase produced `audit_ui_2026-05-08.md` (15 ranked issues + 3 concepts A/B/C
+within the locked stack: Jinja2 + vanilla CSS + vanilla JS, no framework, no
+build step). Owner picked **Concept A (Refresh)** with intent to layer B/C
+in follow-up tickets.
+
+### Change ([PR #86](https://github.com/amatjkay/shadow-hockey-league_v2/pull/86) — `devin/tik-83-1778245378-ui-redesign-a`)
+
+Five small commits inside one PR:
+
+1. **`feat(ui): design tokens + AA contrast + h1 clamp` (`083c31a`)** —
+   `:root` design-token system in `static/css/base.css` (cyan family,
+   skyblue tints, surface overlays, deep-blue backgrounds, ink, radii,
+   `--shl-h1-size: clamp(2rem, 6vw, 3.75rem)`). Token migration across
+   `typography.css`, `layout.css`, `sections.css`, `components.css`,
+   `mobile-menu.css`, `rating-rules.css`. Body-link contrast on light
+   surfaces lifted from `#00a6ff` (~3.9 : 1 on white) to `#0077b6`
+   (`--shl-cyan-700`, ~5.4 : 1) — WCAG AA. h1 fluid via `clamp()`.
+2. **`feat(ui): top-10 cyan sheen + table hover + reduced-motion` (`f203dfd`)**
+   — replaces the legacy red→yellow gradient on top-10 rows with a
+   cyan-500 → cyan-100 → cyan-500 gradient, slows the animation from `3s`
+   to `6s`, and disables it under `prefers-reduced-motion: reduce`. Adds
+   a subtle `--shl-cyan-tint-06` hover state on `.league-table .table-row`
+   (200 ms transition). Final color literals in `tables.css` migrated.
+3. **`feat(ui): mobile data-labels via [data-label]::before` (`1af4b27`)**
+   — at ≤ 600 px each row becomes a stacked card (token border + radius
+   + translucent surface). `<thead>` switches from `display: none`
+   (which removed it from the AT tree) to `clip-path: inset(50%)`
+   (visually hidden but still associated by SR). Removes redundant
+   `@media (max-width: 320px)` h1 override now that `clamp()` handles it.
+4. **`feat(ui): remove ESPN-404 placeholder + add data-label attrs` (`d90a07d`)**
+   — drops the `a.espncdn.com/.../espn-404@2x.png` `<img>` in both the
+   desktop header and the mobile menu (always 404'd, hidden via
+   `onerror`); also the original spec called for `data-label` attrs
+   on each leaderboard `<td>` to drive mobile labels via
+   `[data-label]::before { content: attr(data-label) }`.
+5. **`fix(ui): drive mobile cell labels from class, not data-label` (`e52f941`)**
+   — the `data-label` attrs broke the existing TIK-81 regression test
+   `tests/integration/test_routes.py::TestLeaderboardTotalFormatting`,
+   which uses a brittle regex `<td class="table-items score-cell">`
+   that requires `>` immediately after the class attribute. Per the
+   project rule «не модифицировать тесты, чтобы они проходили», the
+   `data-label` attrs were reverted and the labels were moved into
+   `responsive.css` keyed by the existing cell classes
+   (`.rank-cell::before { content: "Место" }`, etc.). Functionally
+   identical visually; trade-off documented in PR description for a
+   future test-regex-relaxation follow-up.
+
+### Why each piece
+
+- **Tokens.** Every brand color now has a single source of truth.
+  Future concepts B/C only have to override `:root` to repaint the site;
+  no `rg -F skyblue` sweeps required.
+- **AA contrast.** `#00a6ff` on `rgba(255,255,255,0.35)` was close to
+  failing WCAG AA on body text (~ 3.9 : 1). `#0077b6` lifts it to
+  ~ 5.4 : 1 on the light translucent surfaces (rating-breakdown summary,
+  tooltip headings, rating-rules h4) without darkening the brand
+  colour on dark surfaces (header `.section-heading` stays cyan-500).
+- **h1 clamp().** The 60 px fixed size was forcing the title to overflow
+  on 320 px viewports. `clamp(2rem, 6vw, 3.75rem)` scales smoothly and
+  retires the duplicated `@media (max-width: 320px)` override.
+- **Top-10 sheen.** The red→yellow gradient was the loudest element on
+  the page and the source of repeated «слишком кричит» feedback during
+  the audit. The cyan-only gradient stays in the brand language and
+  6 s feels less hectic. `prefers-reduced-motion` disables it entirely.
+- **Hover state.** Did not exist before — clicking on the right row was
+  a coin flip on dense leaderboards.
+- **Mobile labels.** The legacy `<th> display: none` rule meant mobile
+  users saw a column of headerless values with no idea which number
+  was «Очки» vs «Место». New `clip-path` keeps `<th>` accessible for
+  SR while CSS `::before` paints the label visually for sighted users.
+- **ESPN placeholder.** A long-standing artefact (probably copy-paste
+  from a tutorial). Always 404'd, was hidden via `onerror`, and
+  surfaced an alt-text «ESPN» that confused everybody.
+
+### Status
+
+- `make check` (black + isort + flake8 + mypy): ✅
+- `make test`: **560 passed, 0 failed** (was 559 before this PR; no
+  test added here — the 560th came from a prior merge, so the count is
+  the post-merge baseline).
+- CI: `Quality & Tests` + `E2E Smoke (Playwright)` ✅; `Vercel`
+  canceled is the known non-issue for this Flask repo (handoff §4).
+- PR #86 awaiting owner review. Linear TIK-83 → `In Review`.
+
+### Forward-looking
+
+- **Concept B** — leaderboard 2.0 (top-3 podium, sticky thead, full-row
+  breakdown drawer): separate ticket once A is merged.
+- **Concept C** — full redesign (sticky-nav, tabs vs select, light/dark
+  toggle, skeletons, Lighthouse ≥ 90): separate ticket, only after B
+  if owner still wants it.
+- **Test-regex relaxation** — small follow-up to relax
+  `<td class="table-items score-cell">` to `<td [^>]*class="…score-cell…"[^>]*>`
+  so future PRs can add legitimate attributes without test churn.
+
 ## 2026-05-08 (later): Linear backlog audit — closed 7 stale-Done tickets
 
 Owner request: «Давай разберём беклог». Audit pulled all 82 issues in the
