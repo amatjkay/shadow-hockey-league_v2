@@ -66,9 +66,11 @@
     border-bottom: 0;
   }
 
-  /* Render the header label above each cell value. */
-  .league-table .table-row .table-items[data-label]::before {
-    content: attr(data-label);
+  /* Render the header label above each cell value on mobile.
+     Drive the label from the cell class so the leaderboard <td> markup
+     stays clean (no extra HTML attributes) and integration tests that
+     assert the existing <td class="…"> structure keep passing. */
+  .league-table .table-row .table-items::before {
     display: block;
     margin-bottom: 2px;
     font-size: 11px;
@@ -76,6 +78,26 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--shl-cyan-700);
+  }
+
+  .league-table .table-row .rank-cell::before {
+    content: "Место";
+  }
+
+  .league-table .table-row .score-cell::before {
+    content: "Очки";
+  }
+
+  .league-table .table-row .manager-cell::before {
+    content: "Участник";
+  }
+
+  .league-table .table-row .league-cups-cell::before {
+    content: "Кубки";
+  }
+
+  .league-table .table-row .rating-breakdown-cell::before {
+    content: "Расчёт";
   }
 
   .manager-cell {

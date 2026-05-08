@@ -228,9 +228,9 @@
             <tbody>
               {% for row in rating_rows %}
               <tr class="table-row">
-                <td class="table-items rank-cell" data-label="Место">{{ row.rank }}</td>
-                <td class="table-items score-cell" data-label="Очки">{{ "%.2f"|format(row.total) }}</td>
-                <td class="table-items manager-cell" data-label="Участник">
+                <td class="table-items rank-cell">{{ row.rank }}</td>
+                <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
+                <td class="table-items manager-cell">
                   <img
                     src="{{ row.country }}"
                     alt="{{ row.country_code }}"
@@ -244,13 +244,13 @@
                     >тандем</span
                   >{% endif %}
                 </td>
-                <td class="table-items league-cups-cell" data-label="Кубки">
+                <td class="table-items league-cups-cell">
                   {% if row.achievements %} {% for a in row.achievements %} {{
                   a.html|safe }} {% endfor %} {% else %}
                   <span class="rating-empty">—</span>
                   {% endif %}
                 </td>
-                <td class="table-items rating-breakdown-cell" data-label="Расчёт">
+                <td class="table-items rating-breakdown-cell">
                   {% if row.achievements %}
                   <details class="rating-breakdown">
                     <summary class="rating-breakdown-summary">Детали</summary>
