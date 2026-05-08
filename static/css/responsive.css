@@ -1,24 +1,25 @@
-/* Mobile responsive styles */
+/* Mobile responsive styles. */
 @media screen and (max-width: 600px) {
-  /* Show mobile menu */
+  /* Show mobile menu. */
   .mobile-flag {
-    display: inline-block; /* Show flag in mobile version */
+    display: inline-block;
   }
 
-  /* Hide desktop nav on mobile (mobile menu replaces it) */
+  /* Hide desktop nav on mobile (mobile menu replaces it). */
   .desktop-nav {
     display: none;
   }
 
-  /* Container */
   .container {
     padding-top: 60px;
   }
 
-  /* Table on mobile */
+  /* Mobile table container — full bleed, no horizontal scroll. */
   .table {
     width: 95%;
     margin: 0 auto;
+    border-width: 0;
+    background: transparent;
   }
 
   .table-responsive {
@@ -26,32 +27,63 @@
     padding: 0;
   }
 
-  /* Display table rows as blocks */
-  .table-row {
-    display: block;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    padding: 8px;
+  /* Visually hide thead but keep it in the accessibility tree
+     so screen readers still associate cells with column headers. */
+  .league-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+    padding: 0;
   }
 
-  /* Hide country cell */
-  .country-cell {
-    display: none;
+  /* Each row becomes a stacked card. */
+  .league-table .table-row {
+    display: block;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--shl-cyan-tint-30);
+    border-radius: var(--shl-radius-md);
+    background: var(--shl-surface-25);
+  }
+
+  /* Each cell becomes a block row inside the card. */
+  .league-table .table-row .table-items {
+    display: block;
+    width: auto;
+    padding: 6px 0;
+    border: 0;
+    border-bottom: 1px solid var(--shl-skyblue-tint-25);
+    white-space: normal;
+    text-align: left;
+  }
+
+  .league-table .table-row .table-items:last-child {
+    border-bottom: 0;
+  }
+
+  /* Render the header label above each cell value. */
+  .league-table .table-row .table-items[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--shl-cyan-700);
   }
 
   .manager-cell {
-    display: flex;
     align-items: center;
-    padding: 5px 0;
   }
 
   .manager-name {
     display: inline-block;
-  }
-
-  .achievements-cell {
-    display: block;
-    padding: 5px 0;
   }
 
   .table-items img {
@@ -60,12 +92,6 @@
     vertical-align: middle;
   }
 
-  /* Hide table headers */
-  .table-header {
-    display: none;
-  }
-
-  /* Rating breakdown on mobile */
   .rating-breakdown-cell {
     max-width: none;
   }
@@ -85,13 +111,8 @@
   }
 }
 
-/* Very small screens */
+/* Very small screens. */
 @media screen and (max-width: 320px) {
-  h1 {
-    font-size: 28px;
-    margin: 10px 0;
-  }
-
   .container {
     padding-top: 50px;
   }
