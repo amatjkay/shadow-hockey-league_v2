@@ -1,19 +1,19 @@
-/* Rating rules and points tables */
+/* Rating rules and points tables. */
 .rating-rules {
   max-width: 720px;
   margin: 0 auto 1.25rem;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid skyblue;
+  background: var(--shl-surface-35);
+  border: 1px solid var(--shl-cyan-200);
   font-size: 14px;
   line-height: 1.45;
-  color: #333;
+  color: var(--shl-ink-soft);
 }
 
 .rating-rules summary {
   cursor: pointer;
   font-weight: bold;
-  color: #00a6ff;
+  color: var(--shl-cyan-700);
   list-style: none;
 }
 
@@ -34,7 +34,7 @@
 .rating-rules-body {
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid rgba(135, 206, 235, 0.5);
+  border-top: 1px solid var(--shl-skyblue-tint-50);
 }
 
 .rating-rules ul {
@@ -43,26 +43,26 @@
   list-style: disc;
 }
 
-/* Points table */
+/* Points table. */
 .rating-rules .points-table {
   width: 100%;
   max-width: 500px;
   margin: 12px auto;
   border-collapse: collapse;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--shl-surface-50);
   overflow: hidden;
   font-size: 13px;
 }
 
 .rating-rules .points-table thead {
-  background: rgba(0, 166, 255, 0.15);
+  background: var(--shl-cyan-tint-15);
 }
 
 .rating-rules .points-table th,
 .rating-rules .points-table td {
   padding: 8px 10px;
   text-align: center;
-  border: 1px solid rgba(135, 206, 235, 0.4);
+  border: 1px solid var(--shl-skyblue-tint-40);
 }
 
 .rating-rules .points-table th:first-child,
@@ -72,22 +72,22 @@
 }
 
 .rating-rules .points-table tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--shl-surface-30);
 }
 
 .rating-rules .points-table tr:hover {
-  background: rgba(0, 166, 255, 0.08);
+  background: var(--shl-cyan-tint-08);
 }
 
 .rating-rules .text-muted {
-  color: #555;
+  color: var(--shl-ink-muted);
   font-size: 12px;
   font-style: italic;
   margin-top: 8px;
 }
 
 .rating-rules h4 {
-  color: #00a6ff;
+  color: var(--shl-cyan-700);
   font-size: 15px;
   font-weight: 600;
   margin: 16px 0 8px;

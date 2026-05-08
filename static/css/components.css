@@ -1,8 +1,8 @@
-/* Rating breakdown and achievement components */
+/* Rating breakdown and achievement components. */
 .achievement-label {
   display: block;
   font-weight: 500;
-  color: #282828;
+  color: var(--shl-ink);
   margin-bottom: 2px;
 }
 
@@ -30,7 +30,7 @@
 
 .rating-breakdown-summary {
   cursor: pointer;
-  color: #00a6ff;
+  color: var(--shl-cyan-700);
   font-size: 13px;
   font-weight: 600;
   list-style: none;
@@ -54,12 +54,12 @@
 .rating-breakdown-body {
   margin-top: 8px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid skyblue;
+  background: var(--shl-surface-35);
+  border: 1px solid var(--shl-cyan-200);
   border-radius: 0;
   font-size: 14px;
   line-height: 1.45;
-  color: #333;
+  color: var(--shl-ink-soft);
   overflow: hidden;
 }
 
@@ -72,18 +72,18 @@
 }
 
 .achievement-table thead {
-  background: rgba(0, 166, 255, 0.15);
+  background: var(--shl-cyan-tint-15);
 }
 
 .achievement-table th {
   padding: 10px 12px;
   text-align: left;
   font-weight: 600;
-  color: #0077b6;
+  color: var(--shl-cyan-700);
   font-size: 12px;
   text-transform: none;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid rgba(0, 166, 255, 0.3);
+  border-bottom: 2px solid var(--shl-cyan-tint-30);
 }
 
 .achievement-table th:last-child,
@@ -93,7 +93,7 @@
 
 .achievement-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(135, 206, 235, 0.25);
+  border-bottom: 1px solid var(--shl-skyblue-tint-25);
   vertical-align: top;
 }
 
@@ -102,30 +102,30 @@
 }
 
 .achievement-table tbody tr:hover {
-  background: rgba(0, 166, 255, 0.08);
+  background: var(--shl-cyan-tint-08);
 }
 
 .achievement-table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--shl-surface-25);
 }
 
 .achievement-table tbody tr:nth-child(even):hover {
-  background: rgba(0, 166, 255, 0.08);
+  background: var(--shl-cyan-tint-08);
 }
 
 /* Table columns */
 .achievement-table__award {
   width: 45%;
   font-weight: 500;
-  color: #282828;
+  color: var(--shl-ink);
 }
 
 .achievement-table__formula {
   width: 30%;
   font-size: 12px;
-  color: #555;
+  color: var(--shl-ink-muted);
   font-family: monospace;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--shl-surface-50);
   padding: 8px 12px;
 }
 
@@ -177,9 +177,9 @@
   height: 18px;
   font-size: 13px;
   font-weight: bold;
-  color: #00a6ff;
-  background: rgba(0, 166, 255, 0.1);
-  border: 1px solid rgba(0, 166, 255, 0.3);
+  color: var(--shl-cyan-500);
+  background: var(--shl-cyan-tint-10);
+  border: 1px solid var(--shl-cyan-tint-30);
   border-radius: 50%;
   cursor: help;
   transition: all 0.2s ease;
@@ -187,8 +187,8 @@
 }
 
 .tooltip-icon:hover {
-  background: rgba(0, 166, 255, 0.2);
-  border-color: #00a6ff;
+  background: var(--shl-cyan-tint-20);
+  border-color: var(--shl-cyan-500);
 }
 
 .tooltip-content {
@@ -216,33 +216,33 @@
 
 .tooltip-body {
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid skyblue;
-  border-radius: 8px;
+  background: var(--shl-surface-95);
+  border: 1px solid var(--shl-cyan-200);
+  border-radius: var(--shl-radius-md);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(8px);
   font-size: 13px;
   line-height: 1.5;
-  color: #333;
+  color: var(--shl-ink-soft);
 }
 
 .tooltip-intro {
   margin: 0 0 12px;
   padding: 0 0 10px;
-  border-bottom: 1px solid rgba(135, 206, 235, 0.4);
+  border-bottom: 1px solid var(--shl-skyblue-tint-40);
   font-size: 13px;
-  color: #282828;
+  color: var(--shl-ink);
 }
 
 .tooltip-intro strong {
-  color: #0077b6;
+  color: var(--shl-cyan-700);
 }
 
 .tooltip-body h5 {
   margin: 14px 0 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #00a6ff;
+  color: var(--shl-cyan-700);
 }
 
 .tooltip-body h5:first-child {
@@ -257,11 +257,11 @@
 
 .tooltip-list li {
   margin-bottom: 4px;
-  color: #333;
+  color: var(--shl-ink-soft);
 }
 
 .tooltip-list strong {
-  color: #0077b6;
+  color: var(--shl-cyan-700);
 }
 
 .tooltip-table {
@@ -275,12 +275,12 @@
 .tooltip-table td {
   padding: 8px 10px;
   text-align: center;
-  border: 1px solid rgba(135, 206, 235, 0.3);
+  border: 1px solid var(--shl-skyblue-tint-30);
 }
 
 .tooltip-table th {
-  background: rgba(0, 166, 255, 0.15);
-  color: #0077b6;
+  background: var(--shl-cyan-tint-15);
+  color: var(--shl-cyan-700);
   font-weight: 600;
   text-align: left;
 }
@@ -292,15 +292,15 @@
 .tooltip-table td:first-child {
   text-align: left;
   font-weight: 500;
-  color: #282828;
+  color: var(--shl-ink);
 }
 
 .tooltip-table tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.4);
+  background: var(--shl-surface-40);
 }
 
 .tooltip-table tr:hover {
-  background: rgba(0, 166, 255, 0.08);
+  background: var(--shl-cyan-tint-08);
 }
 
 /* Mobile adjustments */
@@ -386,7 +386,7 @@
   font-size: 13px;
   font-weight: normal;
   line-height: 1.35;
-  color: #282828;
+  color: var(--shl-ink);
 }
 
 .rating-formula {
@@ -399,7 +399,7 @@
   opacity: 0.5;
 }
 
-/* Tandem badge */
+/* Tandem badge. */
 .tandem-badge {
   display: inline-block;
   margin-left: 8px;
@@ -407,14 +407,14 @@
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
-  color: #00a6ff;
-  border: 1px solid rgba(0, 166, 255, 0.45);
-  background: rgba(0, 166, 255, 0.1);
+  color: var(--shl-cyan-500);
+  border: 1px solid var(--shl-cyan-tint-45);
+  background: var(--shl-cyan-tint-10);
   vertical-align: middle;
 }
 
 .league-table .table-row:nth-child(-n+10) .manager-cell .tandem-badge {
-  -webkit-text-fill-color: #00a6ff;
+  -webkit-text-fill-color: var(--shl-cyan-500);
   background-clip: border-box;
   -webkit-background-clip: border-box;
 }

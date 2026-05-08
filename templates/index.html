@@ -71,11 +71,6 @@
             alt="Логотип"
             class="img-fluid"
           />
-          <img
-            src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png"
-            alt="ESPN"
-            onerror="this.style.display='none'"
-          />
           {% if current_user.is_authenticated %}
           <nav class="desktop-nav">
             <a
@@ -114,11 +109,6 @@
               src="{{ url_for('static', filename='img/logo.png') }}"
               alt="Логотип"
               class="img-fluid"
-            />
-            <img
-              src="https://a.espncdn.com/redesign/assets/img/logos/espn-404@2x.png"
-              alt="ESPN"
-              onerror="this.style.display='none'"
             />
           </div>
           {% if current_user.is_authenticated %}

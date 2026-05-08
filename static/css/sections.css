@@ -13,7 +13,7 @@
 
 .section-heading {
   font-size: clamp(1.5rem, 4vw, 2rem);
-  color: #00a6ff;
+  color: var(--shl-cyan-500);
   text-align: center;
   margin: 0 0 0.35rem 0;
   font-weight: bold;
@@ -39,16 +39,16 @@
   justify-content: center;
   width: fit-content;
   max-width: 420px;
-  background: rgba(0, 30, 60, 0.55);
-  border: 1px solid rgba(0, 166, 255, 0.25);
-  border-radius: 999px;
+  background: var(--shl-bg-deepblue-55);
+  border: 1px solid var(--shl-cyan-tint-25);
+  border-radius: var(--shl-radius-pill);
   backdrop-filter: blur(6px);
-  box-shadow: 0 4px 18px rgba(0, 30, 60, 0.35);
+  box-shadow: 0 4px 18px var(--shl-bg-deepblue-35);
 }
 
 .filters-bar__label {
   font-weight: 600;
-  color: #cde9ff;
+  color: var(--shl-cyan-100);
   letter-spacing: 0.02em;
   font-size: 14px;
   white-space: nowrap;
@@ -67,13 +67,13 @@
   min-width: 180px;
   max-width: 260px;
   padding: 8px 38px 8px 14px;
-  border: 1px solid rgba(0, 166, 255, 0.4);
-  border-radius: 999px;
-  background-color: rgba(0, 20, 40, 0.7);
+  border: 1px solid var(--shl-cyan-tint-40);
+  border-radius: var(--shl-radius-pill);
+  background-color: var(--shl-bg-deep-70);
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2300a6ff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
-  color: #ffffff;
+  color: var(--shl-ink-on-dark);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -83,19 +83,19 @@
 }
 
 .filters-bar__select:hover {
-  border-color: rgba(0, 166, 255, 0.7);
-  background-color: rgba(0, 30, 60, 0.85);
+  border-color: var(--shl-cyan-tint-70);
+  background-color: var(--shl-bg-deepblue-85);
 }
 
 .filters-bar__select:focus {
   outline: none;
-  border-color: #00a6ff;
-  box-shadow: 0 0 0 3px rgba(0, 166, 255, 0.25);
+  border-color: var(--shl-cyan-500);
+  box-shadow: 0 0 0 3px var(--shl-cyan-tint-25);
 }
 
 .filters-bar__select option {
-  background: #001428;
-  color: #ffffff;
+  background: var(--shl-bg-deep-solid);
+  color: var(--shl-ink-on-dark);
 }
 
 /* Loading overlay (toggled by JS when navigating to a different season) */
@@ -106,7 +106,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 20, 40, 0.5);
+  background: var(--shl-bg-deep-50);
   z-index: 9999;
 }
 
@@ -118,8 +118,8 @@
   width: 40px;
   height: 40px;
   margin: -20px 0 0 -20px;
-  border: 3px solid rgba(0, 166, 255, 0.3);
-  border-top-color: #00a6ff;
+  border: 3px solid var(--shl-cyan-tint-30);
+  border-top-color: var(--shl-cyan-500);
   border-radius: 50%;
   animation: filters-bar-spin 0.8s linear infinite;
   z-index: 10000;

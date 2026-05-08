@@ -7,22 +7,27 @@
 
 ## Current Focus
 
-**Phase:** TIK-58 in flight — owner-driven feature: seed Season 25/26 League 2.2
-results (subleagues `2.1`/`2.2`, 14 new managers, 9 achievements, Denis → Denys
-rename, idempotent Alembic data migration).
-**Status:** PR open against `main`. Awaiting CI green + user review. `make
-check` / `make audit-deps` clean locally; coverage at 87% gate.
+**Phase:** TIK-83 — M2 UI-редизайн, Концепт A (Refresh). Design tokens,
+WCAG AA contrast on light surfaces, fluid h1, cyan top-10 sheen,
+`.table-row` hover, mobile-card layout with class-driven labels, ESPN-404
+placeholder removed.
+**Status:** [PR #86](https://github.com/amatjkay/shadow-hockey-league_v2/pull/86)
+open against `main`. CI ✅ (`Quality & Tests` + `E2E Smoke (Playwright)`;
+`Vercel canceled` is the known non-issue per handoff §4). Linear TIK-83
+→ `In Review`. Awaiting owner review + merge.
 
-Next milestone: merge TIK-58, then back to maintenance mode.
+Next: after merge, owner can decide whether to open follow-up tickets for
+Concept B (Leaderboard 2.0) and/or C (full redesign) — both deferred from
+this PR per the original concept-selection plan.
 
 ---
 
 ## Status
 
-- **Branch:** `main` (post PR #60 merge).
-- **Goal:** Maintenance mode. Awaiting next feature/bug request.
-- **Tests:** 472 unit/integration (`make test`) + 42-scenario Playwright e2e
-  smoke (`make e2e` locally; `E2E Smoke (Playwright)` job in CI).
+- **Branch:** `main` (post PR #85 merge, `a6620d2`).
+- **Goal:** Ship M2 Concept A (PR #86). After merge → maintenance mode.
+- **Tests:** 560 unit/integration (`make test`) + Playwright e2e smoke
+  (`make e2e` locally; `E2E Smoke (Playwright)` job in CI).
 - **Coverage gate:** ≥ 87% (TIK-54).
 - **Type check:** `mypy` is back in `make check` and CI as of TIK-53 — 0 errors
   on the source tree (78 files).
@@ -90,4 +95,4 @@ Next milestone: merge TIK-58, then back to maintenance mode.
 
 ---
 
-_Last updated: 2026-05-03 — post-TIK-51 sync (PRs #57-#60 merged: deps audit, mypy back in CI, 87% coverage, e2e in CI)._
+_Last updated: 2026-05-08 — TIK-83 M2 UI Concept A in review (PR #86)._

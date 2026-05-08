@@ -1,12 +1,16 @@
-/* Table styles */
+/* Table styles. */
 .table {
   width: 70%;
   margin: 0 auto;
   text-align: left;
   font-weight: bold;
-  border: 3px solid skyblue;
+  border: 3px solid var(--shl-cyan-200);
   border-collapse: collapse;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(99, 100, 100, 0.13));
+  background: linear-gradient(
+    90deg,
+    var(--shl-surface-50),
+    var(--shl-bg-mid-13)
+  );
 }
 
 .table.league-table {
@@ -16,7 +20,7 @@
 
 .table td, .table th {
   padding: 10px;
-  border: 1px solid skyblue;
+  border: 1px solid var(--shl-cyan-200);
   text-align: left;
   vertical-align: middle;
 }
@@ -26,7 +30,7 @@
   width: auto;
   text-align: left;
   vertical-align: middle;
-  color: #00a6ff;
+  color: var(--shl-cyan-500);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
@@ -45,6 +49,11 @@
 
 .table-row {
   text-align: left;
+  transition: background-color 200ms ease;
+}
+
+.league-table tbody .table-row:hover {
+  background-color: var(--shl-cyan-tint-06);
 }
 
 .table-items {
@@ -73,7 +82,7 @@
   vertical-align: middle;
 }
 
-/* Top 10 animation */
+/* Top-10 cyan-sheen animation. */
 @keyframes league-top10-sheen {
   0%, 100% {
     background-position: 0% 50%;
@@ -86,15 +95,28 @@
 .league-table .table-row:nth-child(-n+10) .rank-cell,
 .league-table .table-row:nth-child(-n+10) .score-cell,
 .league-table .table-row:nth-child(-n+10) .manager-cell {
-  background: linear-gradient(270deg, red, yellow);
+  background: linear-gradient(
+    270deg,
+    var(--shl-cyan-500),
+    var(--shl-cyan-100),
+    var(--shl-cyan-500)
+  );
   background-size: 200% 200%;
   background-attachment: fixed;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: league-top10-sheen 3s linear infinite;
+  animation: league-top10-sheen 6s linear infinite;
   text-transform: none;
   text-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .league-table .table-row:nth-child(-n+10) .rank-cell,
+  .league-table .table-row:nth-child(-n+10) .score-cell,
+  .league-table .table-row:nth-child(-n+10) .manager-cell {
+    animation: none;
+  }
 }
 
 /* League table specific column widths (5 columns: Place, Points, Participant, Achievements, Calc) */
