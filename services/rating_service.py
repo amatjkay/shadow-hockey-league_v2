@@ -22,32 +22,46 @@ from services.scoring_service import get_base_points
 
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
-# Base points for each league and achievement type combination
-# Unified with SeedService baselines (TOP1 L1 = 800, L2 = 400)
-BASE_POINTS: dict[tuple[str, str], int] = {
+# Base points for each league and achievement type combination (TIK-80).
+#
+# Compact-10 scale: TOP1 L1 = 10.0 is the cap, all other values are scaled
+# down proportionally. The scale stays in single-/low-double digits so the
+# leaderboard is easy to read (champion ≈ 20, not 1635).
+#
+# League 2 = ~60 % of League 1 (was 50 %): hard 2× ratio overstated the gap
+# between divisions. Subleagues 2.1 / 2.2 inherit L2 values via
+# ``League.parent_code`` — see ``services/scoring_service.get_base_points``.
+#
+# ``BEST > TOP3`` (was equal): regular-season MVP outranks one playoff bronze
+# series.
+BASE_POINTS: dict[tuple[str, str], float] = {
     # League 1 - Elite division
-    ("1", "TOP1"): 800,
-    ("1", "TOP2"): 400,
-    ("1", "TOP3"): 200,
-    ("1", "BEST"): 200,
-    ("1", "R3"): 100,
-    ("1", "R1"): 50,
-    # League 2 - Second division (50% of L1 values)
-    ("2", "TOP1"): 400,
-    ("2", "TOP2"): 200,
-    ("2", "TOP3"): 100,
-    ("2", "BEST"): 100,
-    ("2", "R3"): 50,
-    ("2", "R1"): 25,
+    ("1", "TOP1"): 10.0,
+    ("1", "TOP2"): 5.0,
+    ("1", "TOP3"): 2.5,
+    ("1", "BEST"): 3.0,
+    ("1", "R3"): 1.5,
+    ("1", "R1"): 0.75,
+    # League 2 - Second division (~60 % of L1 values)
+    ("2", "TOP1"): 6.0,
+    ("2", "TOP2"): 3.0,
+    ("2", "TOP3"): 1.5,
+    ("2", "BEST"): 1.8,
+    ("2", "R3"): 0.9,
+    ("2", "R1"): 0.45,
 }
 
-# Season multipliers - current season is baseline (1.00), historical ones decrease significantly
+# Season multipliers — smooth exponential decay ``0.7 ^ years_ago`` (TIK-80).
+# Was uneven: −20 %, −38 %, −40 %, −33 % year-on-year. New curve gives a
+# constant −30 % per year, no cliffs. Future seasons (26/27, …) just need
+# ``is_active=True`` to flip to baseline; older seasons follow the same
+# curve via ``years_ago = active_year - season_year``.
 SEASON_MULTIPLIER: dict[str, float] = {
-    "25/26": 1.00,  # Baseline
-    "24/25": 0.80,
-    "23/24": 0.50,
-    "22/23": 0.30,
-    "21/22": 0.20,
+    "25/26": 1.000,  # Baseline (years_ago=0)
+    "24/25": 0.700,  # 0.7^1
+    "23/24": 0.490,  # 0.7^2
+    "22/23": 0.343,  # 0.7^3
+    "21/22": 0.240,  # 0.7^4
 }
 
 # Human-readable labels for achievement kinds
@@ -61,7 +75,7 @@ LABEL_RU: dict[str, str] = {
 }
 
 
-def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], int]:
+def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], float]:
     """Read base points from AchievementType reference table.
 
     Falls back to hardcoded BASE_POINTS if table is empty.
@@ -70,7 +84,9 @@ def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], int]
         session: SQLAlchemy database session
 
     Returns:
-        Dictionary mapping (league_code, type_code) -> base points
+        Dictionary mapping (league_code, type_code) -> base points as float.
+        Floats preserve compact-scale fractional values like ``2.5`` (TOP3 L1)
+        without rounding to ``2`` and collapsing onto ``BEST``.
     """
     types = session.query(AchievementType).all()
     if not types:
@@ -80,12 +96,12 @@ def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], int]
     if not leagues:
         return BASE_POINTS
 
-    result: dict[tuple[str, str], int] = {}
+    result: dict[tuple[str, str], float] = {}
     for ach_type in types:
         for league in leagues:
             # get_base_points honours League.parent_code so subleagues like 2.1
             # correctly inherit base_points_l2 from their parent.
-            result[(league.code, ach_type.code)] = int(get_base_points(ach_type, league))
+            result[(league.code, ach_type.code)] = float(get_base_points(ach_type, league))
 
     return result
 
@@ -133,7 +149,7 @@ def get_achievement_kind(achievement: Achievement) -> str:
 
 def calculate_achievement_points(
     achievement: Achievement,
-    base_points: dict[tuple[str, str], int] | None = None,
+    base_points: dict[tuple[str, str], float] | None = None,
     season_multiplier: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Calculate points for a single achievement.
@@ -144,7 +160,10 @@ def calculate_achievement_points(
         season_multiplier: Optional pre-loaded season multiplier dict (for batch operations)
 
     Returns:
-        Dictionary with points calculation details
+        Dictionary with points calculation details. ``points`` is rounded to
+        2 decimals so the compact scale (``TOP1 L1 = 10.0``) keeps meaningful
+        precision (e.g. ``10.0 × 0.49 = 4.9`` instead of being truncated to
+        ``5``).
     """
     kind = get_achievement_kind(achievement)
 
@@ -161,9 +180,9 @@ def calculate_achievement_points(
     season_code = achievement.season.code if achievement.season else "24/25"
 
     # Calculate points: base × multiplier
-    base = bp.get((league_code, kind), 0)
+    base = bp.get((league_code, kind), 0.0)
     mul = sm.get(season_code, 1.0)
-    points = round(base * mul)
+    points = round(base * mul, 2)
     label = LABEL_RU.get(kind, kind)
     mul_display = f"{mul:.2f}".replace(".", ",")
 

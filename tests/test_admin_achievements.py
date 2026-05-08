@@ -29,8 +29,8 @@ def test_achievement_auto_calculation(app, db_session):
     ach_type = AchievementType(
         code="TOP1",
         name="Top 1",
-        base_points_l1=800.0,
-        base_points_l2=400.0,
+        base_points_l1=10.0,
+        base_points_l2=6.0,
         icon_path="/static/img/cups/top1.svg",
     )
     db.session.add(ach_type)
@@ -66,9 +66,9 @@ def test_achievement_auto_calculation(app, db_session):
     # in ``title`` produced redundant strings.
     assert achievement.title == "Top 1"
     assert achievement.icon_path == "/static/img/cups/top1.svg"
-    assert achievement.base_points == 800.0
+    assert achievement.base_points == 10.0
     assert achievement.multiplier == 1.5
-    assert achievement.final_points == 1200.0
+    assert achievement.final_points == 15.0  # compact-10 (TIK-80): 10.0 × 1.5
 
 
 def test_get_icon_url_falls_back_to_default(app, db_session):
@@ -81,16 +81,14 @@ def test_get_icon_url_falls_back_to_default(app, db_session):
     ``default.svg`` (which exists on disk).
     """
 
-    t_no_icon = AchievementType(
-        code="R3", name="Round 3", base_points_l1=100.0, base_points_l2=50.0
-    )
+    t_no_icon = AchievementType(code="R3", name="Round 3", base_points_l1=1.5, base_points_l2=0.9)
     assert t_no_icon.get_icon_url() == "/static/img/cups/default.svg"
 
     t_with_icon = AchievementType(
         code="R3",
         name="Round 3",
-        base_points_l1=100.0,
-        base_points_l2=50.0,
+        base_points_l1=1.5,
+        base_points_l2=0.9,
         icon_path="/static/img/cups/hockey-sticks-and-puck.svg",
     )
     assert t_with_icon.get_icon_url() == "/static/img/cups/hockey-sticks-and-puck.svg"
@@ -139,9 +137,10 @@ def test_api_calculate_points(auth_client, seeded_db):
     )
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data["base_points"] == 800.0
-    assert data["multiplier"] == 0.5
-    assert data["final_points"] == 400.0
+    # Compact-10 + ``0.7^years_ago`` decay (TIK-80): 10.0 × 0.49 = 4.9.
+    assert data["base_points"] == 10.0
+    assert data["multiplier"] == 0.49
+    assert data["final_points"] == 4.9
 
 
 def test_api_bulk_add_achievement(auth_client, seeded_db):
@@ -173,7 +172,8 @@ def test_api_bulk_add_achievement(auth_client, seeded_db):
         .first()
     )
     assert ach is not None
-    assert ach.final_points == 1600.0  # 800 * 2.0
+    # Compact-10 (TIK-80): TOP1 L1 (10.0) × custom multiplier (2.0) = 20.0.
+    assert ach.final_points == 20.0
     assert ach.icon_path == "/static/img/cups/top1.svg"
 
 
@@ -196,8 +196,8 @@ def test_api_bulk_add_uses_canonical_icon_path_and_short_title(auth_client, seed
     r3 = AchievementType(
         code="R3",
         name="Round 3",
-        base_points_l1=100.0,
-        base_points_l2=50.0,
+        base_points_l1=1.5,
+        base_points_l2=0.9,
         icon_path="/static/img/cups/hockey-sticks-and-puck.svg",
     )
     db.session.add(r3)

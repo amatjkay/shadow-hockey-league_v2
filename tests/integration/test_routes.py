@@ -35,7 +35,14 @@ def _seed_reference_data():
         leagues[code] = lg
 
     seasons = {}
-    multipliers = {"25/26": 1.00, "24/25": 0.95, "23/24": 0.90, "22/23": 0.85, "21/22": 0.80}
+    # Smooth ``0.7 ^ years_ago`` decay (TIK-80).
+    multipliers = {
+        "25/26": 1.000,
+        "24/25": 0.700,
+        "23/24": 0.490,
+        "22/23": 0.343,
+        "21/22": 0.240,
+    }
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
         s = Season(
             code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
@@ -43,13 +50,14 @@ def _seed_reference_data():
         db.session.add(s)
         seasons[code] = s
 
+    # Compact-10 scale (TIK-80): single-/low-double-digit values, BEST > TOP3.
     type_points = {
-        "TOP1": (800, 400),
-        "TOP2": (400, 200),
-        "TOP3": (200, 100),
-        "BEST": (50, 40),
-        "R3": (30, 20),
-        "R1": (10, 5),
+        "TOP1": (10.0, 6.0),
+        "TOP2": (5.0, 3.0),
+        "TOP3": (2.5, 1.5),
+        "BEST": (3.0, 1.8),
+        "R3": (1.5, 0.9),
+        "R1": (0.75, 0.45),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -458,7 +466,7 @@ class TestRatingCalculationIntegration(unittest.TestCase):
 
             manager_id = manager.id
 
-            # TOP1 L1 s25/26: 800 x 1.00 = 800
+            # Compact-10 scale (TIK-80): TOP1 L1 s25/26 -> 10.0 x 1.000 = 10.0.
             db.session.add(
                 Achievement(
                     type_id=type_map["TOP1"].id,
@@ -470,7 +478,7 @@ class TestRatingCalculationIntegration(unittest.TestCase):
                 )
             )
 
-            # TOP2 L1 s24/25: 400 x 0.95 = 380.0
+            # Compact-10 scale (TIK-80): TOP2 L1 s24/25 -> 5.0 x 0.700 = 3.5.
             db.session.add(
                 Achievement(
                     type_id=type_map["TOP2"].id,
@@ -488,8 +496,8 @@ class TestRatingCalculationIntegration(unittest.TestCase):
             leaderboard = build_leaderboard(db.session)
 
         test_entry = next(e for e in leaderboard if e["name"] == "Rating Test")
-        # Total = 800 (TOP1 L1 s25/26 @ 1.00) + 380 (TOP2 L1 s24/25 @ 0.95) = 1180
-        self.assertEqual(test_entry["total"], 1180)
+        # Total = 10.0 (TOP1 L1 s25/26 @ 1.000) + 3.5 (TOP2 L1 s24/25 @ 0.700) = 13.5.
+        self.assertEqual(test_entry["total"], 13.5)
 
 
 class TestCascadeDelete(unittest.TestCase):

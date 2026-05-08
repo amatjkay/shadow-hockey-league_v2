@@ -25,11 +25,14 @@ class TestGetBasePoints(unittest.TestCase):
         self.ctx.push()
         db.create_all()
 
+        # Compact-10 scale (TIK-80). The exact L2 value here (1.5) deliberately
+        # differs from the L1 value (10.0) so the test catches accidental
+        # routing through the wrong column.
         self.ach_type = AchievementType(
             code="TOP1",
             name="Top 1",
-            base_points_l1=800,
-            base_points_l2=300,
+            base_points_l1=10.0,
+            base_points_l2=1.5,
         )
         db.session.add(self.ach_type)
 
@@ -50,10 +53,10 @@ class TestGetBasePoints(unittest.TestCase):
         self.ctx.pop()
 
     def test_l1_returns_base_points_l1(self) -> None:
-        self.assertEqual(get_base_points(self.ach_type, self.league_l1), 800.0)
+        self.assertEqual(get_base_points(self.ach_type, self.league_l1), 10.0)
 
     def test_l2_returns_base_points_l2(self) -> None:
-        self.assertEqual(get_base_points(self.ach_type, self.league_l2), 300.0)
+        self.assertEqual(get_base_points(self.ach_type, self.league_l2), 1.5)
 
     def test_subleague_inherits_parent_field(self) -> None:
         """``2.1`` and ``2.2`` must resolve to ``base_points_l2`` via parent_code.
@@ -64,11 +67,11 @@ class TestGetBasePoints(unittest.TestCase):
         ``base_points_l2`` (wrong). Going through ``League.base_points_field``
         is the only league-aware path.
         """
-        self.assertEqual(get_base_points(self.ach_type, self.league_l2_1), 300.0)
-        self.assertEqual(get_base_points(self.ach_type, self.league_l2_2), 300.0)
+        self.assertEqual(get_base_points(self.ach_type, self.league_l2_1), 1.5)
+        self.assertEqual(get_base_points(self.ach_type, self.league_l2_2), 1.5)
 
     def test_returns_float(self) -> None:
-        """Helper must return ``float`` even when DB column stores ``Integer``."""
+        """Helper must return ``float`` (column type is now Float, TIK-80)."""
         result = get_base_points(self.ach_type, self.league_l1)
         self.assertIsInstance(result, float)
 

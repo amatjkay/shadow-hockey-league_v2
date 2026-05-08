@@ -21,7 +21,11 @@ from services.rating_service import (
 
 
 def _seed_reference_data():
-    """Seed reference tables. Returns (league_ids, season_ids, type_map)."""
+    """Seed reference tables. Returns (league_ids, season_ids, type_map).
+
+    Uses the compact-10 scale and ``0.7 ^ years_ago`` decay introduced in
+    TIK-80. ``BEST > TOP3`` and ``L2 ≈ 60 % L1`` are preserved.
+    """
     leagues = {}
     for code in ["1", "2"]:
         lg = League(code=code, name=f"League {code}")
@@ -29,7 +33,7 @@ def _seed_reference_data():
         leagues[code] = lg
 
     seasons = {}
-    multipliers = {"25/26": 1.0, "24/25": 0.8, "23/24": 0.5, "22/23": 0.3, "21/22": 0.2}
+    multipliers = {"25/26": 1.000, "24/25": 0.700, "23/24": 0.490, "22/23": 0.343, "21/22": 0.240}
     for i, code in enumerate(["25/26", "24/25", "23/24", "22/23", "21/22"]):
         s = Season(
             code=code, name=f"Season {code}", multiplier=multipliers[code], is_active=(i == 0)
@@ -37,13 +41,13 @@ def _seed_reference_data():
         db.session.add(s)
         seasons[code] = s
 
-    type_points = {
-        "TOP1": (800, 400),
-        "TOP2": (400, 200),
-        "TOP3": (200, 100),
-        "BEST": (50, 40),
-        "R3": (30, 20),
-        "R1": (10, 5),
+    type_points: dict[str, tuple[float, float]] = {
+        "TOP1": (10.0, 6.0),
+        "TOP2": (5.0, 3.0),
+        "TOP3": (2.5, 1.5),
+        "BEST": (3.0, 1.8),
+        "R3": (1.5, 0.9),
+        "R1": (0.75, 0.45),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -121,45 +125,45 @@ class TestRatingServiceHelpers(unittest.TestCase):
         self.assertEqual(get_achievement_kind(ach), "R1")
 
     def test_calculate_points_top1_s23_24(self) -> None:
-        """Test points calculation for TOP1 s23/24."""
+        """TOP1 L1 s23/24: 10.0 × 0.490 = 4.9 (compact-10, TIK-80)."""
         ach = self._create_achievement("TOP1", "1", "23/24", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 800)
-        self.assertEqual(result["mul"], 0.5)
-        self.assertEqual(result["points"], 400)  # 800 * 0.5
+        self.assertEqual(result["base"], 10.0)
+        self.assertEqual(result["mul"], 0.490)
+        self.assertEqual(result["points"], 4.9)
 
     def test_calculate_points_top2_s21_22(self) -> None:
-        """Test points calculation for TOP2 s21/22."""
+        """TOP2 L1 s21/22: 5.0 × 0.240 = 1.2 (compact-10, TIK-80)."""
         ach = self._create_achievement("TOP2", "1", "21/22", "TOP2")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 400)
-        self.assertEqual(result["mul"], 0.2)
-        self.assertEqual(result["points"], 80)  # 400 * 0.2
+        self.assertEqual(result["base"], 5.0)
+        self.assertEqual(result["mul"], 0.240)
+        self.assertEqual(result["points"], 1.2)
 
     def test_calculate_points_league2(self) -> None:
-        """Test points calculation for league 2."""
+        """TOP1 L2 s22/23: 6.0 × 0.343 = 2.06 (rounded to 2dp)."""
         ach = self._create_achievement("TOP1", "2", "22/23", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 400)
-        self.assertEqual(result["mul"], 0.3)
-        self.assertEqual(result["points"], 120)  # 400 * 0.3
+        self.assertEqual(result["base"], 6.0)
+        self.assertEqual(result["mul"], 0.343)
+        self.assertEqual(result["points"], 2.06)
 
     def test_calculate_points_s25_26(self) -> None:
-        """Test points calculation for season 25/26 (baseline)."""
+        """TOP1 L2 s25/26: 6.0 × 1.000 = 6.0 (baseline season)."""
         ach = self._create_achievement("TOP1", "2", "25/26", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 400)
-        self.assertEqual(result["mul"], 1.00)
-        self.assertEqual(result["points"], 400)  # 400 * 1.00
+        self.assertEqual(result["base"], 6.0)
+        self.assertEqual(result["mul"], 1.000)
+        self.assertEqual(result["points"], 6.0)
 
     def test_season_multiplier_s25_26_exists(self) -> None:
         """Test that season 25/26 multiplier is defined as baseline."""
         self.assertIn("25/26", SEASON_MULTIPLIER)
-        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.00)
+        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.000)
 
 
 class TestRatingCalculation(unittest.TestCase):
@@ -404,32 +408,36 @@ class TestRatingCalculation(unittest.TestCase):
             self.assertIn(combo, BASE_POINTS, f"Missing base points for {combo}")
 
     def test_base_points_values(self) -> None:
-        """Test that base points have correct values (updated system)."""
-        # League 1 - increased values for TOP achievements
-        self.assertEqual(BASE_POINTS[("1", "TOP1")], 800)
-        self.assertEqual(BASE_POINTS[("1", "TOP2")], 400)
-        self.assertEqual(BASE_POINTS[("1", "TOP3")], 200)
-        self.assertEqual(BASE_POINTS[("1", "BEST")], 200)
-        self.assertEqual(BASE_POINTS[("1", "R3")], 100)
-        self.assertEqual(BASE_POINTS[("1", "R1")], 50)
+        """Compact-10 scale (TIK-80): BEST > TOP3, L2 ≈ 60 % L1."""
+        # League 1
+        self.assertEqual(BASE_POINTS[("1", "TOP1")], 10.0)
+        self.assertEqual(BASE_POINTS[("1", "TOP2")], 5.0)
+        self.assertEqual(BASE_POINTS[("1", "TOP3")], 2.5)
+        self.assertEqual(BASE_POINTS[("1", "BEST")], 3.0)
+        self.assertEqual(BASE_POINTS[("1", "R3")], 1.5)
+        self.assertEqual(BASE_POINTS[("1", "R1")], 0.75)
 
-        # League 2
-        self.assertEqual(BASE_POINTS[("2", "TOP1")], 400)
-        self.assertEqual(BASE_POINTS[("2", "TOP2")], 200)
-        self.assertEqual(BASE_POINTS[("2", "TOP3")], 100)
-        self.assertEqual(BASE_POINTS[("2", "BEST")], 100)
-        self.assertEqual(BASE_POINTS[("2", "R3")], 50)
-        self.assertEqual(BASE_POINTS[("2", "R1")], 25)
+        # BEST regular > TOP3 (full-season MVP > one bronze series).
+        self.assertGreater(BASE_POINTS[("1", "BEST")], BASE_POINTS[("1", "TOP3")])
+        self.assertGreater(BASE_POINTS[("2", "BEST")], BASE_POINTS[("2", "TOP3")])
+
+        # League 2 — softened ratio (~1.67×) instead of hard 2× of L1.
+        self.assertEqual(BASE_POINTS[("2", "TOP1")], 6.0)
+        self.assertEqual(BASE_POINTS[("2", "TOP2")], 3.0)
+        self.assertEqual(BASE_POINTS[("2", "TOP3")], 1.5)
+        self.assertEqual(BASE_POINTS[("2", "BEST")], 1.8)
+        self.assertEqual(BASE_POINTS[("2", "R3")], 0.9)
+        self.assertEqual(BASE_POINTS[("2", "R1")], 0.45)
 
     def test_season_multipliers(self) -> None:
-        """Test that season multipliers are defined with correct values."""
+        """Smooth ``0.7 ^ years_ago`` decay (TIK-80)."""
         expected_seasons = ["25/26", "24/25", "23/24", "22/23", "21/22"]
         for season in expected_seasons:
             self.assertIn(season, SEASON_MULTIPLIER, f"Missing multiplier for season {season}")
 
-        # Verify multiplier values (current season = baseline, older = discount)
-        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.0)  # Baseline
-        self.assertEqual(SEASON_MULTIPLIER["24/25"], 0.8)  # -20%
-        self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.5)  # -50%
-        self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.3)  # -70%
-        self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.2)  # -80%
+        # ``years_ago = active_year - season_year``; consistent −30 %/year.
+        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.000)  # 0.7^0 baseline
+        self.assertEqual(SEASON_MULTIPLIER["24/25"], 0.700)  # 0.7^1
+        self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.490)  # 0.7^2
+        self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.343)  # 0.7^3
+        self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.240)  # 0.7^4 (rounded)

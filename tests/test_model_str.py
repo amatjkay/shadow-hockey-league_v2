@@ -38,11 +38,12 @@ def reference_rows(app, db_session):
     db.session.add_all([manager, tandem])
     db.session.flush()
 
+    # Compact-10 scale (TIK-80).
     ach_type = AchievementType(
         code="TOP1",
         name="Top 1",
-        base_points_l1=800,
-        base_points_l2=400,
+        base_points_l1=10.0,
+        base_points_l2=6.0,
         icon_path="/static/img/cups/top1.svg",
     )
     league_root = League(code="2", name="League 2")
@@ -111,9 +112,9 @@ def test_achievement_str_full_relationships(reference_rows):
         season_id=reference_rows["season"].id,
         title="Top 1",
         icon_path="/static/img/cups/top1.svg",
-        base_points=800.0,
+        base_points=10.0,
         multiplier=1.0,
-        final_points=800.0,
+        final_points=10.0,
     )
     db.session.add(achievement)
     db.session.commit()

@@ -49,7 +49,8 @@ def moderator_user(db_session):
 @pytest.fixture
 def reference_data(db_session):
     """Create reference data for achievements."""
-    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
+    # Compact-10 scale (TIK-80).
+    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=6.0)
     league = League(code="1", name="League 1")
     league2 = League(code="2", name="League 2")
     season = Season(
@@ -60,10 +61,11 @@ def reference_data(db_session):
         end_year=2025,
         is_active=True,
     )
+    # Smooth ``0.7 ^ years_ago`` decay (TIK-80): 22/23 → 0.343.
     season_old = Season(
         code="22/23",
         name="Season 22/23",
-        multiplier=0.85,
+        multiplier=0.343,
         start_year=2022,
         end_year=2023,
         is_active=True,
@@ -291,7 +293,7 @@ class TestAchievementPointsAPI:
         )
         assert response.status_code == 200
         data = response.get_json()
-        assert data["base_points"] == 800
+        assert data["base_points"] == 10.0
         assert data["points_source"] == "base_points_l1"
 
     def test_get_points_league_2(self, client, admin_user, reference_data):
@@ -303,7 +305,7 @@ class TestAchievementPointsAPI:
         )
         assert response.status_code == 200
         data = response.get_json()
-        assert data["base_points"] == 400
+        assert data["base_points"] == 6.0
         assert data["points_source"] == "base_points_l2"
 
     def test_missing_league_id(self, client, admin_user, reference_data):
@@ -357,9 +359,9 @@ class TestManagerAchievementsAPI:
             season_id=reference_data["season"].id,
             title="Top 1 League 1",
             icon_path="/static/img/cups/top1.svg",
-            base_points=800,
+            base_points=10.0,
             multiplier=1.0,
-            final_points=800.0,
+            final_points=10.0,
         )
         db.session.add(ach)
         db.session.commit()
@@ -369,7 +371,7 @@ class TestManagerAchievementsAPI:
         data = response.get_json()
         assert data["manager_id"] == manager.id
         assert len(data["achievements"]) == 1
-        assert data["achievements"][0]["final_points"] == 800.0
+        assert data["achievements"][0]["final_points"] == 10.0
 
     def test_manager_not_found(self, client, admin_user):
         """Should return 404 for non-existent manager."""
@@ -421,9 +423,9 @@ class TestBulkCreateAchievements:
             season_id=reference_data["season"].id,
             title="Existing",
             icon_path="/static/img/cups/top1.svg",
-            base_points=800,
+            base_points=10.0,
             multiplier=1.0,
-            final_points=800.0,
+            final_points=10.0,
         )
         db.session.add(existing)
         db.session.commit()

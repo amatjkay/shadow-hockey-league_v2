@@ -39,7 +39,8 @@ def seeded_db_with_data(db_session):
     db.session.flush()
 
     # Create reference data
-    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=800, base_points_l2=400)
+    # Compact-10 scale (TIK-80).
+    ach_type = AchievementType(code="TOP1", name="Top 1", base_points_l1=10.0, base_points_l2=6.0)
     league = League(code="1", name="League 1")
     season = Season(
         code="24/25", name="Season 24/25", multiplier=1.0, start_year=2024, end_year=2025
@@ -54,9 +55,9 @@ def seeded_db_with_data(db_session):
         season_id=season.id,
         title="Top 1 League 1 Season 24/25",
         icon_path="/static/img/cups/top1.svg",
-        base_points=800,
+        base_points=10.0,
         multiplier=1.0,
-        final_points=800.0,
+        final_points=10.0,
     )
     db.session.add(achievement)
     db.session.commit()
