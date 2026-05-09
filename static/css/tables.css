@@ -109,14 +109,19 @@
   }
 }
 
-.league-table .table-row:nth-child(-n+10) .rank-cell,
-.league-table .table-row:nth-child(-n+10) .score-cell,
-.league-table .table-row:nth-child(-n+10) .manager-cell {
+.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .rank-cell,
+.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-cell {
+  /* Synthwave rainbow sheen (TIK-84 step 8): magenta → violet → cyan
+     → magenta sweeps across the top-10 rows. Six-second cycle keeps
+     the effect calm; prefers-reduced-motion freezes it on a single
+     stop. */
   background: linear-gradient(
     270deg,
-    var(--shl-cyan-500),
-    var(--shl-cyan-100),
-    var(--shl-cyan-500)
+    var(--shl-magenta-500) 0%,
+    var(--shl-violet-300) 33%,
+    var(--shl-cyan-secondary-500) 66%,
+    var(--shl-magenta-500) 100%
   );
   background-size: 200% 200%;
   background-attachment: fixed;
@@ -129,9 +134,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .league-table .table-row:nth-child(-n+10) .rank-cell,
-  .league-table .table-row:nth-child(-n+10) .score-cell,
-  .league-table .table-row:nth-child(-n+10) .manager-cell {
+  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .rank-cell,
+  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-cell {
     animation: none;
   }
 }
