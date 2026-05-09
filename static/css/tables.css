@@ -82,6 +82,23 @@
   vertical-align: middle;
 }
 
+/* === Top-3 border hints (TIK-84 step 7) ============================
+   Gold (1st), silver (2nd), bronze (3rd) accent on the rank cell of
+   the first three rows. Uses inset box-shadow so it doesn't displace
+   the existing 1px table borders or shift column widths. Skeleton
+   rows opt out via .table-row--skeleton. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(1) .rank-cell {
+  box-shadow: inset 4px 0 0 var(--shl-sunset-500);
+}
+
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(2) .rank-cell {
+  box-shadow: inset 4px 0 0 #c0c0c0;
+}
+
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(3) .rank-cell {
+  box-shadow: inset 4px 0 0 #cd7f32;
+}
+
 /* Top-10 cyan-sheen animation. */
 @keyframes league-top10-sheen {
   0%, 100% {
