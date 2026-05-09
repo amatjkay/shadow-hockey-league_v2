@@ -6,6 +6,151 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-09: TIK-84 — M2 Synthwave brand refresh + Concept C (B3)
+
+After PR #86 (TIK-83, Concept A Refresh) merged at `04d9eed`, owner asked
+to skip Concept B (Leaderboard 2.0) and jump straight to **B3 — palette
+swap + full Concept C**. Scope chosen: synthwave palette sampled from
+the SHL logo via PIL (top-1% S×V per hue bucket), full light/dark
+theme system, sticky top-nav, season tabs (replacing `<select>`),
+loading skeletons, top-3 border hints, magenta-rainbow top-10 sheen,
+Lighthouse polish, all in a single PR.
+
+### Change ([PR](https://github.com/amatjkay/shadow-hockey-league_v2) — `devin/tik-84-1778353930-synthwave-c`)
+
+Ten small commits, one per logical step:
+
+1. **`feat(ui): synthwave palette token swap` (`35cd986`)** —
+   replaces the cyan-only `:root` palette with the synthwave family
+   (`--shl-magenta-500: #c323e0` primary, `--shl-cyan-secondary-500:
+   #41baf8` secondary, violet/indigo tertiaries, sunset/pink
+   highlights). Legacy `--shl-cyan-*` token names point at the new
+   magenta primary so the eight existing CSS files keep working
+   without a rename pass. All `rgba(0,166,255,…)` tints retuned to
+   magenta. Background tokens shifted to deep purples
+   (`--shl-bg-deep: #070423`).
+2. **`feat(ui): light theme override + body-bg token` (`447548a`)** —
+   `:root[data-theme="light"]` plus a `@media (prefers-color-scheme:
+   light) :root:not([data-theme])` block redefine the same tokens
+   with AA-safe values for light surfaces (magenta lifted to
+   `#a018bd`, cyan to `#0079b8`, body bg to a lavender gradient).
+   `--shl-body-bg` is now a token so the body background image
+   stays pluggable.
+3. **`feat(ui): theme toggle (FOUC-safe inline + button + JS)`
+   (`81c4b82`)** — inline `<head>` script reads
+   `localStorage('shl-theme')` and mirrors it on
+   `<html data-theme>` before first paint (no flash). Sun/moon
+   button in the desktop header and inside the mobile menu;
+   buttons stay in sync via `data-theme-toggle`. Aria labels and
+   `aria-pressed` flip with the active theme.
+4. **`feat(ui): sticky top-nav + scroll-shadow + backdrop-blur`
+   (`8057127`)** — `.header { position: sticky; top: 0;
+   backdrop-filter: blur(8px); }`. A 1 px sentinel placed below
+   the header is observed via `IntersectionObserver`; when it
+   leaves the viewport, `.header.is-scrolled` adds a soft
+   magenta drop-shadow. `prefers-reduced-motion` disables the
+   transition.
+5. **`feat(ui): season tabs replace <select>` (`4746e9a`)** —
+   the `<select id="season-filter">` is gone. Replaced by a
+   `role="radiogroup"` of visually-hidden `<input type="radio">`
+   + adjacent `<label class="season-tabs__tab">`. `:checked +
+   .season-tabs__tab` paints the active pill in primary magenta
+   with a `box-shadow` glow. `scroll-snap-type: x mandatory`
+   centres the active tab on overflow; JS scrolls it into view
+   on mount. URL contract preserved (`?season=N`).
+6. **`feat(ui): loading skeleton on season change` (`45a7ee3`)** —
+   `showLeaderboardSkeleton(10)` injects 10 placeholder rows
+   into `<tbody>` on tab click. Each cell holds a `.skeleton`
+   span whose 220% gradient sweeps under a `skeleton-shimmer`
+   keyframe (1.4 s linear). The pre-existing centre spinner
+   (`is-loading::before`) was retired since the skeleton carries
+   the same affordance with content-shape feedback.
+   `prefers-reduced-motion` collapses the gradient to a static
+   tint.
+7. **`feat(ui): top-3 gold/silver/bronze border hints`
+   (`6ea0158`)** — `.league-table tbody .table-row:nth-child(1
+   /2/3) .rank-cell` gets a `box-shadow: inset 4px 0 0 …`
+   accent (sunset / silver / bronze). No layout shift; skeleton
+   rows opt out via `:not(.table-row--skeleton)`.
+8. **`feat(ui): top-10 sheen synthwave rainbow magenta+violet+cyan`
+   (`ca273a4`)** — the 6-second sheen now stops on
+   `magenta-500 → violet-300 → cyan-secondary-500 → magenta-500`,
+   making the top-10 read as a synthwave gradient instead of
+   a single-hue cyan. Skeleton rows skipped.
+9. **`feat(ui): Lighthouse polish` (`977a1dc`)** —
+   `<meta>` SEO tags (description, OG title/description/image,
+   Twitter card, dual `theme-color` for dark/light), explicit
+   `width`/`height` on every `<img>` (logo 167×40, telegram 40×40,
+   country flags 30×30) for CLS, `loading="lazy"` on
+   below-the-fold images, `decoding="async"` everywhere.
+10. **`docs(progress, activeContext): TIK-84 synthwave + Concept
+    C` (this commit)** — these notes.
+
+### Why each piece
+
+- **Tokens.** The TIK-83 token scaffold is what made this PR
+  cheap: only `:root` had to change colour. Files unchanged: the
+  rest of the CSS still references `--shl-cyan-*` (now magenta-aliased)
+  and `--shl-bg-*` (now deep-purple). Renaming the legacy tokens
+  is intentionally deferred — call sites are 8 CSS files and the
+  rename is a separate, riskier diff.
+- **Light theme.** Per spec — synthwave is a vibe, light is its
+  «gallery» reading. Magenta darkens to `#a018bd` (AA on
+  lavender), cyan to `#0079b8`, sunset to `#d6700c`. System
+  preference (`prefers-color-scheme`) is the default; the toggle
+  is an explicit override.
+- **FOUC-safe inline.** A blocking `<script>` in `<head>` (before
+  CSS) reads `localStorage` and applies `data-theme` synchronously.
+  Without it, dark-default users who saved «light» would flash
+  dark for one frame on every navigation.
+- **Sticky nav.** The header is the only navigation; on long
+  leaderboards the user lost it after the first viewport.
+  `IntersectionObserver` on a 1 px sentinel is cheaper than a
+  scroll listener (no per-frame work).
+- **Tabs.** A `<select>` on a page with ≤ 5 seasons is poor UX
+  on desktop (extra click, no overview) and identical on mobile
+  (native picker). Tabs surface all options at once; mobile gets
+  scroll-snap so the active option is always centred. The
+  `<input type=radio>` + adjacent label pattern keeps full
+  keyboard semantics (Tab into group, arrow keys to move,
+  Enter to confirm).
+- **Skeletons.** The original spinner overlay was opaque on the
+  whole page and blocked all rendering. Skeletons paint
+  in-content shape feedback in < 1 frame; even on a
+  fast reload the user gets something to look at.
+- **Top-3 hints.** The brand has «кубки» semantics already on
+  the icons in column 4 (gold / silver / bronze); echoing them
+  on the rank cell of rows 1-3 makes the visual hierarchy
+  immediate without adding a separate podium component
+  (kept for a future Concept B revival).
+- **Synthwave sheen.** The TIK-83 cyan-only sheen was tame but
+  on-brand; the rainbow sheen makes the top-10 sing in the
+  same language as the new logo gradient.
+- **Lighthouse.** The `<meta>` block was missing OG/Twitter
+  entirely — direct shares on Telegram or Twitter rendered as
+  the page URL with no preview. `loading="lazy"` + `width/height`
+  shave 100-300 ms off mobile FCP and prevent layout shift on
+  the long flag-image list.
+
+### Status
+
+- `make check` (black + isort + flake8 + mypy): TBD
+- `make test`: TBD (target 560+ passed, no test added/removed
+  here, TIK-81 regex regression unaffected — server-rendered
+  HTML untouched, skeleton injection is client-only)
+- CI: pending — PR not yet opened.
+
+### Forward-looking
+
+- **Token rename.** `--shl-cyan-500` aliasing magenta is a debt
+  artefact; a follow-up should rename to `--shl-primary-*` /
+  `--shl-secondary-*`.
+- **Concept B revival** (top-3 podium, sticky thead, drawer):
+  not in this PR. Owner can open a follow-up if wanted.
+- **Test-regex relaxation** (carry-over from TIK-83): still
+  pending; would let future PRs add `<td>` attrs without
+  test churn.
+
 ## 2026-05-08 (later²): TIK-83 — M2 UI-редизайн, Концепт A (Refresh)
 
 After PR #85 (backlog audit) merged, M2 milestone «Современный UI-редизайн

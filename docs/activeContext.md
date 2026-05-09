@@ -7,18 +7,18 @@
 
 ## Current Focus
 
-**Phase:** TIK-83 — M2 UI-редизайн, Концепт A (Refresh). Design tokens,
-WCAG AA contrast on light surfaces, fluid h1, cyan top-10 sheen,
-`.table-row` hover, mobile-card layout with class-driven labels, ESPN-404
-placeholder removed.
-**Status:** [PR #86](https://github.com/amatjkay/shadow-hockey-league_v2/pull/86)
-open against `main`. CI ✅ (`Quality & Tests` + `E2E Smoke (Playwright)`;
-`Vercel canceled` is the known non-issue per handoff §4). Linear TIK-83
-→ `In Review`. Awaiting owner review + merge.
+**Phase:** TIK-84 — M2 Synthwave brand refresh + full Concept C (B3 path).
+Token swap to magenta-primary / cyan-secondary palette sampled from the
+SHL logo, dual theme system (`[data-theme]` + `prefers-color-scheme`),
+FOUC-safe theme toggle, sticky top-nav with scroll-shadow, season tabs
+(replacing `<select>`), loading skeletons with shimmer, top-3 border
+hints (gold/silver/bronze), synthwave-rainbow top-10 sheen, Lighthouse
+polish (OG/Twitter meta, width/height on imgs, lazy loading).
 
-Next: after merge, owner can decide whether to open follow-up tickets for
-Concept B (Leaderboard 2.0) and/or C (full redesign) — both deferred from
-this PR per the original concept-selection plan.
+**Status:** PR pending — branch `devin/tik-84-1778353930-synthwave-c`
+contains all 10 commits, awaiting `make check` / `make test` and push.
+
+Previous milestone: TIK-83 (Concept A Refresh) merged at `04d9eed`.
 
 ---
 
@@ -95,4 +95,4 @@ this PR per the original concept-selection plan.
 
 ---
 
-_Last updated: 2026-05-08 — TIK-83 M2 UI Concept A in review (PR #86)._
+_Last updated: 2026-05-09 — TIK-84 M2 synthwave + Concept C (B3) on `devin/tik-84-1778353930-synthwave-c`._
