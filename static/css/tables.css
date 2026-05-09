@@ -49,11 +49,30 @@
 
 .table-row {
   text-align: left;
-  transition: background-color 200ms ease;
+  transition:
+    background-color 220ms var(--shl-ease-out),
+    transform 260ms var(--shl-spring-ease),
+    box-shadow 240ms var(--shl-ease-out);
+  will-change: transform;
 }
 
-.league-table tbody .table-row:hover {
-  background-color: var(--shl-cyan-tint-06);
+/* Glassmorphism + neon-glow on hover (TIK-84 polish v1).
+   Subtle frosted-glass tint + magenta inner ring + soft outer glow.
+   Spring easing on transform for a "modern" overshoot on lift. */
+.league-table tbody .table-row:not(.table-row--skeleton):hover {
+  background-color: var(--shl-cyan-tint-08);
+  transform: translateY(-1px);
+  box-shadow: var(--shl-neon-glow-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-row {
+    transition: background-color 0ms;
+  }
+  .league-table tbody .table-row:not(.table-row--skeleton):hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .table-items {

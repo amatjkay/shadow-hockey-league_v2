@@ -84,14 +84,36 @@
   background-clip: border-box;
   -webkit-background-clip: border-box;
   -webkit-text-fill-color: var(--shl-cyan-500);
-  transition: all 0.3s ease;
+  transition:
+    background-color 220ms var(--shl-ease-out),
+    border-color 220ms var(--shl-ease-out),
+    color 220ms var(--shl-ease-out),
+    transform 260ms var(--shl-spring-ease),
+    box-shadow 260ms var(--shl-ease-out);
 }
 
 .desktop-nav-link:hover {
   background: var(--shl-cyan-tint-20);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   color: var(--shl-ink-on-dark);
   -webkit-text-fill-color: var(--shl-ink-on-dark);
+  border-color: var(--shl-cyan-500);
+  box-shadow: var(--shl-neon-glow-magenta);
+}
+
+.desktop-nav-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-nav-link {
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  .desktop-nav-link:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 /* Footer */

@@ -115,6 +115,48 @@
   /* Body background — pluggable so light theme can swap it without
      restating the body { background-image } rule. */
   --shl-body-bg: url("../img/background2.jpg");
+
+  /* === Modern polish v1 (2026 best practices) ================
+     New tokens for glassmorphism, neon-glow, spring micro-interactions,
+     animated gradient, focus-visible. Theme-aware values are
+     overridden in `:root[data-theme="light"]` below. */
+
+  /* Spring easing — overshoots slightly (modern feel without library). */
+  --shl-spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --shl-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Glass surfaces — translucent layer that reads as "frosted" against
+     blurred page bg. Two flavors: subtle (rows) + heavier (cards). */
+  --shl-glass-subtle: rgba(42, 15, 74, 0.45);
+  --shl-glass-elev: rgba(42, 15, 74, 0.65);
+  --shl-glass-blur: 14px;
+  --shl-glass-border: rgba(195, 35, 224, 0.18);
+
+  /* Neon-glow box-shadow recipes — magenta + cyan layered. */
+  --shl-neon-glow-magenta:
+    0 0 0 1px rgba(195, 35, 224, 0.55),
+    0 0 18px rgba(195, 35, 224, 0.45),
+    0 4px 28px rgba(195, 35, 224, 0.18);
+  --shl-neon-glow-cyan:
+    0 0 0 1px rgba(65, 186, 248, 0.55),
+    0 0 18px rgba(65, 186, 248, 0.4),
+    0 4px 28px rgba(65, 186, 248, 0.16);
+  --shl-neon-glow-soft:
+    0 0 12px rgba(195, 35, 224, 0.25),
+    0 0 24px rgba(65, 186, 248, 0.15);
+
+  /* Focus ring — AA-compliant, visible against both themes. */
+  --shl-focus-ring: 0 0 0 3px rgba(195, 35, 224, 0.55);
+  --shl-focus-outline-color: #c323e0;
+}
+
+/* Native UA scrollbars + form controls auto-adapt to theme. */
+:root {
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) { color-scheme: light; }
 }
 
 /* === Light theme overrides ====================================

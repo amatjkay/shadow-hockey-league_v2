@@ -62,10 +62,26 @@ function shlApplyTheme(theme) {
 
 document.addEventListener('DOMContentLoaded', function() {
     shlApplyTheme(shlGetCurrentTheme());
+    // Polish v1: animate the theme swap with the View Transitions API
+    // where supported (Chrome 111+, Edge, Safari TP). The API freezes
+    // the page, applies the swap, and cross-fades to the new state. On
+    // browsers without support OR under prefers-reduced-motion we fall
+    // back to an instant swap (the existing behaviour).
+    const reduceMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const next = shlGetCurrentTheme() === 'light' ? 'dark' : 'light';
-            shlApplyTheme(next);
+            if (
+                !reduceMotion &&
+                typeof document.startViewTransition === 'function'
+            ) {
+                document.startViewTransition(function () {
+                    shlApplyTheme(next);
+                });
+            } else {
+                shlApplyTheme(next);
+            }
         });
     });
 

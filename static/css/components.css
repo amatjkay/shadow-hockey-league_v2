@@ -19,28 +19,29 @@
   line-height: 1;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.15s ease,
-    box-shadow 0.2s ease;
+    background-color 220ms var(--shl-ease-out),
+    border-color 220ms var(--shl-ease-out),
+    transform 220ms var(--shl-spring-ease),
+    box-shadow 240ms var(--shl-ease-out);
   flex-shrink: 0;
   margin-left: auto;
 }
 
+/* Polish v1: neon-glow ring on hover (magenta + cyan layered). */
 .theme-toggle:hover {
   background: var(--shl-cyan-tint-25);
   border-color: var(--shl-cyan-500);
-  transform: scale(1.06);
-  box-shadow: 0 0 12px var(--shl-cyan-tint-40);
+  transform: scale(1.08);
+  box-shadow: var(--shl-neon-glow-magenta);
 }
 
 .theme-toggle:focus-visible {
-  outline: 2px solid var(--shl-cyan-500);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
 }
 
 .theme-toggle:active {
-  transform: scale(0.98);
+  transform: scale(0.94);
 }
 
 .theme-toggle__icon {

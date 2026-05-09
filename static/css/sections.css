@@ -1,6 +1,35 @@
 /* Page sections and layout */
+/* Animated synthwave-rainbow gradient on the page title (polish v1).
+   Magenta → cyan → violet → magenta sweeps under clipped text every
+   8 s. Reduced motion freezes on a single stop. */
+@keyframes shl-title-gradient {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
 .page-title {
   margin-bottom: 0.25rem;
+  background-image: linear-gradient(
+    90deg,
+    var(--shl-magenta-500) 0%,
+    var(--shl-cyan-secondary-500) 25%,
+    var(--shl-violet-300) 50%,
+    var(--shl-magenta-500) 75%,
+    var(--shl-cyan-secondary-500) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shl-title-gradient 8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-title {
+    animation: none;
+    background-position: 0% 50%;
+  }
 }
 
 .page-section {
@@ -29,8 +58,12 @@
   line-height: 1.45;
 }
 
-/* Season filter bar — themed to match header / tooltip / desktop-nav */
+/* Season filter bar — themed to match header / tooltip / desktop-nav.
+   Glassmorphism (polish v1): heavier backdrop-blur + frosted glass
+   surface + 1px magenta inner ring, container-query aware. */
 .filters-bar {
+  container-type: inline-size;
+  container-name: filters;
   margin: 0 auto 24px;
   padding: 14px 18px;
   display: flex;
@@ -39,11 +72,22 @@
   justify-content: center;
   width: fit-content;
   max-width: 420px;
-  background: var(--shl-bg-deepblue-55);
-  border: 1px solid var(--shl-cyan-tint-25);
+  background: var(--shl-glass-subtle);
+  border: 1px solid var(--shl-glass-border);
   border-radius: var(--shl-radius-pill);
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 18px var(--shl-bg-deepblue-35);
+  backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  box-shadow:
+    0 4px 18px var(--shl-bg-deepblue-35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Container query: when the filter container is narrow, drop label
+   into a column above the tabs so a long row doesn't clip. */
+@container filters (max-width: 480px) {
+  .filters-bar--tabs {
+    flex-wrap: wrap;
+  }
 }
 
 /* Tabs variant: wider, allows the radio group to expand horizontally
@@ -174,30 +218,36 @@
   cursor: pointer;
   user-select: none;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.2s ease,
-    transform 0.1s ease;
+    background-color 220ms var(--shl-ease-out),
+    border-color 220ms var(--shl-ease-out),
+    color 220ms var(--shl-ease-out),
+    box-shadow 240ms var(--shl-ease-out),
+    transform 220ms var(--shl-spring-ease);
 }
 
 .season-tabs__tab:hover {
   background: var(--shl-cyan-tint-15);
   border-color: var(--shl-cyan-500);
+  transform: translateY(-1px);
+  box-shadow: var(--shl-neon-glow-soft);
 }
 
-/* Active tab — filled magenta primary with subtle glow. */
+.season-tabs__tab:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Active tab — filled magenta primary with neon-glow. */
 .season-tabs__input:checked + .season-tabs__tab {
   background: var(--shl-cyan-500);
   border-color: var(--shl-cyan-500);
   color: var(--shl-ink-on-dark);
-  box-shadow: 0 0 18px var(--shl-cyan-tint-50);
+  box-shadow: var(--shl-neon-glow-magenta);
 }
 
 /* Keyboard focus ring on the visible label. */
 .season-tabs__input:focus-visible + .season-tabs__tab {
-  outline: 2px solid var(--shl-cyan-500);
-  outline-offset: 3px;
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
 }
 
 .season-tabs__caption {
@@ -225,7 +275,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .season-tabs__tab {
-    transition: none;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  .season-tabs__tab:hover,
+  .season-tabs__tab:active {
+    transform: none;
+    box-shadow: none;
   }
   .season-tabs {
     scroll-behavior: auto;
