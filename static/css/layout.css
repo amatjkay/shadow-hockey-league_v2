@@ -1,13 +1,48 @@
 /* Header and Footer styles */
+/* Header is sticky on desktop (TIK-84 step 4): stays pinned at top
+   on scroll, gains a subtle drop-shadow once a sentinel below it
+   leaves the viewport. backdrop-filter blurs the page content
+   showing through the gradient's lower (transparent) edge. */
 .header {
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
   margin-bottom: 30px;
-  background: linear-gradient(180deg, var(--shl-bg-deep-80), transparent);
+  background: linear-gradient(
+    180deg,
+    var(--shl-bg-deep-95) 0%,
+    var(--shl-bg-deep-80) 60%,
+    transparent 100%
+  );
   border-bottom: 1px solid var(--shl-skyblue-tint-20);
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: box-shadow 0.25s ease;
+}
+
+.header.is-scrolled {
+  box-shadow: 0 4px 24px var(--shl-cyan-tint-30);
+  border-bottom-color: var(--shl-cyan-tint-40);
+}
+
+/* Sentinel placed immediately after the header. IntersectionObserver
+   toggles `.is-scrolled` on the header when this element leaves the
+   viewport (i.e., when the user has scrolled past the header height). */
+.header-sentinel {
+  height: 1px;
+  margin-top: -30px; /* offset .header's mb so vertical rhythm is unchanged */
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
+  }
 }
 
 .header-items {
