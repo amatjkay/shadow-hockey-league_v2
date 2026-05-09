@@ -132,6 +132,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Sticky-nav scroll-shadow (TIK-84 step 4 follow-up).
+    // The CSS rule `.header.is-scrolled` adds a soft drop-shadow once the
+    // user scrolls past the header. We toggle the class via an
+    // IntersectionObserver watching a 1px sentinel placed immediately
+    // below the sticky header. When the sentinel leaves the viewport,
+    // the user has scrolled past the header. IO is no-op'd when the
+    // browser doesn't support it.
+    const header = document.querySelector('.header');
+    const sentinel = document.querySelector('.header-sentinel');
+    if (header && sentinel && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                header.classList.toggle('is-scrolled', !entry.isIntersecting);
+            });
+        }, { threshold: 0 });
+        io.observe(sentinel);
+    }
+
     // Center the active tab horizontally in its scroll container so the
     // user can immediately see which season is selected (mobile bias).
     if (seasonTabs) {
