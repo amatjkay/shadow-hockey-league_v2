@@ -3,10 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shadow Hockey League</title>
+    <meta name="theme-color" content="#070423" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fbf7ff" media="(prefers-color-scheme: light)" />
+    <title>Shadow Hockey League — рейтинг лиги</title>
     <meta
       name="description"
-      content="Shadow Hockey League — рейтинг менеджеров хоккейной лиги"
+      content="Shadow Hockey League: рейтинг менеджеров и клубов, кубки, формула очков и история сезонов."
+    />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Shadow Hockey League" />
+    <meta
+      property="og:description"
+      content="Рейтинг менеджеров, кубки и история сезонов SHL."
+    />
+    <meta
+      property="og:image"
+      content="{{ url_for('static', filename='img/logo.png', _external=True) }}"
+    />
+    <meta property="og:locale" content="ru_RU" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Shadow Hockey League" />
+    <meta
+      name="twitter:description"
+      content="Рейтинг менеджеров, кубки и история сезонов SHL."
     />
     <link
       rel="icon"
@@ -81,12 +101,18 @@
             <img
               src="{{ url_for('static', filename='img/social/telegram.png') }}"
               alt="Telegram"
+              width="40"
+              height="40"
+              decoding="async"
             />
           </a>
           <img
             src="{{ url_for('static', filename='img/logo.png') }}"
             alt="Логотип"
             class="img-fluid"
+            width="167"
+            height="40"
+            decoding="async"
           />
           <button
             type="button"
@@ -130,12 +156,20 @@
               <img
                 src="{{ url_for('static', filename='img/social/telegram.png') }}"
                 alt="Telegram"
+                width="35"
+                height="35"
+                loading="lazy"
+                decoding="async"
               />
             </a>
             <img
               src="{{ url_for('static', filename='img/logo.png') }}"
               alt="Логотип"
               class="img-fluid"
+              width="146"
+              height="35"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <div class="mobile-menu-actions">
@@ -299,6 +333,10 @@
                     src="{{ row.country }}"
                     alt="{{ row.country_code }}"
                     class="table-row__countries"
+                    width="30"
+                    height="30"
+                    loading="lazy"
+                    decoding="async"
                     onerror="this.src='https://flagcdn.com/w40/un.png'"
                   />
                   <span class="manager-name">{{ row.display_name }}</span>
