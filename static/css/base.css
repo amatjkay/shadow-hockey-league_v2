@@ -1,35 +1,71 @@
-/* Design tokens — single source of truth for colors, spacing, typography. */
+/* Design tokens — single source of truth for colors, spacing, typography.
+   Synthwave-brand palette (TIK-84) — sampled from the SHL logo via PIL
+   (top 1 % by S × V in each hue bucket on a 256 × 256 downsample).
+   Magenta is primary, cyan is secondary, violet/indigo build the bg
+   gradient, sunset+pink supply highlights.
+   ----------------------------------------------------------------------
+   Strategy: legacy `--shl-cyan-*` and `--shl-skyblue-tint-*` token
+   NAMES are kept (they fill the "primary brand" role across 8 other
+   CSS files) but their VALUES are retuned to magenta / cyan-secondary
+   so the visual swap propagates without rewriting downstream files.
+*/
 :root {
-  /* Brand cyan family. */
-  --shl-cyan-500: #00a6ff;          /* primary brand, on dark surfaces */
-  --shl-cyan-700: #0077b6;          /* primary on light surfaces (AA contrast) */
-  --shl-cyan-200: skyblue;          /* keyword resolves to #87ceeb */
-  --shl-cyan-100: #cde9ff;          /* labels on dark */
+  /* === Canonical synthwave palette =========================== */
 
-  /* Cyan tints (rgba 0,166,255 with alpha). */
-  --shl-cyan-tint-06: rgba(0, 166, 255, 0.06);
-  --shl-cyan-tint-08: rgba(0, 166, 255, 0.08);
-  --shl-cyan-tint-10: rgba(0, 166, 255, 0.10);
-  --shl-cyan-tint-15: rgba(0, 166, 255, 0.15);
-  --shl-cyan-tint-20: rgba(0, 166, 255, 0.20);
-  --shl-cyan-tint-25: rgba(0, 166, 255, 0.25);
-  --shl-cyan-tint-30: rgba(0, 166, 255, 0.30);
-  --shl-cyan-tint-40: rgba(0, 166, 255, 0.40);
-  --shl-cyan-tint-45: rgba(0, 166, 255, 0.45);
-  --shl-cyan-tint-50: rgba(0, 166, 255, 0.50);
-  --shl-cyan-tint-70: rgba(0, 166, 255, 0.70);
+  /* Magenta — primary neon (sampled #C323E0). */
+  --shl-magenta-500: #c323e0;       /* primary brand on dark */
+  --shl-magenta-300: #e069f4;       /* hover / glow */
+  --shl-magenta-100: #f5c7fb;       /* labels on dark */
+  --shl-magenta-700: #8e18a6;       /* deep — body-link AA on light surfaces */
 
-  /* Skyblue tints (rgba 135,206,235 with alpha). */
-  --shl-skyblue-tint-12: rgba(135, 206, 235, 0.12);
-  --shl-skyblue-tint-15: rgba(135, 206, 235, 0.15);
-  --shl-skyblue-tint-20: rgba(135, 206, 235, 0.20);
-  --shl-skyblue-tint-25: rgba(135, 206, 235, 0.25);
-  --shl-skyblue-tint-30: rgba(135, 206, 235, 0.30);
-  --shl-skyblue-tint-40: rgba(135, 206, 235, 0.40);
-  --shl-skyblue-tint-50: rgba(135, 206, 235, 0.50);
-  --shl-skyblue-tint-60: rgba(135, 206, 235, 0.60);
+  /* Cyan — secondary neon (sampled #41BAF8). */
+  --shl-cyan-secondary-500: #41baf8;
+  --shl-cyan-secondary-300: #7ad0fb;
+  --shl-cyan-secondary-700: #0079b8;  /* AA on light surfaces */
 
-  /* Surfaces — translucent whites for cards/panels on dark bg. */
+  /* Violet / indigo — tertiary, mid bg gradient stops. */
+  --shl-violet-500: #9339cc;
+  --shl-violet-300: #b66be0;
+  --shl-violet-700: #5b247e;
+  --shl-indigo-500: #6d33b4;
+
+  /* Sunset / pink — highlights for top-3 hints, glow accents. */
+  --shl-sunset-500: #feae48;
+  --shl-pink-500: #fa7f63;
+
+  /* === Legacy `--shl-cyan-*` aliases (point at magenta primary).
+     These names date back to PR #86; renaming would touch 8 CSS files.
+     Step 1 keeps the names; follow-up may rename to --shl-primary-*. */
+  --shl-cyan-500: var(--shl-magenta-500);   /* was #00a6ff */
+  --shl-cyan-700: var(--shl-magenta-700);   /* was #0077b6 (AA) */
+  --shl-cyan-200: var(--shl-magenta-300);   /* was skyblue */
+  --shl-cyan-100: var(--shl-magenta-100);   /* was #cde9ff */
+
+  /* Legacy "cyan tints" — retuned to magenta tints (rgba 195,35,224). */
+  --shl-cyan-tint-06: rgba(195, 35, 224, 0.06);
+  --shl-cyan-tint-08: rgba(195, 35, 224, 0.08);
+  --shl-cyan-tint-10: rgba(195, 35, 224, 0.10);
+  --shl-cyan-tint-15: rgba(195, 35, 224, 0.15);
+  --shl-cyan-tint-20: rgba(195, 35, 224, 0.20);
+  --shl-cyan-tint-25: rgba(195, 35, 224, 0.25);
+  --shl-cyan-tint-30: rgba(195, 35, 224, 0.30);
+  --shl-cyan-tint-40: rgba(195, 35, 224, 0.40);
+  --shl-cyan-tint-45: rgba(195, 35, 224, 0.45);
+  --shl-cyan-tint-50: rgba(195, 35, 224, 0.50);
+  --shl-cyan-tint-70: rgba(195, 35, 224, 0.70);
+
+  /* Legacy "skyblue tints" — retuned to cyan-secondary (rgba 65,186,248). */
+  --shl-skyblue-tint-12: rgba(65, 186, 248, 0.12);
+  --shl-skyblue-tint-15: rgba(65, 186, 248, 0.15);
+  --shl-skyblue-tint-20: rgba(65, 186, 248, 0.20);
+  --shl-skyblue-tint-25: rgba(65, 186, 248, 0.25);
+  --shl-skyblue-tint-30: rgba(65, 186, 248, 0.30);
+  --shl-skyblue-tint-40: rgba(65, 186, 248, 0.40);
+  --shl-skyblue-tint-50: rgba(65, 186, 248, 0.50);
+  --shl-skyblue-tint-60: rgba(65, 186, 248, 0.60);
+
+  /* Surfaces — translucent whites for cards/panels (kept). On synthwave
+     bg these read as soft frosted-glass rather than pure white. */
   --shl-surface-25: rgba(255, 255, 255, 0.25);
   --shl-surface-30: rgba(255, 255, 255, 0.30);
   --shl-surface-35: rgba(255, 255, 255, 0.35);
@@ -39,26 +75,26 @@
   --shl-surface-90: rgba(255, 255, 255, 0.90);
   --shl-surface-95: rgba(255, 255, 255, 0.95);
 
-  /* Deep navy backdrops (rgba 0,20,40). */
-  --shl-bg-deep-50: rgba(0, 20, 40, 0.50);
-  --shl-bg-deep-70: rgba(0, 20, 40, 0.70);
-  --shl-bg-deep-80: rgba(0, 20, 40, 0.80);
-  --shl-bg-deep-95: rgba(0, 20, 40, 0.95);
-  --shl-bg-deep-solid: #001428;
+  /* Deep page backgrounds (rgba 7,4,35 — sampled from logo corners). */
+  --shl-bg-deep-50: rgba(7, 4, 35, 0.50);
+  --shl-bg-deep-70: rgba(7, 4, 35, 0.70);
+  --shl-bg-deep-80: rgba(7, 4, 35, 0.80);
+  --shl-bg-deep-95: rgba(7, 4, 35, 0.95);
+  --shl-bg-deep-solid: #070423;
 
-  /* Lighter deep-blue tints (rgba 0,30,60) for filter bars / hover. */
-  --shl-bg-deepblue-35: rgba(0, 30, 60, 0.35);
-  --shl-bg-deepblue-50: rgba(0, 30, 60, 0.50);
-  --shl-bg-deepblue-55: rgba(0, 30, 60, 0.55);
-  --shl-bg-deepblue-85: rgba(0, 30, 60, 0.85);
+  /* Mid-violet surfaces (rgba 42,15,74) — filter bars, hovers, headers. */
+  --shl-bg-deepblue-35: rgba(42, 15, 74, 0.35);
+  --shl-bg-deepblue-50: rgba(42, 15, 74, 0.50);
+  --shl-bg-deepblue-55: rgba(42, 15, 74, 0.55);
+  --shl-bg-deepblue-85: rgba(42, 15, 74, 0.85);
 
-  /* Footer mid stop. */
-  --shl-bg-footer-mid: rgba(9, 35, 80, 0.85);
+  /* Footer mid-stop (deeper violet). */
+  --shl-bg-footer-mid: rgba(35, 7, 70, 0.85);
 
   /* Misc neutrals. */
   --shl-bg-mid-13: rgba(99, 100, 100, 0.13);
 
-  /* Ink. */
+  /* Ink (kept dark — used on translucent-white cards). */
   --shl-ink: #282828;
   --shl-ink-soft: #333;
   --shl-ink-muted: #555;
