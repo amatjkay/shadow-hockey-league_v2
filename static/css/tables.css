@@ -119,6 +119,82 @@
   }
 }
 
+/* === Loading skeletons (TIK-84 step 6) =============================
+   Injected into <tbody> by JS while the user navigates between
+   seasons; replaced by real rows once the next page loads. The
+   shimmer sweeps a magenta→cyan→magenta gradient across each bar
+   to telegraph "data is on the way". Reduced motion: static fade. */
+.table-row--skeleton {
+  pointer-events: none;
+}
+
+.table-row--skeleton .table-items {
+  border: 1px solid var(--shl-cyan-tint-15);
+}
+
+.skeleton {
+  display: inline-block;
+  height: 14px;
+  width: 60%;
+  border-radius: var(--shl-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--shl-cyan-tint-15) 0%,
+    var(--shl-cyan-tint-30) 25%,
+    var(--shl-skyblue-tint-30) 50%,
+    var(--shl-cyan-tint-30) 75%,
+    var(--shl-cyan-tint-15) 100%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 110% 0;
+  }
+  100% {
+    background-position: -110% 0;
+  }
+}
+
+.skeleton--rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.skeleton--score {
+  width: 50%;
+}
+
+.skeleton--avatar {
+  width: 26px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+.skeleton--name {
+  width: 55%;
+}
+
+.skeleton--cups {
+  width: 75%;
+  height: 18px;
+}
+
+.skeleton--breakdown {
+  width: 40%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--shl-cyan-tint-20);
+  }
+}
+
 /* League table specific column widths (5 columns: Place, Points, Participant, Achievements, Calc) */
 .league-table .table-header:nth-child(1) {
   width: 7%;

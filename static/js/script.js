@@ -1,3 +1,29 @@
+// === Loading skeleton (TIK-84 step 6) =================================
+// Replaces the league-table <tbody> with N placeholder rows that share
+// the column shape (rank / score / participant / cups / breakdown) and
+// shimmer with a magenta→cyan gradient. CSS handles the animation; JS
+// only injects the markup. Safe under prefers-reduced-motion (CSS
+// neutralises the keyframes).
+function showLeaderboardSkeleton(rowCount) {
+    const tbody = document.querySelector('.league-table tbody');
+    if (!tbody) return;
+    const rowHtml =
+        '<tr class="table-row table-row--skeleton" aria-hidden="true">' +
+        '<td class="table-items rank-cell">' +
+        '<span class="skeleton skeleton--rank"></span></td>' +
+        '<td class="table-items score-cell">' +
+        '<span class="skeleton skeleton--score"></span></td>' +
+        '<td class="table-items manager-cell">' +
+        '<span class="skeleton skeleton--avatar"></span>' +
+        '<span class="skeleton skeleton--name"></span></td>' +
+        '<td class="table-items league-cups-cell">' +
+        '<span class="skeleton skeleton--cups"></span></td>' +
+        '<td class="table-items rating-breakdown-cell">' +
+        '<span class="skeleton skeleton--breakdown"></span></td>' +
+        '</tr>';
+    tbody.innerHTML = new Array(rowCount).fill(rowHtml).join('');
+}
+
 // === Theme toggle (TIK-84) ============================================
 // Toggles `<html data-theme>` between "light" and "dark", persists to
 // localStorage('shl-theme'). Multiple toggle buttons may exist (desktop
@@ -92,12 +118,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Season tabs (TIK-84 step 5). Replaces the previous <select> with a
     // radio-group; selecting a tab navigates to ?season=N (or `/` for
-    // Lifetime). The loading overlay is toggled while the new page loads.
+    // Lifetime). On click we replace the table body with skeleton rows
+    // so users get instant visual feedback before the new page paints.
     const seasonTabs = document.querySelector('[data-season-tabs]');
     document.querySelectorAll('[data-season-radio]').forEach(function (radio) {
         radio.addEventListener('change', function () {
             if (!radio.checked) return;
             document.body.classList.add('is-loading');
+            showLeaderboardSkeleton(10);
             window.location.href = radio.value
                 ? '/?season=' + encodeURIComponent(radio.value)
                 : '/';

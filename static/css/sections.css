@@ -243,7 +243,11 @@
   }
 }
 
-/* Loading overlay (toggled by JS when navigating to a different season) */
+/* Loading dim (toggled by JS during season-filter navigation).
+   Skeleton rows are injected into the league-table <tbody> at the same
+   time, providing the primary "loading" feedback (TIK-84 step 6). The
+   spinner that previously sat at center has been removed since the
+   skeleton shimmer carries the same affordance. */
 .is-loading::after {
   content: '';
   position: fixed;
@@ -253,25 +257,11 @@
   bottom: 0;
   background: var(--shl-bg-deep-50);
   z-index: 9999;
+  pointer-events: none;
 }
 
-.is-loading::before {
-  content: '';
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 40px;
-  height: 40px;
-  margin: -20px 0 0 -20px;
-  border: 3px solid var(--shl-cyan-tint-30);
-  border-top-color: var(--shl-cyan-500);
-  border-radius: 50%;
-  animation: filters-bar-spin 0.8s linear infinite;
-  z-index: 10000;
-}
-
-@keyframes filters-bar-spin {
-  to {
-    transform: rotate(360deg);
+@media (prefers-reduced-motion: reduce) {
+  .is-loading::after {
+    background: var(--shl-bg-deep-70);
   }
 }
