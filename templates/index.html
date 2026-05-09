@@ -184,18 +184,43 @@
       >
         <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
 
-        <div class="filters-bar">
-          <label for="season-filter" class="filters-bar__label">Сезон:</label>
-          <select
-            id="season-filter"
-            class="form-control filters-bar__select"
+        <div class="filters-bar filters-bar--tabs">
+          <span class="filters-bar__label" id="season-filter-label">Сезон:</span>
+          <div
+            class="season-tabs"
+            role="radiogroup"
+            aria-labelledby="season-filter-label"
             aria-controls="league-table-container"
+            data-season-tabs
           >
-            <option value="" {% if not selected_season_id %}selected{% endif %}>Все сезоны (Lifetime)</option>
+            <input
+              type="radio"
+              id="season-tab-all"
+              name="season-filter"
+              value=""
+              class="season-tabs__input"
+              data-season-radio
+              {% if not selected_season_id %}checked{% endif %}
+            />
+            <label for="season-tab-all" class="season-tabs__tab">
+              <span class="season-tabs__caption">Все сезоны</span>
+            </label>
             {% for s in seasons %}
-              <option value="{{ s.id }}" {% if selected_season_id == s.id %}selected{% endif %}>Сезон {{ s.code }}{% if s.is_active %} (Базовый){% endif %}</option>
+            <input
+              type="radio"
+              id="season-tab-{{ s.id }}"
+              name="season-filter"
+              value="{{ s.id }}"
+              class="season-tabs__input"
+              data-season-radio
+              {% if selected_season_id == s.id %}checked{% endif %}
+            />
+            <label for="season-tab-{{ s.id }}" class="season-tabs__tab">
+              <span class="season-tabs__caption">Сезон {{ s.code }}</span>
+              {% if s.is_active %}<span class="season-tabs__badge">базовый</span>{% endif %}
+            </label>
             {% endfor %}
-          </select>
+          </div>
         </div>
 
         {% if not rating_rows %}

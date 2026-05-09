@@ -90,14 +90,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Loading indicator on season filter change (T11/TIK-66).
-    // Replaces the previous inline `onchange` so we can show a spinner
-    // overlay while the page reloads with the new query string.
-    const seasonFilter = document.getElementById('season-filter');
-    if (seasonFilter) {
-        seasonFilter.addEventListener('change', function() {
+    // Season tabs (TIK-84 step 5). Replaces the previous <select> with a
+    // radio-group; selecting a tab navigates to ?season=N (or `/` for
+    // Lifetime). The loading overlay is toggled while the new page loads.
+    const seasonTabs = document.querySelector('[data-season-tabs]');
+    document.querySelectorAll('[data-season-radio]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (!radio.checked) return;
             document.body.classList.add('is-loading');
-            window.location.href = '/?season=' + this.value;
+            window.location.href = radio.value
+                ? '/?season=' + encodeURIComponent(radio.value)
+                : '/';
+        });
+    });
+
+    // Center the active tab horizontally in its scroll container so the
+    // user can immediately see which season is selected (mobile bias).
+    if (seasonTabs) {
+        requestAnimationFrame(function () {
+            const checked = seasonTabs.querySelector('input:checked');
+            if (!checked) return;
+            const label = seasonTabs.querySelector(
+                'label[for="' + checked.id + '"]'
+            );
+            if (!label) return;
+            const offset =
+                label.offsetLeft +
+                label.offsetWidth / 2 -
+                seasonTabs.clientWidth / 2;
+            seasonTabs.scrollTo({ left: Math.max(0, offset), behavior: 'auto' });
         });
     }
 });

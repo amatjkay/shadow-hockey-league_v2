@@ -46,6 +46,16 @@
   box-shadow: 0 4px 18px var(--shl-bg-deepblue-35);
 }
 
+/* Tabs variant: wider, allows the radio group to expand horizontally
+   and scroll on overflow. The pill rounding is preserved for a few
+   tabs but stretched for many. */
+.filters-bar--tabs {
+  max-width: min(960px, 100%);
+  flex-wrap: nowrap;
+  border-radius: var(--shl-radius-lg);
+  padding: 10px 14px;
+}
+
 .filters-bar__label {
   font-weight: 600;
   color: var(--shl-cyan-100);
@@ -96,6 +106,141 @@
 .filters-bar__select option {
   background: var(--shl-bg-deep-solid);
   color: var(--shl-ink-on-dark);
+}
+
+/* === Season tabs (TIK-84 step 5) ===================================
+   Replaces the legacy <select>. Visual: pill row with magenta-filled
+   active state, scroll-snap horizontal scroll on overflow (mobile).
+   Hidden radio inputs preserve full keyboard / a11y semantics
+   (Tab to enter group, arrow keys move between options). */
+.season-tabs {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--shl-cyan-tint-30) transparent;
+  padding: 4px 2px;
+  margin: 0;
+  border: 0;
+}
+
+.season-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+.season-tabs::-webkit-scrollbar-thumb {
+  background: var(--shl-cyan-tint-30);
+  border-radius: 3px;
+}
+.season-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Native radio inputs are pulled out of flex flow so labels lay out
+   as the visible tabs. Inputs remain focusable for keyboard nav. */
+.season-tabs__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.season-tabs__tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--shl-cyan-tint-08);
+  border: 1px solid var(--shl-cyan-tint-30);
+  border-radius: var(--shl-radius-pill);
+  color: var(--shl-ink-on-dark);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  scroll-snap-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.2s ease,
+    transform 0.1s ease;
+}
+
+.season-tabs__tab:hover {
+  background: var(--shl-cyan-tint-15);
+  border-color: var(--shl-cyan-500);
+}
+
+/* Active tab — filled magenta primary with subtle glow. */
+.season-tabs__input:checked + .season-tabs__tab {
+  background: var(--shl-cyan-500);
+  border-color: var(--shl-cyan-500);
+  color: var(--shl-ink-on-dark);
+  box-shadow: 0 0 18px var(--shl-cyan-tint-50);
+}
+
+/* Keyboard focus ring on the visible label. */
+.season-tabs__input:focus-visible + .season-tabs__tab {
+  outline: 2px solid var(--shl-cyan-500);
+  outline-offset: 3px;
+}
+
+.season-tabs__caption {
+  display: inline-block;
+}
+
+.season-tabs__badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: var(--shl-radius-sm);
+  background: var(--shl-skyblue-tint-25);
+  color: var(--shl-cyan-secondary-300);
+  border: 1px solid var(--shl-skyblue-tint-40);
+}
+
+.season-tabs__input:checked + .season-tabs__tab .season-tabs__badge {
+  background: var(--shl-bg-deep-70);
+  color: var(--shl-ink-on-dark);
+  border-color: var(--shl-bg-deep-80);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-tabs__tab {
+    transition: none;
+  }
+  .season-tabs {
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .filters-bar--tabs {
+    width: calc(100% - 24px);
+    max-width: none;
+    padding: 8px 10px;
+  }
+  .filters-bar--tabs .filters-bar__label {
+    flex-shrink: 0;
+  }
 }
 
 /* Loading overlay (toggled by JS when navigating to a different season) */
