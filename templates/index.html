@@ -13,6 +13,23 @@
       type="image/png"
       href="{{ url_for('static', filename='img/logo.png') }}"
     />
+    <script>
+      /* FOUC-fix: apply persisted theme before first paint (TIK-84).
+         Reads localStorage('shl-theme'); when set, mirrors the value
+         on `<html data-theme>` so CSS can pick the matching token
+         bundle synchronously. When absent, CSS falls back to
+         `prefers-color-scheme`. */
+      (function () {
+        try {
+          var t = localStorage.getItem("shl-theme");
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+        } catch (e) {
+          /* localStorage unavailable (private mode) — ignore. */
+        }
+      })();
+    </script>
     <!-- CSS Modules -->
     <link
       rel="stylesheet"
@@ -71,6 +88,15 @@
             alt="Логотип"
             class="img-fluid"
           />
+          <button
+            type="button"
+            class="theme-toggle"
+            data-theme-toggle
+            aria-label="Переключить тему"
+            aria-pressed="false"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true">☀</span>
+          </button>
           {% if current_user.is_authenticated %}
           <nav class="desktop-nav">
             <a
@@ -110,6 +136,18 @@
               alt="Логотип"
               class="img-fluid"
             />
+          </div>
+          <div class="mobile-menu-actions">
+            <button
+              type="button"
+              class="theme-toggle theme-toggle--mobile"
+              data-theme-toggle
+              aria-label="Переключить тему"
+              aria-pressed="false"
+            >
+              <span class="theme-toggle__icon" aria-hidden="true">☀</span>
+              <span class="theme-toggle__label">Тема</span>
+            </button>
           </div>
           {% if current_user.is_authenticated %}
           <nav class="mobile-menu-nav">

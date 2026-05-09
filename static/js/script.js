@@ -1,4 +1,48 @@
+// === Theme toggle (TIK-84) ============================================
+// Toggles `<html data-theme>` between "light" and "dark", persists to
+// localStorage('shl-theme'). Multiple toggle buttons may exist (desktop
+// header + mobile menu); they stay in sync through the data-theme attr.
+function shlGetCurrentTheme() {
+    const dt = document.documentElement.getAttribute('data-theme');
+    if (dt === 'light' || dt === 'dark') return dt;
+    return window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: light)').matches
+        ? 'light'
+        : 'dark';
+}
+
+function shlApplyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+        localStorage.setItem('shl-theme', theme);
+    } catch (e) {
+        /* ignore */
+    }
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
+        const isLight = theme === 'light';
+        btn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+        btn.setAttribute(
+            'aria-label',
+            isLight ? 'Включить тёмную тему' : 'Включить светлую тему'
+        );
+        const icon = btn.querySelector('.theme-toggle__icon');
+        if (icon) {
+            // Light → show 🌙 (click to switch to dark);
+            // Dark → show ☀ (click to switch to light).
+            icon.textContent = isLight ? '🌙' : '☀';
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    shlApplyTheme(shlGetCurrentTheme());
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const next = shlGetCurrentTheme() === 'light' ? 'dark' : 'light';
+            shlApplyTheme(next);
+        });
+    });
+
     const menuButton = document.querySelector('.mobile-menu-button');
     const closeButton = document.querySelector('.close-button');
     const menuContent = document.querySelector('.mobile-menu-content');
