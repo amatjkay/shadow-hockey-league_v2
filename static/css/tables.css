@@ -1,11 +1,22 @@
-/* Table styles. */
+/* Table styles.
+
+   TIK-85: Replace the legacy heavy magenta grid with a clean modern
+   leaderboard chrome — only a hairline `--shl-cyan-tint-15` row
+   separator remains, the outer 3 px ring is replaced by a single 1 px
+   glass border + rounded corners. Cell padding is bumped slightly so
+   numbers/names breathe. The previous full-grid `1px solid magenta`
+   on every cell rendered as a "ghost grid" against the deep-purple
+   page background. */
 .table {
   width: 70%;
   margin: 0 auto;
   text-align: left;
   font-weight: bold;
-  border: 3px solid var(--shl-cyan-200);
-  border-collapse: collapse;
+  border: 1px solid var(--shl-glass-border);
+  border-radius: var(--shl-radius-lg);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
   background: linear-gradient(
     90deg,
     var(--shl-surface-50),
@@ -19,10 +30,16 @@
 }
 
 .table td, .table th {
-  padding: 10px;
-  border: 1px solid var(--shl-cyan-200);
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--shl-cyan-tint-15);
   text-align: left;
   vertical-align: middle;
+}
+
+/* Last row has no bottom border (the table's border-radius clips it). */
+.table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .table-header {
@@ -118,46 +135,35 @@
   box-shadow: inset 4px 0 0 #cd7f32;
 }
 
-/* Top-10 cyan-sheen animation. */
-@keyframes league-top10-sheen {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .rank-cell,
-.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
-.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-cell {
-  /* Synthwave rainbow sheen (TIK-84 step 8): magenta → violet → cyan
-     → magenta sweeps across the top-10 rows. Six-second cycle keeps
-     the effect calm; prefers-reduced-motion freezes it on a single
-     stop. */
-  background: linear-gradient(
-    270deg,
-    var(--shl-magenta-500) 0%,
-    var(--shl-violet-300) 33%,
-    var(--shl-cyan-secondary-500) 66%,
-    var(--shl-magenta-500) 100%
+/* === Top-10 row tint (TIK-85, replaces TIK-84 step 8) ==============
+   The previous version applied a moving rainbow `linear-gradient`
+   with `background-clip: text` to every <td> in the top-10. The
+   gradient was animated, which made the numbers and names visibly
+   shimmer between magenta / violet / cyan and dropped contrast below
+   AA. The clean replacement: a static, very-subtle horizontal tint
+   on the *row* that fades from magenta-08 on the left to cyan-08 on
+   the right, plus a thin magenta accent on the row's inline-start
+   edge (which the top-3 gold/silver/bronze rule overrides). Numbers
+   stay in the regular ink colour — readable at a glance. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) {
+  /* `--shl-cyan-tint-08` is aliased to a magenta-on-dark tint
+     (rgba(195,35,224,0.08)) per the synthwave token swap; pairing
+     it with `--shl-skyblue-tint-12` (true cyan rgba(65,186,248)) gives
+     a gentle magenta→cyan wash on the row background. */
+  background-image: linear-gradient(
+    90deg,
+    var(--shl-cyan-tint-08) 0%,
+    var(--shl-skyblue-tint-12) 100%
   );
-  background-size: 200% 200%;
-  background-attachment: fixed;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: league-top10-sheen 6s linear infinite;
-  text-transform: none;
-  text-shadow: none;
+  box-shadow: inset 2px 0 0 var(--shl-cyan-tint-25);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .rank-cell,
-  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
-  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-cell {
-    animation: none;
-  }
+/* Hover keeps the inset accent so it doesn't flicker on lift; the
+   `.table-row:hover` rule on top of this layers a soft glow. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10):hover {
+  box-shadow:
+    inset 2px 0 0 var(--shl-cyan-tint-25),
+    var(--shl-neon-glow-soft);
 }
 
 /* === Loading skeletons (TIK-84 step 6) =============================

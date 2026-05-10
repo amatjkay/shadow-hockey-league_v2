@@ -92,8 +92,17 @@
 
 /* Tabs variant: wider, allows the radio group to expand horizontally
    and scroll on overflow. The pill rounding is preserved for a few
-   tabs but stretched for many. */
+   tabs but stretched for many.
+
+   Override `.filters-bar`'s `width: fit-content` (which was sized for
+   the legacy `<select>` that had a fixed `min-width: 180px`). With the
+   tab variant the inner `.season-tabs` declares `min-width: 0;
+   overflow-x: auto`, so the parent's intrinsic min-content collapses
+   to ~30 px and the tabs vanish off-screen. Switching the modifier to
+   an explicit width (capped to viewport) keeps the bar full-row and
+   lets the tabs render in flow. */
 .filters-bar--tabs {
+  width: min(960px, 100%);
   max-width: min(960px, 100%);
   flex-wrap: nowrap;
   border-radius: var(--shl-radius-lg);
