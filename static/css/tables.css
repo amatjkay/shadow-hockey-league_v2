@@ -49,11 +49,30 @@
 
 .table-row {
   text-align: left;
-  transition: background-color 200ms ease;
+  transition:
+    background-color 220ms var(--shl-ease-out),
+    transform 260ms var(--shl-spring-ease),
+    box-shadow 240ms var(--shl-ease-out);
+  will-change: transform;
 }
 
-.league-table tbody .table-row:hover {
-  background-color: var(--shl-cyan-tint-06);
+/* Glassmorphism + neon-glow on hover (TIK-84 polish v1).
+   Subtle frosted-glass tint + magenta inner ring + soft outer glow.
+   Spring easing on transform for a "modern" overshoot on lift. */
+.league-table tbody .table-row:not(.table-row--skeleton):hover {
+  background-color: var(--shl-cyan-tint-08);
+  transform: translateY(-1px);
+  box-shadow: var(--shl-neon-glow-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-row {
+    transition: background-color 0ms;
+  }
+  .league-table tbody .table-row:not(.table-row--skeleton):hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .table-items {
@@ -82,6 +101,23 @@
   vertical-align: middle;
 }
 
+/* === Top-3 border hints (TIK-84 step 7) ============================
+   Gold (1st), silver (2nd), bronze (3rd) accent on the rank cell of
+   the first three rows. Uses inset box-shadow so it doesn't displace
+   the existing 1px table borders or shift column widths. Skeleton
+   rows opt out via .table-row--skeleton. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(1) .rank-cell {
+  box-shadow: inset 4px 0 0 var(--shl-sunset-500);
+}
+
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(2) .rank-cell {
+  box-shadow: inset 4px 0 0 #c0c0c0;
+}
+
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(3) .rank-cell {
+  box-shadow: inset 4px 0 0 #cd7f32;
+}
+
 /* Top-10 cyan-sheen animation. */
 @keyframes league-top10-sheen {
   0%, 100% {
@@ -92,14 +128,19 @@
   }
 }
 
-.league-table .table-row:nth-child(-n+10) .rank-cell,
-.league-table .table-row:nth-child(-n+10) .score-cell,
-.league-table .table-row:nth-child(-n+10) .manager-cell {
+.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .rank-cell,
+.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+.league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-cell {
+  /* Synthwave rainbow sheen (TIK-84 step 8): magenta → violet → cyan
+     → magenta sweeps across the top-10 rows. Six-second cycle keeps
+     the effect calm; prefers-reduced-motion freezes it on a single
+     stop. */
   background: linear-gradient(
     270deg,
-    var(--shl-cyan-500),
-    var(--shl-cyan-100),
-    var(--shl-cyan-500)
+    var(--shl-magenta-500) 0%,
+    var(--shl-violet-300) 33%,
+    var(--shl-cyan-secondary-500) 66%,
+    var(--shl-magenta-500) 100%
   );
   background-size: 200% 200%;
   background-attachment: fixed;
@@ -112,32 +153,102 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .league-table .table-row:nth-child(-n+10) .rank-cell,
-  .league-table .table-row:nth-child(-n+10) .score-cell,
-  .league-table .table-row:nth-child(-n+10) .manager-cell {
+  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .rank-cell,
+  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+  .league-table .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-cell {
     animation: none;
   }
 }
 
-/* League table specific column widths (5 columns: Place, Points, Participant, Achievements, Calc) */
+/* === Loading skeletons (TIK-84 step 6) =============================
+   Injected into <tbody> by JS while the user navigates between
+   seasons; replaced by real rows once the next page loads. The
+   shimmer sweeps a magenta→cyan→magenta gradient across each bar
+   to telegraph "data is on the way". Reduced motion: static fade. */
+.table-row--skeleton {
+  pointer-events: none;
+}
+
+.table-row--skeleton .table-items {
+  border: 1px solid var(--shl-cyan-tint-15);
+}
+
+.skeleton {
+  display: inline-block;
+  height: 14px;
+  width: 60%;
+  border-radius: var(--shl-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--shl-cyan-tint-15) 0%,
+    var(--shl-cyan-tint-30) 25%,
+    var(--shl-skyblue-tint-30) 50%,
+    var(--shl-cyan-tint-30) 75%,
+    var(--shl-cyan-tint-15) 100%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 110% 0;
+  }
+  100% {
+    background-position: -110% 0;
+  }
+}
+
+.skeleton--rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.skeleton--score {
+  width: 50%;
+}
+
+.skeleton--avatar {
+  width: 26px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+.skeleton--name {
+  width: 55%;
+}
+
+.skeleton--cups {
+  width: 75%;
+  height: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--shl-cyan-tint-20);
+  }
+}
+
+/* League table specific column widths (4 columns: Place, Points, Participant, Achievements).
+   The legacy 'Расчёт' column was replaced by a click-to-open drawer
+   (.breakdown-sheet) that shows a per-row breakdown card stack. */
 .league-table .table-header:nth-child(1) {
-  width: 7%;
+  width: 9%;
 }
 
 .league-table .table-header:nth-child(2) {
-  width: 7%;
+  width: 11%;
 }
 
 .league-table .table-header:nth-child(3) {
-  width: 20%;
+  width: 30%;
 }
 
 .league-table .table-header:nth-child(4) {
-  width: 36%;
-}
-
-.league-table .table-header:nth-child(5) {
-  width: 30%;
+  width: 50%;
 }
 
 .table-header--narrow {
@@ -158,11 +269,4 @@
 
 .league-cups-cell img {
   margin: 2px;
-}
-
-.rating-breakdown-cell {
-  white-space: normal;
-  text-align: left !important;
-  vertical-align: top;
-  max-width: 280px;
 }

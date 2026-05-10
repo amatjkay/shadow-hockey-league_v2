@@ -1,3 +1,105 @@
+/* === Theme toggle button (TIK-84) ===================================
+   Lives in the desktop header + mobile menu. Adopts magenta glow ring
+   in dark, magenta-700 (AA) in light. Icon (sun/moon) is swapped by JS
+   based on current theme so that pressing the button always switches
+   to the OPPOSITE mode. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--shl-cyan-tint-15);
+  color: var(--shl-ink-on-dark);
+  border: 1px solid var(--shl-cyan-tint-50);
+  border-radius: var(--shl-radius-pill);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 220ms var(--shl-ease-out),
+    border-color 220ms var(--shl-ease-out),
+    transform 220ms var(--shl-spring-ease),
+    box-shadow 240ms var(--shl-ease-out);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Polish v1: neon-glow ring on hover (magenta + cyan layered). */
+.theme-toggle:hover {
+  background: var(--shl-cyan-tint-25);
+  border-color: var(--shl-cyan-500);
+  transform: scale(1.08);
+  box-shadow: var(--shl-neon-glow-magenta);
+}
+
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
+}
+
+.theme-toggle:active {
+  transform: scale(0.94);
+}
+
+.theme-toggle__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle__label {
+  display: none;
+}
+
+/* Mobile variant: pill-shaped with text label inside the menu drawer. */
+.theme-toggle--mobile {
+  width: auto;
+  min-width: 120px;
+  height: 44px;
+  padding: 0 18px;
+  margin: 0 auto;
+  font-size: 0.95rem;
+}
+
+.theme-toggle--mobile .theme-toggle__label {
+  display: inline;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.mobile-menu-actions {
+  display: flex;
+  justify-content: center;
+  padding: 0 20px 16px;
+}
+
+/* Light theme: text/icon adopts dark ink so the button reads correctly
+   on the lavender body bg AND inside the dark header gradient. */
+:root[data-theme="light"] .theme-toggle {
+  /* Header keeps dark gradient even in light theme \u2014 icon stays white. */
+  color: var(--shl-ink-on-dark);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .theme-toggle {
+    color: var(--shl-ink-on-dark);
+  }
+}
+
+/* Reduced motion: skip transforms/scaling. */
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle {
+    transition: none;
+  }
+  .theme-toggle:hover,
+  .theme-toggle:active {
+    transform: none;
+  }
+}
+
 /* Rating breakdown and achievement components. */
 .achievement-label {
   display: block;
@@ -417,4 +519,321 @@
   -webkit-text-fill-color: var(--shl-cyan-500);
   background-clip: border-box;
   -webkit-background-clip: border-box;
+}
+
+/* === Breakdown sheet (TIK-84 polish v2) ===========================
+   Right-side drawer (desktop) / bottom sheet (mobile) that opens when
+   a leaderboard row is clicked. Replaces the inline `<details>Детали`
+   pattern with a dedicated panel showing rank pill, identity, total,
+   and a stack of merged achievement cards (icon + label + formula +
+   points). Glass surface, magenta/cyan accents, spring entry. */
+.league-table tbody .table-row[data-breakdown] {
+  cursor: pointer;
+}
+
+.league-table tbody .table-row[data-breakdown]:focus-visible {
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
+}
+
+.breakdown-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.breakdown-sheet[hidden] {
+  display: none;
+}
+
+.breakdown-sheet.is-visible {
+  pointer-events: auto;
+}
+
+.breakdown-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 4, 35, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 220ms var(--shl-ease-out);
+  cursor: pointer;
+}
+
+.breakdown-sheet.is-visible .breakdown-sheet__backdrop {
+  opacity: 1;
+}
+
+.breakdown-sheet__panel {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100vw);
+  height: 100vh;
+  background: var(--shl-glass-elev);
+  border-left: 1px solid var(--shl-glass-border);
+  backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  box-shadow: -12px 0 48px rgba(7, 4, 35, 0.55), var(--shl-neon-glow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 22px 26px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 320ms var(--shl-spring-ease);
+  outline: none;
+}
+
+.breakdown-sheet.is-visible .breakdown-sheet__panel {
+  transform: translateX(0);
+}
+
+.breakdown-sheet__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.breakdown-sheet__rank-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--shl-radius-pill);
+  background: var(--shl-cyan-500);
+  color: var(--shl-ink-on-dark);
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shl-neon-glow-magenta);
+}
+
+.breakdown-sheet__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.breakdown-sheet__flag {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.breakdown-sheet__name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--shl-ink-on-dark);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.breakdown-sheet__tandem-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--shl-cyan-secondary-300);
+  background: var(--shl-skyblue-tint-25);
+  border: 1px solid var(--shl-skyblue-tint-40);
+  border-radius: var(--shl-radius-sm);
+  flex-shrink: 0;
+}
+
+.breakdown-sheet__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--shl-cyan-tint-15);
+  border: 1px solid var(--shl-cyan-tint-40);
+  border-radius: var(--shl-radius-pill);
+  color: var(--shl-ink-on-dark);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 220ms var(--shl-ease-out),
+    border-color 220ms var(--shl-ease-out),
+    transform 220ms var(--shl-spring-ease),
+    box-shadow 240ms var(--shl-ease-out);
+}
+
+.breakdown-sheet__close:hover {
+  background: var(--shl-cyan-tint-25);
+  border-color: var(--shl-cyan-500);
+  transform: scale(1.06);
+  box-shadow: var(--shl-neon-glow-magenta);
+}
+
+.breakdown-sheet__close:focus-visible {
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
+}
+
+.breakdown-sheet__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--shl-glass-subtle);
+  border: 1px solid var(--shl-glass-border);
+  border-radius: var(--shl-radius-md);
+}
+
+.breakdown-sheet__total-label {
+  font-size: 12px;
+  color: var(--shl-ink-on-dark-80);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+}
+
+.breakdown-sheet__total-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--shl-cyan-500);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.breakdown-sheet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.breakdown-card {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--shl-glass-subtle);
+  border: 1px solid var(--shl-glass-border);
+  border-radius: var(--shl-radius-md);
+  transition:
+    box-shadow 240ms var(--shl-ease-out),
+    transform 240ms var(--shl-spring-ease);
+}
+
+.breakdown-card:hover {
+  box-shadow: var(--shl-neon-glow-soft);
+  transform: translateY(-1px);
+}
+
+.breakdown-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breakdown-card__icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.breakdown-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.breakdown-card__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--shl-ink-on-dark);
+}
+
+.breakdown-card__formula {
+  font-size: 12px;
+  color: var(--shl-ink-on-dark-80);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  opacity: 0.85;
+}
+
+.breakdown-card__points {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--shl-cyan-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-card--empty {
+  display: block;
+  text-align: center;
+  color: var(--shl-ink-on-dark-80);
+  font-size: 14px;
+  padding: 22px 14px;
+}
+
+.breakdown-sheet__formula-note {
+  margin: auto 0 0;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--shl-ink-on-dark-80);
+  background: var(--shl-cyan-tint-08);
+  border: 1px dashed var(--shl-cyan-tint-30);
+  border-radius: var(--shl-radius-md);
+  text-align: center;
+}
+
+body.breakdown-sheet-open {
+  overflow: hidden;
+}
+
+/* Bottom-sheet on mobile instead of right-drawer. */
+@media (max-width: 600px) {
+  .breakdown-sheet {
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .breakdown-sheet__panel {
+    width: 100vw;
+    height: auto;
+    max-height: 88vh;
+    border-left: 0;
+    border-top: 1px solid var(--shl-glass-border);
+    border-radius: var(--shl-radius-lg) var(--shl-radius-lg) 0 0;
+    transform: translateY(100%);
+    padding: 16px 16px 22px;
+    box-shadow: 0 -12px 48px rgba(7, 4, 35, 0.55), var(--shl-neon-glow-soft);
+  }
+  .breakdown-sheet.is-visible .breakdown-sheet__panel {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breakdown-sheet__panel,
+  .breakdown-sheet__backdrop,
+  .breakdown-card {
+    transition: none;
+  }
+  .breakdown-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }

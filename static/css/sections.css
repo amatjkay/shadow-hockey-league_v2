@@ -1,6 +1,35 @@
 /* Page sections and layout */
+/* Animated synthwave-rainbow gradient on the page title (polish v1).
+   Magenta → cyan → violet → magenta sweeps under clipped text every
+   8 s. Reduced motion freezes on a single stop. */
+@keyframes shl-title-gradient {
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
 .page-title {
   margin-bottom: 0.25rem;
+  background-image: linear-gradient(
+    90deg,
+    var(--shl-magenta-500) 0%,
+    var(--shl-cyan-secondary-500) 25%,
+    var(--shl-violet-300) 50%,
+    var(--shl-magenta-500) 75%,
+    var(--shl-cyan-secondary-500) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shl-title-gradient 8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-title {
+    animation: none;
+    background-position: 0% 50%;
+  }
 }
 
 .page-section {
@@ -29,8 +58,12 @@
   line-height: 1.45;
 }
 
-/* Season filter bar — themed to match header / tooltip / desktop-nav */
+/* Season filter bar — themed to match header / tooltip / desktop-nav.
+   Glassmorphism (polish v1): heavier backdrop-blur + frosted glass
+   surface + 1px magenta inner ring, container-query aware. */
 .filters-bar {
+  container-type: inline-size;
+  container-name: filters;
   margin: 0 auto 24px;
   padding: 14px 18px;
   display: flex;
@@ -39,11 +72,32 @@
   justify-content: center;
   width: fit-content;
   max-width: 420px;
-  background: var(--shl-bg-deepblue-55);
-  border: 1px solid var(--shl-cyan-tint-25);
+  background: var(--shl-glass-subtle);
+  border: 1px solid var(--shl-glass-border);
   border-radius: var(--shl-radius-pill);
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 18px var(--shl-bg-deepblue-35);
+  backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  box-shadow:
+    0 4px 18px var(--shl-bg-deepblue-35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Container query: when the filter container is narrow, drop label
+   into a column above the tabs so a long row doesn't clip. */
+@container filters (max-width: 480px) {
+  .filters-bar--tabs {
+    flex-wrap: wrap;
+  }
+}
+
+/* Tabs variant: wider, allows the radio group to expand horizontally
+   and scroll on overflow. The pill rounding is preserved for a few
+   tabs but stretched for many. */
+.filters-bar--tabs {
+  max-width: min(960px, 100%);
+  flex-wrap: nowrap;
+  border-radius: var(--shl-radius-lg);
+  padding: 10px 14px;
 }
 
 .filters-bar__label {
@@ -98,7 +152,157 @@
   color: var(--shl-ink-on-dark);
 }
 
-/* Loading overlay (toggled by JS when navigating to a different season) */
+/* === Season tabs (TIK-84 step 5) ===================================
+   Replaces the legacy <select>. Visual: pill row with magenta-filled
+   active state, scroll-snap horizontal scroll on overflow (mobile).
+   Hidden radio inputs preserve full keyboard / a11y semantics
+   (Tab to enter group, arrow keys move between options). */
+.season-tabs {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--shl-cyan-tint-30) transparent;
+  padding: 4px 2px;
+  margin: 0;
+  border: 0;
+}
+
+.season-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+.season-tabs::-webkit-scrollbar-thumb {
+  background: var(--shl-cyan-tint-30);
+  border-radius: 3px;
+}
+.season-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Native radio inputs are pulled out of flex flow so labels lay out
+   as the visible tabs. Inputs remain focusable for keyboard nav. */
+.season-tabs__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.season-tabs__tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--shl-cyan-tint-08);
+  border: 1px solid var(--shl-cyan-tint-30);
+  border-radius: var(--shl-radius-pill);
+  color: var(--shl-ink-on-dark);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  scroll-snap-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 220ms var(--shl-ease-out),
+    border-color 220ms var(--shl-ease-out),
+    color 220ms var(--shl-ease-out),
+    box-shadow 240ms var(--shl-ease-out),
+    transform 220ms var(--shl-spring-ease);
+}
+
+.season-tabs__tab:hover {
+  background: var(--shl-cyan-tint-15);
+  border-color: var(--shl-cyan-500);
+  transform: translateY(-1px);
+  box-shadow: var(--shl-neon-glow-soft);
+}
+
+.season-tabs__tab:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Active tab — filled magenta primary with neon-glow. */
+.season-tabs__input:checked + .season-tabs__tab {
+  background: var(--shl-cyan-500);
+  border-color: var(--shl-cyan-500);
+  color: var(--shl-ink-on-dark);
+  box-shadow: var(--shl-neon-glow-magenta);
+}
+
+/* Keyboard focus ring on the visible label. */
+.season-tabs__input:focus-visible + .season-tabs__tab {
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
+}
+
+.season-tabs__caption {
+  display: inline-block;
+}
+
+.season-tabs__badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: var(--shl-radius-sm);
+  background: var(--shl-skyblue-tint-25);
+  color: var(--shl-cyan-secondary-300);
+  border: 1px solid var(--shl-skyblue-tint-40);
+}
+
+.season-tabs__input:checked + .season-tabs__tab .season-tabs__badge {
+  background: var(--shl-bg-deep-70);
+  color: var(--shl-ink-on-dark);
+  border-color: var(--shl-bg-deep-80);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-tabs__tab {
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  .season-tabs__tab:hover,
+  .season-tabs__tab:active {
+    transform: none;
+    box-shadow: none;
+  }
+  .season-tabs {
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .filters-bar--tabs {
+    width: calc(100% - 24px);
+    max-width: none;
+    padding: 8px 10px;
+  }
+  .filters-bar--tabs .filters-bar__label {
+    flex-shrink: 0;
+  }
+}
+
+/* Loading dim (toggled by JS during season-filter navigation).
+   Skeleton rows are injected into the league-table <tbody> at the same
+   time, providing the primary "loading" feedback (TIK-84 step 6). The
+   spinner that previously sat at center has been removed since the
+   skeleton shimmer carries the same affordance. */
 .is-loading::after {
   content: '';
   position: fixed;
@@ -108,25 +312,11 @@
   bottom: 0;
   background: var(--shl-bg-deep-50);
   z-index: 9999;
+  pointer-events: none;
 }
 
-.is-loading::before {
-  content: '';
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 40px;
-  height: 40px;
-  margin: -20px 0 0 -20px;
-  border: 3px solid var(--shl-cyan-tint-30);
-  border-top-color: var(--shl-cyan-500);
-  border-radius: 50%;
-  animation: filters-bar-spin 0.8s linear infinite;
-  z-index: 10000;
-}
-
-@keyframes filters-bar-spin {
-  to {
-    transform: rotate(360deg);
+@media (prefers-reduced-motion: reduce) {
+  .is-loading::after {
+    background: var(--shl-bg-deep-70);
   }
 }

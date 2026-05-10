@@ -3,16 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shadow Hockey League</title>
+    <meta name="theme-color" content="#070423" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fbf7ff" media="(prefers-color-scheme: light)" />
+    <title>Shadow Hockey League — рейтинг лиги</title>
     <meta
       name="description"
-      content="Shadow Hockey League — рейтинг менеджеров хоккейной лиги"
+      content="Shadow Hockey League: рейтинг менеджеров и клубов, кубки, формула очков и история сезонов."
+    />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Shadow Hockey League" />
+    <meta
+      property="og:description"
+      content="Рейтинг менеджеров, кубки и история сезонов SHL."
+    />
+    <meta
+      property="og:image"
+      content="{{ url_for('static', filename='img/logo.png', _external=True) }}"
+    />
+    <meta property="og:locale" content="ru_RU" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Shadow Hockey League" />
+    <meta
+      name="twitter:description"
+      content="Рейтинг менеджеров, кубки и история сезонов SHL."
     />
     <link
       rel="icon"
       type="image/png"
       href="{{ url_for('static', filename='img/logo.png') }}"
     />
+    <script>
+      /* FOUC-fix: apply persisted theme before first paint (TIK-84).
+         Reads localStorage('shl-theme'); when set, mirrors the value
+         on `<html data-theme>` so CSS can pick the matching token
+         bundle synchronously. When absent, CSS falls back to
+         `prefers-color-scheme`. */
+      (function () {
+        try {
+          var t = localStorage.getItem("shl-theme");
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+        } catch (e) {
+          /* localStorage unavailable (private mode) — ignore. */
+        }
+      })();
+    </script>
     <!-- CSS Modules -->
     <link
       rel="stylesheet"
@@ -64,13 +101,28 @@
             <img
               src="{{ url_for('static', filename='img/social/telegram.png') }}"
               alt="Telegram"
+              width="40"
+              height="40"
+              decoding="async"
             />
           </a>
           <img
             src="{{ url_for('static', filename='img/logo.png') }}"
             alt="Логотип"
             class="img-fluid"
+            width="167"
+            height="40"
+            decoding="async"
           />
+          <button
+            type="button"
+            class="theme-toggle"
+            data-theme-toggle
+            aria-label="Переключить тему"
+            aria-pressed="false"
+          >
+            <span class="theme-toggle__icon" aria-hidden="true">☀</span>
+          </button>
           {% if current_user.is_authenticated %}
           <nav class="desktop-nav">
             <a
@@ -87,6 +139,7 @@
           {% endif %}
         </div>
       </header>
+      <div class="header-sentinel" aria-hidden="true"></div>
 
       <div class="mobile-menu">
         <button class="mobile-menu-button" aria-label="Открыть меню">☰</button>
@@ -103,13 +156,33 @@
               <img
                 src="{{ url_for('static', filename='img/social/telegram.png') }}"
                 alt="Telegram"
+                width="35"
+                height="35"
+                loading="lazy"
+                decoding="async"
               />
             </a>
             <img
               src="{{ url_for('static', filename='img/logo.png') }}"
               alt="Логотип"
               class="img-fluid"
+              width="146"
+              height="35"
+              loading="lazy"
+              decoding="async"
             />
+          </div>
+          <div class="mobile-menu-actions">
+            <button
+              type="button"
+              class="theme-toggle theme-toggle--mobile"
+              data-theme-toggle
+              aria-label="Переключить тему"
+              aria-pressed="false"
+            >
+              <span class="theme-toggle__icon" aria-hidden="true">☀</span>
+              <span class="theme-toggle__label">Тема</span>
+            </button>
           </div>
           {% if current_user.is_authenticated %}
           <nav class="mobile-menu-nav">
@@ -145,18 +218,43 @@
       >
         <h2 id="league-heading" class="section-heading">Рейтинг лиги</h2>
 
-        <div class="filters-bar">
-          <label for="season-filter" class="filters-bar__label">Сезон:</label>
-          <select
-            id="season-filter"
-            class="form-control filters-bar__select"
+        <div class="filters-bar filters-bar--tabs">
+          <span class="filters-bar__label" id="season-filter-label">Сезон:</span>
+          <div
+            class="season-tabs"
+            role="radiogroup"
+            aria-labelledby="season-filter-label"
             aria-controls="league-table-container"
+            data-season-tabs
           >
-            <option value="" {% if not selected_season_id %}selected{% endif %}>Все сезоны (Lifetime)</option>
+            <input
+              type="radio"
+              id="season-tab-all"
+              name="season-filter"
+              value=""
+              class="season-tabs__input"
+              data-season-radio
+              {% if not selected_season_id %}checked{% endif %}
+            />
+            <label for="season-tab-all" class="season-tabs__tab">
+              <span class="season-tabs__caption">Все сезоны</span>
+            </label>
             {% for s in seasons %}
-              <option value="{{ s.id }}" {% if selected_season_id == s.id %}selected{% endif %}>Сезон {{ s.code }}{% if s.is_active %} (Базовый){% endif %}</option>
+            <input
+              type="radio"
+              id="season-tab-{{ s.id }}"
+              name="season-filter"
+              value="{{ s.id }}"
+              class="season-tabs__input"
+              data-season-radio
+              {% if selected_season_id == s.id %}checked{% endif %}
+            />
+            <label for="season-tab-{{ s.id }}" class="season-tabs__tab">
+              <span class="season-tabs__caption">Сезон {{ s.code }}</span>
+              {% if s.is_active %}<span class="season-tabs__badge">базовый</span>{% endif %}
+            </label>
             {% endfor %}
-          </select>
+          </div>
         </div>
 
         {% if not rating_rows %}
@@ -175,12 +273,9 @@
             <thead>
               <tr>
                 <th class="table-header" scope="col">Место</th>
-                <th class="table-header" scope="col">Очки</th>
-                <th class="table-header" scope="col">Участник</th>
-                <th class="table-header" scope="col">Кубки</th>
-                <th class="table-header table-header--narrow" scope="col">
+                <th class="table-header" scope="col">
                   <span class="header-with-tooltip">
-                    Расчёт
+                    Очки
                     <span
                       class="tooltip-icon"
                       aria-label="Система расчёта очков"
@@ -223,11 +318,37 @@
                     </div>
                   </span>
                 </th>
+                <th class="table-header" scope="col">Участник</th>
+                <th class="table-header" scope="col">Кубки</th>
               </tr>
             </thead>
             <tbody>
               {% for row in rating_rows %}
-              <tr class="table-row">
+              {% set breakdown_payload = [] %}
+              {% for a in row.achievements %}
+              {% set _ = breakdown_payload.append({
+                'label': a.label,
+                'base': a.base,
+                'mul_display': a.mul_display,
+                'points': a.points,
+                'icon_html': a.html
+              }) %}
+              {% endfor %}
+              <tr
+                class="table-row"
+                data-breakdown="{{ breakdown_payload|tojson|forceescape }}"
+                data-rank="{{ row.rank }}"
+                data-name="{{ row.display_name }}"
+                data-country-flag="{{ row.country }}"
+                data-country-code="{{ row.country_code }}"
+                data-total="{{ '%.2f'|format(row.total) }}"
+                data-tandem="{{ 'true' if row.is_tandem else 'false' }}"
+                role="button"
+                tabindex="0"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-label="Открыть расчёт очков для {{ row.display_name }}"
+              >
                 <td class="table-items rank-cell">{{ row.rank }}</td>
                 <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
                 <td class="table-items manager-cell">
@@ -235,6 +356,10 @@
                     src="{{ row.country }}"
                     alt="{{ row.country_code }}"
                     class="table-row__countries"
+                    width="30"
+                    height="30"
+                    loading="lazy"
+                    decoding="async"
                     onerror="this.src='https://flagcdn.com/w40/un.png'"
                   />
                   <span class="manager-name">{{ row.display_name }}</span>
@@ -247,41 +372,6 @@
                 <td class="table-items league-cups-cell">
                   {% if row.achievements %} {% for a in row.achievements %} {{
                   a.html|safe }} {% endfor %} {% else %}
-                  <span class="rating-empty">—</span>
-                  {% endif %}
-                </td>
-                <td class="table-items rating-breakdown-cell">
-                  {% if row.achievements %}
-                  <details class="rating-breakdown">
-                    <summary class="rating-breakdown-summary">Детали</summary>
-                    <div class="rating-breakdown-body">
-                      <table class="achievement-table">
-                        <thead>
-                          <tr>
-                            <th class="achievement-table__award">Награда</th>
-                            <th class="achievement-table__formula">Формула</th>
-                            <th class="achievement-table__points">Очки</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for a in row.achievements %}
-                          <tr>
-                            <td class="achievement-table__award">
-                              {{ a.label }}
-                            </td>
-                            <td class="achievement-table__formula">
-                              {{ a.base }} × {{ a.mul_display }}
-                            </td>
-                            <td class="achievement-table__points">
-                              {{ a.points }}
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                  {% else %}
                   <span class="rating-empty">—</span>
                   {% endif %}
                 </td>
@@ -303,6 +393,66 @@
     </footer>
 
     <div class="overlay"></div>
+
+    <!-- Breakdown sheet (TIK-84 polish v2): right-drawer on desktop /
+         bottom-sheet on mobile. Populated from the clicked row's
+         data-* attributes (incl. JSON in data-breakdown). Hidden by
+         default; JS toggles `is-visible` and `hidden`. -->
+    <aside
+      id="breakdown-sheet"
+      class="breakdown-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="breakdown-sheet-title"
+      aria-hidden="true"
+      hidden
+    >
+      <div
+        class="breakdown-sheet__backdrop"
+        data-breakdown-close
+        aria-hidden="true"
+      ></div>
+      <div class="breakdown-sheet__panel" tabindex="-1">
+        <header class="breakdown-sheet__header">
+          <span class="breakdown-sheet__rank-pill" aria-hidden="true">
+            <span class="breakdown-sheet__rank-num">—</span>
+          </span>
+          <span class="breakdown-sheet__identity">
+            <img
+              class="breakdown-sheet__flag"
+              alt=""
+              src=""
+              width="24"
+              height="24"
+              decoding="async"
+            />
+            <h2
+              id="breakdown-sheet-title"
+              class="breakdown-sheet__name"
+            >—</h2>
+            <span class="breakdown-sheet__tandem-badge" hidden>тандем</span>
+          </span>
+          <button
+            type="button"
+            class="breakdown-sheet__close"
+            aria-label="Закрыть"
+            data-breakdown-close
+          >×</button>
+        </header>
+        <div class="breakdown-sheet__total">
+          <span class="breakdown-sheet__total-label">Итого</span>
+          <span class="breakdown-sheet__total-value">0</span>
+        </div>
+        <ul
+          class="breakdown-sheet__list"
+          aria-label="Достижения и расчёт очков"
+        ></ul>
+        <p class="breakdown-sheet__formula-note">
+          <strong>Формула:</strong> база × множитель сезона
+        </p>
+      </div>
+    </aside>
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>
 </html>

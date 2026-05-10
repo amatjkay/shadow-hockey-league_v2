@@ -1,35 +1,71 @@
-/* Design tokens — single source of truth for colors, spacing, typography. */
+/* Design tokens — single source of truth for colors, spacing, typography.
+   Synthwave-brand palette (TIK-84) — sampled from the SHL logo via PIL
+   (top 1 % by S × V in each hue bucket on a 256 × 256 downsample).
+   Magenta is primary, cyan is secondary, violet/indigo build the bg
+   gradient, sunset+pink supply highlights.
+   ----------------------------------------------------------------------
+   Strategy: legacy `--shl-cyan-*` and `--shl-skyblue-tint-*` token
+   NAMES are kept (they fill the "primary brand" role across 8 other
+   CSS files) but their VALUES are retuned to magenta / cyan-secondary
+   so the visual swap propagates without rewriting downstream files.
+*/
 :root {
-  /* Brand cyan family. */
-  --shl-cyan-500: #00a6ff;          /* primary brand, on dark surfaces */
-  --shl-cyan-700: #0077b6;          /* primary on light surfaces (AA contrast) */
-  --shl-cyan-200: skyblue;          /* keyword resolves to #87ceeb */
-  --shl-cyan-100: #cde9ff;          /* labels on dark */
+  /* === Canonical synthwave palette =========================== */
 
-  /* Cyan tints (rgba 0,166,255 with alpha). */
-  --shl-cyan-tint-06: rgba(0, 166, 255, 0.06);
-  --shl-cyan-tint-08: rgba(0, 166, 255, 0.08);
-  --shl-cyan-tint-10: rgba(0, 166, 255, 0.10);
-  --shl-cyan-tint-15: rgba(0, 166, 255, 0.15);
-  --shl-cyan-tint-20: rgba(0, 166, 255, 0.20);
-  --shl-cyan-tint-25: rgba(0, 166, 255, 0.25);
-  --shl-cyan-tint-30: rgba(0, 166, 255, 0.30);
-  --shl-cyan-tint-40: rgba(0, 166, 255, 0.40);
-  --shl-cyan-tint-45: rgba(0, 166, 255, 0.45);
-  --shl-cyan-tint-50: rgba(0, 166, 255, 0.50);
-  --shl-cyan-tint-70: rgba(0, 166, 255, 0.70);
+  /* Magenta — primary neon (sampled #C323E0). */
+  --shl-magenta-500: #c323e0;       /* primary brand on dark */
+  --shl-magenta-300: #e069f4;       /* hover / glow */
+  --shl-magenta-100: #f5c7fb;       /* labels on dark */
+  --shl-magenta-700: #8e18a6;       /* deep — body-link AA on light surfaces */
 
-  /* Skyblue tints (rgba 135,206,235 with alpha). */
-  --shl-skyblue-tint-12: rgba(135, 206, 235, 0.12);
-  --shl-skyblue-tint-15: rgba(135, 206, 235, 0.15);
-  --shl-skyblue-tint-20: rgba(135, 206, 235, 0.20);
-  --shl-skyblue-tint-25: rgba(135, 206, 235, 0.25);
-  --shl-skyblue-tint-30: rgba(135, 206, 235, 0.30);
-  --shl-skyblue-tint-40: rgba(135, 206, 235, 0.40);
-  --shl-skyblue-tint-50: rgba(135, 206, 235, 0.50);
-  --shl-skyblue-tint-60: rgba(135, 206, 235, 0.60);
+  /* Cyan — secondary neon (sampled #41BAF8). */
+  --shl-cyan-secondary-500: #41baf8;
+  --shl-cyan-secondary-300: #7ad0fb;
+  --shl-cyan-secondary-700: #0079b8;  /* AA on light surfaces */
 
-  /* Surfaces — translucent whites for cards/panels on dark bg. */
+  /* Violet / indigo — tertiary, mid bg gradient stops. */
+  --shl-violet-500: #9339cc;
+  --shl-violet-300: #b66be0;
+  --shl-violet-700: #5b247e;
+  --shl-indigo-500: #6d33b4;
+
+  /* Sunset / pink — highlights for top-3 hints, glow accents. */
+  --shl-sunset-500: #feae48;
+  --shl-pink-500: #fa7f63;
+
+  /* === Legacy `--shl-cyan-*` aliases (point at magenta primary).
+     These names date back to PR #86; renaming would touch 8 CSS files.
+     Step 1 keeps the names; follow-up may rename to --shl-primary-*. */
+  --shl-cyan-500: var(--shl-magenta-500);   /* was #00a6ff */
+  --shl-cyan-700: var(--shl-magenta-700);   /* was #0077b6 (AA) */
+  --shl-cyan-200: var(--shl-magenta-300);   /* was skyblue */
+  --shl-cyan-100: var(--shl-magenta-100);   /* was #cde9ff */
+
+  /* Legacy "cyan tints" — retuned to magenta tints (rgba 195,35,224). */
+  --shl-cyan-tint-06: rgba(195, 35, 224, 0.06);
+  --shl-cyan-tint-08: rgba(195, 35, 224, 0.08);
+  --shl-cyan-tint-10: rgba(195, 35, 224, 0.10);
+  --shl-cyan-tint-15: rgba(195, 35, 224, 0.15);
+  --shl-cyan-tint-20: rgba(195, 35, 224, 0.20);
+  --shl-cyan-tint-25: rgba(195, 35, 224, 0.25);
+  --shl-cyan-tint-30: rgba(195, 35, 224, 0.30);
+  --shl-cyan-tint-40: rgba(195, 35, 224, 0.40);
+  --shl-cyan-tint-45: rgba(195, 35, 224, 0.45);
+  --shl-cyan-tint-50: rgba(195, 35, 224, 0.50);
+  --shl-cyan-tint-70: rgba(195, 35, 224, 0.70);
+
+  /* Legacy "skyblue tints" — retuned to cyan-secondary (rgba 65,186,248). */
+  --shl-skyblue-tint-12: rgba(65, 186, 248, 0.12);
+  --shl-skyblue-tint-15: rgba(65, 186, 248, 0.15);
+  --shl-skyblue-tint-20: rgba(65, 186, 248, 0.20);
+  --shl-skyblue-tint-25: rgba(65, 186, 248, 0.25);
+  --shl-skyblue-tint-30: rgba(65, 186, 248, 0.30);
+  --shl-skyblue-tint-40: rgba(65, 186, 248, 0.40);
+  --shl-skyblue-tint-50: rgba(65, 186, 248, 0.50);
+  --shl-skyblue-tint-60: rgba(65, 186, 248, 0.60);
+
+  /* Surfaces — translucent whites for cards/panels (kept). On synthwave
+     bg these read as soft frosted-glass rather than pure white. */
   --shl-surface-25: rgba(255, 255, 255, 0.25);
   --shl-surface-30: rgba(255, 255, 255, 0.30);
   --shl-surface-35: rgba(255, 255, 255, 0.35);
@@ -39,26 +75,26 @@
   --shl-surface-90: rgba(255, 255, 255, 0.90);
   --shl-surface-95: rgba(255, 255, 255, 0.95);
 
-  /* Deep navy backdrops (rgba 0,20,40). */
-  --shl-bg-deep-50: rgba(0, 20, 40, 0.50);
-  --shl-bg-deep-70: rgba(0, 20, 40, 0.70);
-  --shl-bg-deep-80: rgba(0, 20, 40, 0.80);
-  --shl-bg-deep-95: rgba(0, 20, 40, 0.95);
-  --shl-bg-deep-solid: #001428;
+  /* Deep page backgrounds (rgba 7,4,35 — sampled from logo corners). */
+  --shl-bg-deep-50: rgba(7, 4, 35, 0.50);
+  --shl-bg-deep-70: rgba(7, 4, 35, 0.70);
+  --shl-bg-deep-80: rgba(7, 4, 35, 0.80);
+  --shl-bg-deep-95: rgba(7, 4, 35, 0.95);
+  --shl-bg-deep-solid: #070423;
 
-  /* Lighter deep-blue tints (rgba 0,30,60) for filter bars / hover. */
-  --shl-bg-deepblue-35: rgba(0, 30, 60, 0.35);
-  --shl-bg-deepblue-50: rgba(0, 30, 60, 0.50);
-  --shl-bg-deepblue-55: rgba(0, 30, 60, 0.55);
-  --shl-bg-deepblue-85: rgba(0, 30, 60, 0.85);
+  /* Mid-violet surfaces (rgba 42,15,74) — filter bars, hovers, headers. */
+  --shl-bg-deepblue-35: rgba(42, 15, 74, 0.35);
+  --shl-bg-deepblue-50: rgba(42, 15, 74, 0.50);
+  --shl-bg-deepblue-55: rgba(42, 15, 74, 0.55);
+  --shl-bg-deepblue-85: rgba(42, 15, 74, 0.85);
 
-  /* Footer mid stop. */
-  --shl-bg-footer-mid: rgba(9, 35, 80, 0.85);
+  /* Footer mid-stop (deeper violet). */
+  --shl-bg-footer-mid: rgba(35, 7, 70, 0.85);
 
   /* Misc neutrals. */
   --shl-bg-mid-13: rgba(99, 100, 100, 0.13);
 
-  /* Ink. */
+  /* Ink (kept dark — used on translucent-white cards). */
   --shl-ink: #282828;
   --shl-ink-soft: #333;
   --shl-ink-muted: #555;
@@ -75,6 +111,245 @@
   /* Typography. */
   --shl-font-sans: "Ubuntu", sans-serif;
   --shl-h1-size: clamp(2rem, 6vw, 3.75rem);
+
+  /* Body background — pluggable so light theme can swap it without
+     restating the body { background-image } rule. */
+  --shl-body-bg: url("../img/background2.jpg");
+
+  /* === Modern polish v1 (2026 best practices) ================
+     New tokens for glassmorphism, neon-glow, spring micro-interactions,
+     animated gradient, focus-visible. Theme-aware values are
+     overridden in `:root[data-theme="light"]` below. */
+
+  /* Spring easing — overshoots slightly (modern feel without library). */
+  --shl-spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --shl-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Glass surfaces — translucent layer that reads as "frosted" against
+     blurred page bg. Two flavors: subtle (rows) + heavier (cards). */
+  --shl-glass-subtle: rgba(42, 15, 74, 0.45);
+  --shl-glass-elev: rgba(42, 15, 74, 0.65);
+  --shl-glass-blur: 14px;
+  --shl-glass-border: rgba(195, 35, 224, 0.18);
+
+  /* Neon-glow box-shadow recipes — magenta + cyan layered. */
+  --shl-neon-glow-magenta:
+    0 0 0 1px rgba(195, 35, 224, 0.55),
+    0 0 18px rgba(195, 35, 224, 0.45),
+    0 4px 28px rgba(195, 35, 224, 0.18);
+  --shl-neon-glow-cyan:
+    0 0 0 1px rgba(65, 186, 248, 0.55),
+    0 0 18px rgba(65, 186, 248, 0.4),
+    0 4px 28px rgba(65, 186, 248, 0.16);
+  --shl-neon-glow-soft:
+    0 0 12px rgba(195, 35, 224, 0.25),
+    0 0 24px rgba(65, 186, 248, 0.15);
+
+  /* Focus ring — AA-compliant, visible against both themes. */
+  --shl-focus-ring: 0 0 0 3px rgba(195, 35, 224, 0.55);
+  --shl-focus-outline-color: #c323e0;
+}
+
+/* Native UA scrollbars + form controls auto-adapt to theme. */
+:root {
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) { color-scheme: light; }
+}
+
+/* === Light theme overrides ====================================
+   Two contexts apply the same light-token bundle:
+     1. `:root[data-theme="light"]` — manual user pick (set by
+        ThemeToggle JS, persisted in localStorage).
+     2. `@media (prefers-color-scheme: light) :root:not([data-theme])`
+        — system preference, only when user has NOT manually toggled.
+   Bundles are duplicated below. KEEP IN SYNC.
+   ----------------------------------------------------------------
+   AA contrast targets (light bg #FBF7FF .. #E8D8F7):
+     - magenta-700 #6D1080 vs #FBF7FF → ratio ≈ 7.4:1 (AAA)
+     - magenta-500 #A018BD vs #FBF7FF → ratio ≈ 5.8:1 (AA)
+     - cyan-secondary-700 #005C8A vs #FBF7FF → ratio ≈ 6.7:1 (AA+)
+     - ink #1A0B2E vs #FBF7FF → ratio ≈ 16:1 (AAA) */
+:root[data-theme="light"] {
+  /* magenta primary — AA on light surfaces */
+  --shl-magenta-500: #a018bd;
+  --shl-magenta-300: #c66add;
+  --shl-magenta-100: #f0ccfa;
+  --shl-magenta-700: #6d1080;
+
+  /* cyan secondary — AA */
+  --shl-cyan-secondary-500: #0079b8;
+  --shl-cyan-secondary-300: #3e9dd5;
+  --shl-cyan-secondary-700: #005c8a;
+
+  /* violet tertiary — AA */
+  --shl-violet-500: #6d24a0;
+  --shl-violet-300: #9358b5;
+  --shl-violet-700: #4a1670;
+  --shl-indigo-500: #4d2080;
+
+  /* sunset / pink — AA on light bg */
+  --shl-sunset-500: #d6700c;
+  --shl-pink-500: #c63d20;
+
+  /* Legacy `--shl-cyan-*` aliases re-bind to AA magenta. */
+  --shl-cyan-500: var(--shl-magenta-500);
+  --shl-cyan-700: var(--shl-magenta-700);
+  --shl-cyan-200: var(--shl-magenta-300);
+  --shl-cyan-100: var(--shl-magenta-100);
+
+  /* Legacy "cyan tints" — AA magenta tints (rgba 160,24,189). */
+  --shl-cyan-tint-06: rgba(160, 24, 189, 0.06);
+  --shl-cyan-tint-08: rgba(160, 24, 189, 0.08);
+  --shl-cyan-tint-10: rgba(160, 24, 189, 0.10);
+  --shl-cyan-tint-15: rgba(160, 24, 189, 0.15);
+  --shl-cyan-tint-20: rgba(160, 24, 189, 0.20);
+  --shl-cyan-tint-25: rgba(160, 24, 189, 0.25);
+  --shl-cyan-tint-30: rgba(160, 24, 189, 0.30);
+  --shl-cyan-tint-40: rgba(160, 24, 189, 0.40);
+  --shl-cyan-tint-45: rgba(160, 24, 189, 0.45);
+  --shl-cyan-tint-50: rgba(160, 24, 189, 0.50);
+  --shl-cyan-tint-70: rgba(160, 24, 189, 0.70);
+
+  /* Legacy "skyblue tints" — AA cyan-secondary (rgba 0,121,184). */
+  --shl-skyblue-tint-12: rgba(0, 121, 184, 0.12);
+  --shl-skyblue-tint-15: rgba(0, 121, 184, 0.15);
+  --shl-skyblue-tint-20: rgba(0, 121, 184, 0.20);
+  --shl-skyblue-tint-25: rgba(0, 121, 184, 0.25);
+  --shl-skyblue-tint-30: rgba(0, 121, 184, 0.30);
+  --shl-skyblue-tint-40: rgba(0, 121, 184, 0.40);
+  --shl-skyblue-tint-50: rgba(0, 121, 184, 0.50);
+  --shl-skyblue-tint-60: rgba(0, 121, 184, 0.60);
+
+  /* Surfaces — near-opaque whites so cards lift visibly off the
+     lavender body bg (translucent whites at 0.25 disappear on light). */
+  --shl-surface-25: rgba(255, 255, 255, 0.55);
+  --shl-surface-30: rgba(255, 255, 255, 0.65);
+  --shl-surface-35: rgba(255, 255, 255, 0.75);
+  --shl-surface-40: rgba(255, 255, 255, 0.80);
+  --shl-surface-50: rgba(255, 255, 255, 0.85);
+  --shl-surface-80: rgba(255, 255, 255, 0.95);
+  --shl-surface-90: rgba(255, 255, 255, 0.97);
+  --shl-surface-95: rgba(255, 255, 255, 1.00);
+
+  /* Bg-deep family — stays violet-dark even in light theme since these
+     are used for tooltip cards, mobile menu, footer where dark surfaces
+     hold the synthwave brand identity. */
+  --shl-bg-deep-50: rgba(45, 12, 80, 0.55);
+  --shl-bg-deep-70: rgba(45, 12, 80, 0.85);
+  --shl-bg-deep-80: rgba(45, 12, 80, 0.92);
+  --shl-bg-deep-95: rgba(45, 12, 80, 0.97);
+  --shl-bg-deep-solid: #2d0c50;
+
+  /* Mid-violet surfaces — light pastel for filter bars / table headers. */
+  --shl-bg-deepblue-35: rgba(192, 158, 230, 0.35);
+  --shl-bg-deepblue-50: rgba(192, 158, 230, 0.50);
+  --shl-bg-deepblue-55: rgba(192, 158, 230, 0.55);
+  --shl-bg-deepblue-85: rgba(192, 158, 230, 0.85);
+
+  /* Footer mid (light pink-violet). */
+  --shl-bg-footer-mid: rgba(140, 80, 180, 0.40);
+
+  /* Ink — dark on light surfaces. */
+  --shl-ink: #1a0b2e;
+  --shl-ink-soft: #3d2160;
+  --shl-ink-muted: #5b3f80;
+  /* `--shl-ink-on-dark` stays #fff (used in tooltip header on the
+     bg-deep-* cards, which we deliberately keep dark in light mode). */
+
+  /* Body bg: lavender gradient instead of starfield JPG. */
+  --shl-body-bg: linear-gradient(
+    180deg,
+    #fbf7ff 0%,
+    #f2eafb 40%,
+    #e8d8f7 75%,
+    #f5e8ff 100%
+  );
+}
+
+@media (prefers-color-scheme: light) {
+  /* Mirror of `:root[data-theme="light"]` — only applied when user
+     has NOT explicitly toggled (data-theme attribute absent). */
+  :root:not([data-theme]) {
+    --shl-magenta-500: #a018bd;
+    --shl-magenta-300: #c66add;
+    --shl-magenta-100: #f0ccfa;
+    --shl-magenta-700: #6d1080;
+
+    --shl-cyan-secondary-500: #0079b8;
+    --shl-cyan-secondary-300: #3e9dd5;
+    --shl-cyan-secondary-700: #005c8a;
+
+    --shl-violet-500: #6d24a0;
+    --shl-violet-300: #9358b5;
+    --shl-violet-700: #4a1670;
+    --shl-indigo-500: #4d2080;
+
+    --shl-sunset-500: #d6700c;
+    --shl-pink-500: #c63d20;
+
+    --shl-cyan-500: var(--shl-magenta-500);
+    --shl-cyan-700: var(--shl-magenta-700);
+    --shl-cyan-200: var(--shl-magenta-300);
+    --shl-cyan-100: var(--shl-magenta-100);
+
+    --shl-cyan-tint-06: rgba(160, 24, 189, 0.06);
+    --shl-cyan-tint-08: rgba(160, 24, 189, 0.08);
+    --shl-cyan-tint-10: rgba(160, 24, 189, 0.10);
+    --shl-cyan-tint-15: rgba(160, 24, 189, 0.15);
+    --shl-cyan-tint-20: rgba(160, 24, 189, 0.20);
+    --shl-cyan-tint-25: rgba(160, 24, 189, 0.25);
+    --shl-cyan-tint-30: rgba(160, 24, 189, 0.30);
+    --shl-cyan-tint-40: rgba(160, 24, 189, 0.40);
+    --shl-cyan-tint-45: rgba(160, 24, 189, 0.45);
+    --shl-cyan-tint-50: rgba(160, 24, 189, 0.50);
+    --shl-cyan-tint-70: rgba(160, 24, 189, 0.70);
+
+    --shl-skyblue-tint-12: rgba(0, 121, 184, 0.12);
+    --shl-skyblue-tint-15: rgba(0, 121, 184, 0.15);
+    --shl-skyblue-tint-20: rgba(0, 121, 184, 0.20);
+    --shl-skyblue-tint-25: rgba(0, 121, 184, 0.25);
+    --shl-skyblue-tint-30: rgba(0, 121, 184, 0.30);
+    --shl-skyblue-tint-40: rgba(0, 121, 184, 0.40);
+    --shl-skyblue-tint-50: rgba(0, 121, 184, 0.50);
+    --shl-skyblue-tint-60: rgba(0, 121, 184, 0.60);
+
+    --shl-surface-25: rgba(255, 255, 255, 0.55);
+    --shl-surface-30: rgba(255, 255, 255, 0.65);
+    --shl-surface-35: rgba(255, 255, 255, 0.75);
+    --shl-surface-40: rgba(255, 255, 255, 0.80);
+    --shl-surface-50: rgba(255, 255, 255, 0.85);
+    --shl-surface-80: rgba(255, 255, 255, 0.95);
+    --shl-surface-90: rgba(255, 255, 255, 0.97);
+    --shl-surface-95: rgba(255, 255, 255, 1.00);
+
+    --shl-bg-deep-50: rgba(45, 12, 80, 0.55);
+    --shl-bg-deep-70: rgba(45, 12, 80, 0.85);
+    --shl-bg-deep-80: rgba(45, 12, 80, 0.92);
+    --shl-bg-deep-95: rgba(45, 12, 80, 0.97);
+    --shl-bg-deep-solid: #2d0c50;
+
+    --shl-bg-deepblue-35: rgba(192, 158, 230, 0.35);
+    --shl-bg-deepblue-50: rgba(192, 158, 230, 0.50);
+    --shl-bg-deepblue-55: rgba(192, 158, 230, 0.55);
+    --shl-bg-deepblue-85: rgba(192, 158, 230, 0.85);
+
+    --shl-bg-footer-mid: rgba(140, 80, 180, 0.40);
+
+    --shl-ink: #1a0b2e;
+    --shl-ink-soft: #3d2160;
+    --shl-ink-muted: #5b3f80;
+
+    --shl-body-bg: linear-gradient(
+      180deg,
+      #fbf7ff 0%,
+      #f2eafb 40%,
+      #e8d8f7 75%,
+      #f5e8ff 100%
+    );
+  }
 }
 
 /* Resets and defaults. */
@@ -88,10 +363,11 @@ html {
 }
 
 body {
-  background-image: url("../img/background2.jpg");
+  background-image: var(--shl-body-bg);
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   font-family: var(--shl-font-sans);
   color: var(--shl-ink);
   margin: 0;
