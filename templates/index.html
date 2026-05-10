@@ -273,12 +273,9 @@
             <thead>
               <tr>
                 <th class="table-header" scope="col">Место</th>
-                <th class="table-header" scope="col">Очки</th>
-                <th class="table-header" scope="col">Участник</th>
-                <th class="table-header" scope="col">Кубки</th>
-                <th class="table-header table-header--narrow" scope="col">
+                <th class="table-header" scope="col">
                   <span class="header-with-tooltip">
-                    Расчёт
+                    Очки
                     <span
                       class="tooltip-icon"
                       aria-label="Система расчёта очков"
@@ -321,11 +318,37 @@
                     </div>
                   </span>
                 </th>
+                <th class="table-header" scope="col">Участник</th>
+                <th class="table-header" scope="col">Кубки</th>
               </tr>
             </thead>
             <tbody>
               {% for row in rating_rows %}
-              <tr class="table-row">
+              {% set breakdown_payload = [] %}
+              {% for a in row.achievements %}
+              {% set _ = breakdown_payload.append({
+                'label': a.label,
+                'base': a.base,
+                'mul_display': a.mul_display,
+                'points': a.points,
+                'icon_html': a.html
+              }) %}
+              {% endfor %}
+              <tr
+                class="table-row"
+                data-breakdown="{{ breakdown_payload|tojson|forceescape }}"
+                data-rank="{{ row.rank }}"
+                data-name="{{ row.display_name }}"
+                data-country-flag="{{ row.country }}"
+                data-country-code="{{ row.country_code }}"
+                data-total="{{ '%.2f'|format(row.total) }}"
+                data-tandem="{{ 'true' if row.is_tandem else 'false' }}"
+                role="button"
+                tabindex="0"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-label="Открыть расчёт очков для {{ row.display_name }}"
+              >
                 <td class="table-items rank-cell">{{ row.rank }}</td>
                 <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
                 <td class="table-items manager-cell">
@@ -352,41 +375,6 @@
                   <span class="rating-empty">—</span>
                   {% endif %}
                 </td>
-                <td class="table-items rating-breakdown-cell">
-                  {% if row.achievements %}
-                  <details class="rating-breakdown">
-                    <summary class="rating-breakdown-summary">Детали</summary>
-                    <div class="rating-breakdown-body">
-                      <table class="achievement-table">
-                        <thead>
-                          <tr>
-                            <th class="achievement-table__award">Награда</th>
-                            <th class="achievement-table__formula">Формула</th>
-                            <th class="achievement-table__points">Очки</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for a in row.achievements %}
-                          <tr>
-                            <td class="achievement-table__award">
-                              {{ a.label }}
-                            </td>
-                            <td class="achievement-table__formula">
-                              {{ a.base }} × {{ a.mul_display }}
-                            </td>
-                            <td class="achievement-table__points">
-                              {{ a.points }}
-                            </td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                  {% else %}
-                  <span class="rating-empty">—</span>
-                  {% endif %}
-                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -405,6 +393,66 @@
     </footer>
 
     <div class="overlay"></div>
+
+    <!-- Breakdown sheet (TIK-84 polish v2): right-drawer on desktop /
+         bottom-sheet on mobile. Populated from the clicked row's
+         data-* attributes (incl. JSON in data-breakdown). Hidden by
+         default; JS toggles `is-visible` and `hidden`. -->
+    <aside
+      id="breakdown-sheet"
+      class="breakdown-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="breakdown-sheet-title"
+      aria-hidden="true"
+      hidden
+    >
+      <div
+        class="breakdown-sheet__backdrop"
+        data-breakdown-close
+        aria-hidden="true"
+      ></div>
+      <div class="breakdown-sheet__panel" tabindex="-1">
+        <header class="breakdown-sheet__header">
+          <span class="breakdown-sheet__rank-pill" aria-hidden="true">
+            <span class="breakdown-sheet__rank-num">—</span>
+          </span>
+          <span class="breakdown-sheet__identity">
+            <img
+              class="breakdown-sheet__flag"
+              alt=""
+              src=""
+              width="24"
+              height="24"
+              decoding="async"
+            />
+            <h2
+              id="breakdown-sheet-title"
+              class="breakdown-sheet__name"
+            >—</h2>
+            <span class="breakdown-sheet__tandem-badge" hidden>тандем</span>
+          </span>
+          <button
+            type="button"
+            class="breakdown-sheet__close"
+            aria-label="Закрыть"
+            data-breakdown-close
+          >×</button>
+        </header>
+        <div class="breakdown-sheet__total">
+          <span class="breakdown-sheet__total-label">Итого</span>
+          <span class="breakdown-sheet__total-value">0</span>
+        </div>
+        <ul
+          class="breakdown-sheet__list"
+          aria-label="Достижения и расчёт очков"
+        ></ul>
+        <p class="breakdown-sheet__formula-note">
+          <strong>Формула:</strong> база × множитель сезона
+        </p>
+      </div>
+    </aside>
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>
 </html>

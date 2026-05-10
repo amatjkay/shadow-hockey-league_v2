@@ -1,9 +1,10 @@
 // === Loading skeleton (TIK-84 step 6) =================================
 // Replaces the league-table <tbody> with N placeholder rows that share
-// the column shape (rank / score / participant / cups / breakdown) and
-// shimmer with a magenta→cyan gradient. CSS handles the animation; JS
-// only injects the markup. Safe under prefers-reduced-motion (CSS
-// neutralises the keyframes).
+// the column shape (rank / score / participant / cups) and shimmer
+// with a magenta→cyan gradient. CSS handles the animation; JS only
+// injects the markup. Safe under prefers-reduced-motion (CSS
+// neutralises the keyframes). Per-row breakdown lives in a drawer
+// (`#breakdown-sheet`), so the legacy 5th column is gone.
 function showLeaderboardSkeleton(rowCount) {
     const tbody = document.querySelector('.league-table tbody');
     if (!tbody) return;
@@ -18,10 +19,173 @@ function showLeaderboardSkeleton(rowCount) {
         '<span class="skeleton skeleton--name"></span></td>' +
         '<td class="table-items league-cups-cell">' +
         '<span class="skeleton skeleton--cups"></span></td>' +
-        '<td class="table-items rating-breakdown-cell">' +
-        '<span class="skeleton skeleton--breakdown"></span></td>' +
         '</tr>';
     tbody.innerHTML = new Array(rowCount).fill(rowHtml).join('');
+}
+
+// === Breakdown sheet (TIK-84 polish v2) ==============================
+// Click (or Enter/Space) on a leaderboard row → opens a drawer with the
+// per-row achievement breakdown. Replaces the inline
+// `<details>Детали` pattern. Each row carries:
+//   - data-breakdown:    JSON array [{label, base, mul_display, points, icon_html}, ...]
+//   - data-rank, data-name, data-country-flag, data-country-code,
+//     data-total, data-tandem
+// The drawer is rendered once in `index.html` and re-populated on each
+// open. ESC, click on backdrop, or close button → closes. Focus is
+// returned to the row that opened it.
+function shlEscapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Allow only the safe `<img>` markup that comes from `Achievement.to_html()`
+// (server-side, trusted). Strips anything else that could appear in the
+// JSON payload to keep the drawer XSS-resistant even if the payload is
+// ever sourced from user input later.
+function shlSanitizeIconHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = String(html || '');
+    const out = document.createElement('div');
+    tmp.querySelectorAll('img').forEach(function (img) {
+        const safe = document.createElement('img');
+        safe.setAttribute('src', img.getAttribute('src') || '');
+        safe.setAttribute('alt', img.getAttribute('alt') || '');
+        safe.setAttribute('width', img.getAttribute('width') || '32');
+        safe.setAttribute('height', img.getAttribute('height') || '32');
+        safe.setAttribute('loading', 'lazy');
+        safe.setAttribute('decoding', 'async');
+        out.appendChild(safe);
+    });
+    return out.innerHTML;
+}
+
+function shlInitBreakdownSheet() {
+    const sheet = document.getElementById('breakdown-sheet');
+    if (!sheet) return;
+    const panel = sheet.querySelector('.breakdown-sheet__panel');
+    const rankEl = sheet.querySelector('.breakdown-sheet__rank-num');
+    const nameEl = sheet.querySelector('.breakdown-sheet__name');
+    const flagEl = sheet.querySelector('.breakdown-sheet__flag');
+    const tandemEl = sheet.querySelector('.breakdown-sheet__tandem-badge');
+    const totalEl = sheet.querySelector('.breakdown-sheet__total-value');
+    const listEl = sheet.querySelector('.breakdown-sheet__list');
+    let lastFocused = null;
+    let openRow = null;
+
+    function renderItems(items) {
+        if (!items.length) {
+            listEl.innerHTML =
+                '<li class="breakdown-card breakdown-card--empty">' +
+                'У участника пока нет достижений в этом сезоне.' +
+                '</li>';
+            return;
+        }
+        listEl.innerHTML = items.map(function (a) {
+            return (
+                '<li class="breakdown-card">' +
+                '<div class="breakdown-card__icon" aria-hidden="true">' +
+                shlSanitizeIconHtml(a.icon_html) +
+                '</div>' +
+                '<div class="breakdown-card__main">' +
+                '<div class="breakdown-card__label">' +
+                shlEscapeHtml(a.label) +
+                '</div>' +
+                '<div class="breakdown-card__formula">' +
+                'база ' + shlEscapeHtml(a.base) +
+                ' × множитель ' + shlEscapeHtml(a.mul_display) +
+                '</div>' +
+                '</div>' +
+                '<div class="breakdown-card__points">+' +
+                shlEscapeHtml(a.points) +
+                '</div>' +
+                '</li>'
+            );
+        }).join('');
+    }
+
+    function open(row) {
+        let items = [];
+        try {
+            items = JSON.parse(row.getAttribute('data-breakdown') || '[]');
+        } catch (e) {
+            items = [];
+        }
+        rankEl.textContent = row.getAttribute('data-rank') || '—';
+        nameEl.textContent = row.getAttribute('data-name') || '—';
+        flagEl.setAttribute('src', row.getAttribute('data-country-flag') || '');
+        flagEl.setAttribute('alt', row.getAttribute('data-country-code') || '');
+        tandemEl.hidden = row.getAttribute('data-tandem') !== 'true';
+        totalEl.textContent = row.getAttribute('data-total') || '0';
+        renderItems(items);
+
+        lastFocused = document.activeElement;
+        openRow = row;
+        row.setAttribute('aria-expanded', 'true');
+        sheet.hidden = false;
+        sheet.removeAttribute('aria-hidden');
+        document.body.classList.add('breakdown-sheet-open');
+        // Two-frame delay so the browser has the panel painted at its
+        // off-screen transform before we flip the visibility class —
+        // gives us the slide-in transition instead of an instant pop.
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                sheet.classList.add('is-visible');
+                if (panel && typeof panel.focus === 'function') {
+                    panel.focus();
+                }
+            });
+        });
+    }
+
+    function close() {
+        if (sheet.hidden) return;
+        sheet.classList.remove('is-visible');
+        sheet.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('breakdown-sheet-open');
+        if (openRow) {
+            openRow.setAttribute('aria-expanded', 'false');
+        }
+        const restore = lastFocused;
+        const wasRow = openRow;
+        openRow = null;
+        lastFocused = null;
+        // Wait for the slide-out transition to finish before hiding the
+        // panel — otherwise the disappearance is jarring. Reduced-motion
+        // CSS sets transition: none so this resolves instantly.
+        window.setTimeout(function () {
+            sheet.hidden = true;
+        }, 320);
+        const target = restore || wasRow;
+        if (target && typeof target.focus === 'function') {
+            target.focus();
+        }
+    }
+
+    document.querySelectorAll('.table-row[data-breakdown]').forEach(function (row) {
+        row.addEventListener('click', function () {
+            open(row);
+        });
+        row.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                open(row);
+            }
+        });
+    });
+
+    sheet.querySelectorAll('[data-breakdown-close]').forEach(function (el) {
+        el.addEventListener('click', close);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !sheet.hidden) {
+            close();
+        }
+    });
 }
 
 // === Theme toggle (TIK-84) ============================================
@@ -165,6 +329,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { threshold: 0 });
         io.observe(sentinel);
     }
+
+    shlInitBreakdownSheet();
 
     // Center the active tab horizontally in its scroll container so the
     // user can immediately see which season is selected (mobile bias).
