@@ -29,6 +29,40 @@
   border-bottom-color: var(--shl-cyan-tint-40);
 }
 
+/* TIK-85 polish v2 — In light theme the header was unreadable because
+   it kept the dark violet gradient while h1 / desktop-nav-link
+   inherited light-theme tokens (magenta on dark violet = poor AA).
+   Swap to a lavender gradient + magenta-700 nav so all header text
+   passes AA on the new pastel surface. */
+:root[data-theme="light"] .header {
+  background: linear-gradient(
+    180deg,
+    #e8d8f7 0%,
+    #f2eafb 60%,
+    rgba(248, 240, 255, 0) 100%
+  );
+  border-bottom-color: var(--shl-magenta-300);
+}
+:root[data-theme="light"] .header.is-scrolled {
+  box-shadow: 0 4px 24px rgba(160, 24, 189, 0.18);
+  border-bottom-color: var(--shl-magenta-500);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .header {
+    background: linear-gradient(
+      180deg,
+      #e8d8f7 0%,
+      #f2eafb 60%,
+      rgba(248, 240, 255, 0) 100%
+    );
+    border-bottom-color: var(--shl-magenta-300);
+  }
+  :root:not([data-theme]) .header.is-scrolled {
+    box-shadow: 0 4px 24px rgba(160, 24, 189, 0.18);
+    border-bottom-color: var(--shl-magenta-500);
+  }
+}
+
 /* Sentinel placed immediately after the header. IntersectionObserver
    toggles `.is-scrolled` on the header when this element leaves the
    viewport (i.e., when the user has scrolled past the header height). */

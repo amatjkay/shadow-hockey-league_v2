@@ -23,6 +23,74 @@ function showLeaderboardSkeleton(rowCount) {
     tbody.innerHTML = new Array(rowCount).fill(rowHtml).join('');
 }
 
+// === Header tooltips (TIK-85 polish v2) ===============================
+// Replaces the legacy hover/tap toggle with a centered fixed modal +
+// backdrop. Each toggle button carries data-tooltip-toggle="<id>";
+// the same id appears on the matching .tooltip-content and on the
+// adjacent .tooltip-backdrop (data-tooltip-backdrop). Open: button
+// click. Close: backdrop click, Escape key, or re-clicking the
+// button. aria-expanded mirrors the open state.
+function shlInitTooltips() {
+    const buttons = document.querySelectorAll('[data-tooltip-toggle]');
+    if (!buttons.length) return;
+    let activeId = null;
+
+    function setOpen(id, isOpen) {
+        const btn = document.querySelector(
+            '[data-tooltip-toggle="' + id + '"]'
+        );
+        const content = document.getElementById(id);
+        const backdrop = document.querySelector(
+            '[data-tooltip-backdrop="' + id + '"]'
+        );
+        if (!btn || !content || !backdrop) return;
+        if (isOpen) {
+            backdrop.hidden = false;
+            content.hidden = false;
+            // Two frames so the browser paints the hidden→shown swap
+            // before the transition class lands, giving us the
+            // fade/scale-in instead of an instant pop.
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    backdrop.classList.add('is-visible');
+                    content.classList.add('tooltip-visible');
+                });
+            });
+            btn.setAttribute('aria-expanded', 'true');
+            activeId = id;
+        } else {
+            backdrop.classList.remove('is-visible');
+            content.classList.remove('tooltip-visible');
+            btn.setAttribute('aria-expanded', 'false');
+            window.setTimeout(function () {
+                backdrop.hidden = true;
+                content.hidden = true;
+            }, 220);
+            if (activeId === id) activeId = null;
+        }
+    }
+
+    buttons.forEach(function (btn) {
+        const id = btn.getAttribute('data-tooltip-toggle');
+        btn.addEventListener('click', function () {
+            setOpen(id, btn.getAttribute('aria-expanded') !== 'true');
+        });
+    });
+
+    document.querySelectorAll('[data-tooltip-backdrop]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            const id = el.getAttribute('data-tooltip-backdrop');
+            setOpen(id, false);
+        });
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && activeId) {
+            setOpen(activeId, false);
+        }
+    });
+}
+
 // === Breakdown sheet (TIK-84 polish v2) ==============================
 // Click (or Enter/Space) on a leaderboard row → opens a drawer with the
 // per-row achievement breakdown. Replaces the inline
@@ -278,23 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.addEventListener('click', closeMenu);
     }
 
-    // Tooltip click toggle for touch devices (T8/TIK-68).
-    // Hover is unreliable on touch screens; tap on the `?` icon toggles
-    // visibility, and a tap anywhere else closes it.
-    const tooltipIcon = document.querySelector('.tooltip-icon');
-    const tooltipContent = document.querySelector('.tooltip-content');
-    if (tooltipIcon && tooltipContent) {
-        tooltipIcon.addEventListener('click', function(e) {
-            e.stopPropagation();
-            tooltipContent.classList.toggle('tooltip-visible');
-        });
-        tooltipContent.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-        document.addEventListener('click', function() {
-            tooltipContent.classList.remove('tooltip-visible');
-        });
-    }
+    shlInitTooltips();
 
     // Season tabs (TIK-84 step 5). Replaces the previous <select> with a
     // radio-group; selecting a tab navigates to ?season=N (or `/` for
