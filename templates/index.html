@@ -255,7 +255,6 @@
             />
             <label for="season-tab-{{ s.id }}" class="season-tabs__tab">
               <span class="season-tabs__caption">Сезон {{ s.code }}</span>
-              {% if s.is_active %}<span class="season-tabs__badge">базовый</span>{% endif %}
             </label>
             {% endfor %}
           </div>
@@ -280,13 +279,28 @@
                 <th class="table-header" scope="col">
                   <span class="header-with-tooltip">
                     Очки
-                    <span
+                    <button
+                      type="button"
                       class="tooltip-icon"
+                      aria-label="Открыть справку: система расчёта очков"
+                      aria-haspopup="dialog"
+                      aria-expanded="false"
+                      aria-controls="points-help"
+                      data-tooltip-toggle="points-help"
+                    >?</button>
+                    <div
+                      class="tooltip-backdrop"
+                      data-tooltip-backdrop="points-help"
+                      hidden
+                    ></div>
+                    <div
+                      class="tooltip-content"
+                      id="points-help"
+                      role="dialog"
+                      aria-modal="true"
                       aria-label="Система расчёта очков"
-                      role="tooltip"
-                      >?</span
+                      hidden
                     >
-                    <div class="tooltip-content">
                       <div class="tooltip-body">
                         <p class="tooltip-intro">
                           <strong>Формула:</strong> база × множитель сезона
@@ -353,7 +367,7 @@
                 aria-expanded="false"
                 aria-label="Открыть расчёт очков для {{ row.display_name }}"
               >
-                <td class="table-items rank-cell">{{ row.rank }}</td>
+                <td class="table-items rank-cell"><span class="rank-cell__pill">{{ row.rank }}</span></td>
                 <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
                 <td class="table-items manager-cell">
                   <img

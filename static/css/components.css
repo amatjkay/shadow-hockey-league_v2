@@ -76,16 +76,21 @@
   padding: 0 20px 16px;
 }
 
-/* Light theme: text/icon adopts dark ink so the button reads correctly
-   on the lavender body bg AND inside the dark header gradient. */
+/* TIK-85 polish v2 — In light theme the header is now lavender
+   (see layout.css `.header` override) so the toggle icon must adopt
+   magenta-700 for AA contrast (7.4:1 vs #FBF7FF). Previously the icon
+   stayed white because the dark gradient was retained. */
 :root[data-theme="light"] .theme-toggle {
-  /* Header keeps dark gradient even in light theme \u2014 icon stays white. */
-  color: var(--shl-ink-on-dark);
+  color: var(--shl-magenta-700);
+  background: var(--shl-cyan-tint-15);
+  border-color: var(--shl-magenta-300);
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) .theme-toggle {
-    color: var(--shl-ink-on-dark);
+    color: var(--shl-magenta-700);
+    background: var(--shl-cyan-tint-15);
+    border-color: var(--shl-magenta-300);
   }
 }
 
@@ -263,7 +268,12 @@
   }
 }
 
-/* Header tooltip for rating calculation */
+/* Header tooltip for rating calculation.
+   TIK-85 polish v2 — was a hover-based absolute tooltip that got
+   clipped by the table column at narrow desktop widths. Replaced
+   with a click-to-open centered fixed modal + backdrop so it can
+   never overflow the viewport. Behaviour is wired by
+   shlInitTooltips() in static/js/script.js. */
 .header-with-tooltip {
   position: relative;
   display: inline-flex;
@@ -277,15 +287,18 @@
   justify-content: center;
   width: 18px;
   height: 18px;
+  padding: 0;
   font-size: 13px;
   font-weight: bold;
   color: var(--shl-cyan-500);
   background: var(--shl-cyan-tint-10);
   border: 1px solid var(--shl-cyan-tint-30);
   border-radius: 50%;
-  cursor: help;
+  cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  font-family: inherit;
+  line-height: 1;
 }
 
 .tooltip-icon:hover {
@@ -293,27 +306,52 @@
   border-color: var(--shl-cyan-500);
 }
 
-.tooltip-content {
-  position: absolute;
-  top: 100%;
-  right: -10px;
-  z-index: 1000;
-  width: 380px;
-  max-width: 90vw;
-  margin-top: 10px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.2s ease;
-  pointer-events: none;
+.tooltip-icon:focus-visible {
+  outline: none;
+  box-shadow: var(--shl-focus-ring);
 }
 
-.header-with-tooltip:hover .tooltip-content,
+.tooltip-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1099;
+  background: rgba(10, 4, 24, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 200ms var(--shl-ease-out);
+}
+
+.tooltip-backdrop.is-visible {
+  opacity: 1;
+}
+
+.tooltip-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1100;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.96);
+  transition:
+    opacity 200ms var(--shl-ease-out),
+    transform 220ms var(--shl-spring-ease);
+  pointer-events: auto;
+}
+
 .tooltip-content.tooltip-visible {
   opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip-backdrop,
+  .tooltip-content {
+    transition: none;
+  }
 }
 
 .tooltip-body {
@@ -405,34 +443,17 @@
   background: var(--shl-cyan-tint-08);
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments — modal is already fixed-centered on every
+   viewport, only typography tightens up below 768/480 px. */
 @media (max-width: 768px) {
-  .tooltip-content {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    right: auto;
-    transform: translate(-50%, -50%);
-    width: calc(100% - 40px);
-    max-width: none;
-    max-height: 80vh;
-    overflow-y: auto;
-    margin-top: 0;
-  }
-  
-  .header-with-tooltip:hover .tooltip-content,
-  .tooltip-content.tooltip-visible {
-    transform: translate(-50%, -50%);
-  }
-  
   .tooltip-body {
     font-size: 13px;
   }
-  
+
   .tooltip-table {
     font-size: 12px;
   }
-  
+
   .tooltip-table th,
   .tooltip-table td {
     padding: 6px 8px;
@@ -440,14 +461,10 @@
 }
 
 @media (max-width: 480px) {
-  .tooltip-content {
-    width: calc(100% - 30px);
-  }
-  
   .tooltip-body {
     padding: 12px;
   }
-  
+
   .tooltip-table th,
   .tooltip-table td {
     padding: 5px 6px;
@@ -652,6 +669,14 @@
   border: 1px solid var(--shl-skyblue-tint-40);
   border-radius: var(--shl-radius-sm);
   flex-shrink: 0;
+}
+
+/* TIK-85 polish v2 — UA `[hidden]` rule must win over the
+   class-level `display: inline-block` above (JS toggles `.hidden`
+   based on data-tandem). Without this override the badge shows on
+   every drawer open, even for solo managers. */
+.breakdown-sheet__tandem-badge[hidden] {
+  display: none;
 }
 
 .breakdown-sheet__close {

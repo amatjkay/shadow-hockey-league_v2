@@ -118,33 +118,57 @@
   vertical-align: middle;
 }
 
-/* === Top-3 border hints (TIK-84 step 7) ============================
-   Gold (1st), silver (2nd), bronze (3rd) accent on the rank cell of
-   the first three rows. Uses inset box-shadow so it doesn't displace
-   the existing 1px table borders or shift column widths. Skeleton
-   rows opt out via .table-row--skeleton. */
-.league-table tbody .table-row:not(.table-row--skeleton):nth-child(1) .rank-cell {
-  box-shadow: inset 4px 0 0 var(--shl-sunset-500);
+/* === Top-3 medal pills (TIK-85 polish v2) =========================
+   Replaces the 4 px inset stripe (TIK-84 step 7) with a round metal
+   pill around the rank number. The pill is rendered for every row
+   (see templates/index.html) but only gold/silver/bronze styling
+   lands on rows 1–3. Skeleton rows opt out via .table-row--skeleton.
+   Light theme inherits the same metals — the gradients have enough
+   internal contrast that AA holds against the lavender body bg. */
+.rank-cell__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--shl-radius-pill);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--shl-ink);
 }
 
-.league-table tbody .table-row:not(.table-row--skeleton):nth-child(2) .rank-cell {
-  box-shadow: inset 4px 0 0 #c0c0c0;
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(1) .rank-cell__pill {
+  background: linear-gradient(135deg, #fff3a8 0%, #ffd700 45%, #c79100 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 12px rgba(255, 215, 0, 0.55);
+  color: #4a3a00;
 }
 
-.league-table tbody .table-row:not(.table-row--skeleton):nth-child(3) .rank-cell {
-  box-shadow: inset 4px 0 0 #cd7f32;
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(2) .rank-cell__pill {
+  background: linear-gradient(135deg, #f5f5f5 0%, #c0c0c0 45%, #7d7d7d 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 0 12px rgba(192, 192, 192, 0.55);
+  color: #2c2c2c;
 }
 
-/* === Top-10 row tint (TIK-85, replaces TIK-84 step 8) ==============
-   The previous version applied a moving rainbow `linear-gradient`
-   with `background-clip: text` to every <td> in the top-10. The
-   gradient was animated, which made the numbers and names visibly
-   shimmer between magenta / violet / cyan and dropped contrast below
-   AA. The clean replacement: a static, very-subtle horizontal tint
-   on the *row* that fades from magenta-08 on the left to cyan-08 on
-   the right, plus a thin magenta accent on the row's inline-start
-   edge (which the top-3 gold/silver/bronze rule overrides). Numbers
-   stay in the regular ink colour — readable at a glance. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(3) .rank-cell__pill {
+  background: linear-gradient(135deg, #f7c08a 0%, #cd7f32 45%, #7a4a1a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 0 12px rgba(205, 127, 50, 0.55);
+  color: #2a1500;
+}
+
+/* === Top-10 row tint + animated rainbow name (TIK-85 polish v2) =====
+   Keeps the static row-background wash from PR #88 (so cells stay
+   readable) and adds an animated magenta→violet→cyan gradient on
+   `.manager-name` for the top-10 only. The gradient is clipped to the
+   text so it doesn't bleed onto the rest of the row, and the colour
+   stops are swapped to AA-dark hues under light theme so contrast
+   stays ≥4.5:1 against the lavender body. */
 .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) {
   /* `--shl-cyan-tint-08` is aliased to a magenta-on-dark tint
      (rgba(195,35,224,0.08)) per the synthwave token swap; pairing
@@ -164,6 +188,61 @@
   box-shadow:
     inset 2px 0 0 var(--shl-cyan-tint-25),
     var(--shl-neon-glow-soft);
+}
+
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+  background-image: linear-gradient(
+    90deg,
+    #f050e0 0%,
+    #b040ff 35%,
+    #45daff 70%,
+    #f050e0 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shl-name-shimmer 8s linear infinite;
+  font-weight: 700;
+}
+
+@keyframes shl-name-shimmer {
+  0% {
+    background-position: 0% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+    animation: none;
+  }
+}
+
+/* Light theme: re-stop the gradient with AA-dark hues so the clipped
+   text stays ≥4.5:1 against the lavender body bg. */
+:root[data-theme="light"] .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+  background-image: linear-gradient(
+    90deg,
+    var(--shl-magenta-700) 0%,
+    var(--shl-violet-700) 35%,
+    var(--shl-cyan-secondary-700) 70%,
+    var(--shl-magenta-700) 100%
+  );
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+    background-image: linear-gradient(
+      90deg,
+      var(--shl-magenta-700) 0%,
+      var(--shl-violet-700) 35%,
+      var(--shl-cyan-secondary-700) 70%,
+      var(--shl-magenta-700) 100%
+    );
+  }
 }
 
 /* === Loading skeletons (TIK-84 step 6) =============================
