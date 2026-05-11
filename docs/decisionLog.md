@@ -3,6 +3,72 @@
 > Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
 > at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
 
+## 2026-05-11: Task-formulation skill + thin Obsidian wiki (no content duplication)
+
+**Context**: Owner asked for two related artefacts in the same turn —
+(1) a reusable checklist that AI agents must fill in before tackling a
+complex task, and (2) an Obsidian-readable wiki over the project. The
+repo already has `docs/AI_WORKFLOW.md` (a 19-line English version of
+the checklist) and a mature canonical-docs set (`AGENTS.md`,
+`PROJECT_KNOWLEDGE.md`, `docs/ARCHITECTURE.md`, `docs/API.md`, …).
+Naively, both asks invite duplication: a second checklist file and a
+second copy of the architecture docs.
+
+**Options considered**:
+
+1. **Inline the checklist into `AGENTS.md` § 5 and add a 2000-line
+   wiki that re-explains the project.** Maximises discoverability but
+   creates two new sources of truth that will rot the moment the
+   canonical docs change.
+2. **Skip the wiki; only add a SKILL.md.** Minimises surface area but
+   leaves the owner's "graph view in Obsidian" request unmet.
+3. **Make the SKILL.md canonical for the checklist; make the wiki a
+   thin navigation layer that only summarises (5–15 lines per note)
+   and links to the canonical docs.** Chosen.
+
+**Decision**: Option 3.
+
+- `.agents/skills/task-formulation/SKILL.md` is the **single source of
+  truth** for the 4-section checklist (Context / Result shape /
+  Definition of Done / Scope & Anti-Goals). The existing
+  `docs/AI_WORKFLOW.md` becomes a 19-line pointer at the SKILL so
+  the English-language version stays grep-able without duplicating
+  the body.
+- `.github/ISSUE_TEMPLATE/well-formed-task.md` renders the **same**
+  checklist as a GitHub issue form (so the rule applies to
+  human-filed tickets too) — but its body is a paraphrase of the
+  SKILL, not a fork. Cross-links the SKILL from the top of the
+  template.
+- `docs/wiki/` is a navigation vault, not a documentation vault.
+  Every note is ≤ 60 lines, contains zero copy-pasted content from
+  canonical docs, and survives by linking. The owner gets the
+  Obsidian graph view; the project keeps `AGENTS.md` /
+  `PROJECT_KNOWLEDGE.md` / `docs/ARCHITECTURE.md` / `docs/API.md` as
+  the single sources of truth.
+
+**Consequences**:
+
+- Maintenance load stays bounded: when the architecture changes,
+  exactly one doc (the canonical one) must be edited. Wiki notes
+  point at it and remain accurate "for free".
+- The checklist now has a fixed home that agents can `read` /
+  `grep` deterministically (`/.agents/skills/task-formulation/SKILL.md`),
+  in line with the AGENTS.md § 3 skill discovery pattern.
+- The wiki's value is the graph view, not the prose. If a note grows
+  past ~60 lines, it should be split or its body should move into a
+  canonical doc — flagged at the top of `docs/wiki/README.md`.
+
+**Forward contracts**:
+
+- New skills MUST be added to AGENTS.md § 3 and to
+  `docs/INDEX.md` (already done for `task-formulation`).
+- New canonical docs SHOULD get a thin wiki note that summarises +
+  links — but only when the doc covers a distinct domain. Don't
+  invent wiki notes for every file.
+- `docs/wiki/.obsidian/` is git-ignored (`/.gitignore` 2026-05-11).
+  If we ever want a shared vault config (snippets, hotkeys, plugin
+  list), revisit and commit a curated subset.
+
 ## 2026-05-05: Inspector-based idempotent column backfill (model ↔ Alembic drift)
 
 **Context**: Six columns declared in `models.py`
