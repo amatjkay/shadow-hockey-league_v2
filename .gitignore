@@ -38,3 +38,6 @@ logs/
 
 # Superpowers bootstrap marker (machine-specific; tracked path is .superpowersrc)
 .superpowers/
+
+# Obsidian vault config — generated locally when the user opens docs/wiki/ as a vault.
+docs/wiki/.obsidian/

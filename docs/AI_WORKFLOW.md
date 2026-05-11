@@ -1,19 +1,19 @@
-# AI Task Formulation Checklist
+# AI Task Formulation Checklist — pointer
 
-When planning or analyzing a complex request, verify the task against this checklist to ensure a well-defined scope.
+The canonical, agent-discoverable version of this checklist lives in
+[`.agents/skills/task-formulation/SKILL.md`](../.agents/skills/task-formulation/SKILL.md).
 
-## 1. Context (Why?)
-- [ ] **Problem**: Define the core pain/value (e.g., "User can't find exit", not just "Make a button").
-- [ ] **Components**: Clarify how related system parts interact for the current task.
+Quick recap (do **all four** before any code change in a non-trivial task):
 
-## 2. Expected Result (What?)
-- [ ] **Happy Path**: Describe the ideal completion scenario.
-- [ ] **Corner Cases**: Identify edge cases and potential failures.
+1. **Context — Why?** Problem (pain/value) + system components touched.
+2. **Result shape — What?** Happy path + corner cases.
+3. **Definition of Done.** 2–3 acceptance bullets + how to verify
+   (tests, `make` targets, Playwright scenarios).
+4. **Scope & Anti-Goals.** What we will NOT do + size sanity check
+   (decompose if the task won't fit one session).
 
-## 3. Definition of Done
-- [ ] **Checklist**: Define 2-3 specific acceptance criteria.
-- [ ] **Testing**: Outline the verification method.
+Render this into a PR or Linear ticket via
+[`.github/ISSUE_TEMPLATE/well-formed-task.md`](../.github/ISSUE_TEMPLATE/well-formed-task.md).
 
-## 4. Scope & Boundaries
-- [ ] **Anti-Goals**: Explicitly state what is OUT of scope to prevent unnecessary refactoring.
-- [ ] **Complexity**: If the task is too large, decompose it before proceeding.
+See also the wiki entry [`docs/wiki/Agents & Skills.md`](wiki/Agents%20%26%20Skills.md)
+for how this skill fits into the architect → coder → reviewer pipeline.

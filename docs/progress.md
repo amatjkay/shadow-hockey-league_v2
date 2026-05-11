@@ -6,6 +6,65 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-11: `task-formulation` skill + Obsidian wiki (`docs/wiki/`)
+
+Docs / tooling change only. No source-code, schema, or test edits.
+
+**What landed**
+
+- `.agents/skills/task-formulation/SKILL.md` — new skill registered in
+  AGENTS.md § 3. Operationalises the 4-section task-checklist
+  (Context / Result shape / Definition of Done / Scope & Anti-Goals)
+  that gates non-trivial work into the
+  `architect → coder → verification → reviewer` pipeline. Cross-links
+  the existing `karpathy-guidelines` skill and the `feature-research`,
+  `linear-sync`, `verification` skills.
+- `.github/ISSUE_TEMPLATE/well-formed-task.md` — same checklist
+  rendered as a GitHub issue form so the rule applies to human-filed
+  tickets as well as AI-driven ones.
+- `docs/AI_WORKFLOW.md` — shortened to a 19-line pointer at the new
+  skill (was already a short English version of the same checklist;
+  no canonical content lost).
+- `docs/wiki/` — new Obsidian-compatible navigation vault (16 notes,
+  ~50 LOC each). Thin by design: each note is a 5–15-line summary
+  followed by wikilinks (in-vault) and markdown links (to canonical
+  docs / source) — no duplicated content from `AGENTS.md`,
+  `PROJECT_KNOWLEDGE.md`, `docs/ARCHITECTURE.md`, `docs/API.md`,
+  `docs/MIGRATIONS.md`, `docs/SUPERPOWERS.md`. Open
+  `docs/wiki/` as an Obsidian vault to get the graph view.
+- `docs/INDEX.md` — added entries for the wiki Home and the new skill.
+- `AGENTS.md` — added § 3 row for `task-formulation`; § 6 Version
+  History entry for 2026-05-11.
+- `.gitignore` — excludes `docs/wiki/.obsidian/` (Obsidian generates
+  this locally on first open).
+
+**Why**
+
+Requested by owner: agents handling complex tasks need a reusable
+template that surfaces the Context / DoD / Anti-Goals before any code
+is written. Pairs with `karpathy-guidelines` (which says *think first*
+in the abstract) by giving the concrete artefact. The Obsidian wiki
+was a separate ask in the same turn — gives owner/contributors a
+graph-style map of the project without forking the canonical docs.
+
+**Verification**
+
+- All edits are Markdown. `make check` / `make test` unaffected — no
+  Python / template / config touched.
+- Pre-commit hook (`scripts/install_superpowers.sh --check`) ran on
+  commit and passed.
+- Issue template syntax follows the same frontmatter convention as
+  GitHub's built-in `bug-report.md` / `feature-request.md` examples.
+
+**Open follow-ups**
+
+- Optional: a matching `pull_request_template.md` that surfaces the
+  4-section checklist at PR creation time. Held back this round to
+  keep the diff surgical (`karpathy-guidelines` § 3); owner can ask
+  for it as a separate small PR.
+- Optional: link the wiki from the top-level `README.md`. Same
+  reason — held until owner confirms the navigation direction.
+
 ## 2026-05-09: TIK-84 — M2 Synthwave brand refresh + Concept C (B3)
 
 After PR #86 (TIK-83, Concept A Refresh) merged at `04d9eed`, owner asked

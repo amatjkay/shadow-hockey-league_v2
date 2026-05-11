@@ -29,7 +29,9 @@ mandates the three `docs/`+`PROJECT_KNOWLEDGE.md` files marked **MB** below;
 | `.agents/skills/linear-sync/SKILL.md` | Updating `TIK-NN` ticket status via the `linear` MCP. |
 | `docs/MIGRATIONS.md` | Adding/changing an Alembic migration. |
 | `docs/ADMIN_RECALC.md` | Working on rating recalculation or admin recalc UI. |
-| `docs/AI_WORKFLOW.md` | Decomposing a complex multi-step task. |
+| `docs/AI_WORKFLOW.md` | Decomposing a complex multi-step task (short pointer; canonical body in `.agents/skills/task-formulation/SKILL.md`). |
+| `docs/wiki/Home.md` | Obsidian-compatible graph view over the project. Open `docs/wiki/` as a vault. Thin navigation only — no duplicated content. |
+| `.agents/skills/task-formulation/SKILL.md` | Before any non-trivial code change: fill the 4-section checklist (Context / Result / DoD / Scope & Anti-Goals). |
 | `docs/GITHUB_CLI.md` | Need a less-common `gh` command. |
 | `docs/TROUBLESHOOTING.md` | Investigating a bug or environmental flake. |
 | `docs/decisionLog.md` | About to make (or look up) a non-trivial design decision. Use `tail -5` or grep by date — never read whole. |
