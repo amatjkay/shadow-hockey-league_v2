@@ -6,6 +6,52 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-11: TIK-86 — leaderboard race fix (`_LEADERBOARD_LOCK`)
+
+Bug fix landed after the `task-formulation` skill — first dogfooded use of
+the checklist (Context / Result / DoD / Anti-Goals) on a real ticket.
+
+**What landed**
+
+- `services/rating_service.py` — added module-level
+  `_LEADERBOARD_LOCK = threading.Lock()` and split `build_leaderboard`
+  into the public lock wrapper + private `_build_leaderboard_impl`. The
+  lock serialises the joinedload-heavy query across threads to dodge a
+  SQLAlchemy 2.0.49 cython result-processor race
+  (`IndexError: tuple index out of range`, sporadic `None` rows).
+- `tests/integration/test_routes.py::TestConcurrentRequests` — added
+  `test_concurrent_homepage_requests_stress` (20 × 10 threads) that
+  reproduced the bug ≥29 / 2000 calls *without* the lock and is 100%
+  green with it. Test count 472 → 561 (other recent PRs raised it too;
+  this PR adds 1).
+
+**Why**
+
+CI [run #207](https://github.com/amatjkay/shadow-hockey-league_v2/actions/runs/25681486012)
+(PR #89 merge, TIK-85 polish v2) failed on the pre-existing flaky
+`test_concurrent_homepage_requests`, which skipped `Deploy to
+Production` and stranded polish v2 on `main` without reaching prod.
+Production uses `gunicorn --workers 4 --sync` so the race cannot fire
+today (no in-process threads), but the test client + any future
+`--threads N` worker would trip it. Lock is a no-op in the sync-worker
+hot path because cache hits (`@cache.cached(timeout=300)`) skip
+`build_leaderboard` entirely.
+
+**Verification**
+
+- `make check` — black/isort/flake8/mypy all clean.
+- `make test` — 561 passed, 0 failures.
+- Local stress repro: 200 iterations × 10 threads = 2000
+  `build_leaderboard` calls. Without lock: 29 errors. With lock: 0
+  errors.
+
+**Open follow-ups**
+
+- Upstream-report the SQLAlchemy joinedload+cython race to the
+  SQLAlchemy issue tracker (out of scope per TIK-86 Anti-Goals).
+- If ever switching gunicorn to `--threads N`, audit the rest of the
+  read-path for similar joinedload races (e.g. admin views).
+
 ## 2026-05-11: `task-formulation` skill + Obsidian wiki (`docs/wiki/`)
 
 Docs / tooling change only. No source-code, schema, or test edits.

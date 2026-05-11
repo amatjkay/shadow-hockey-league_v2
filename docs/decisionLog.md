@@ -3,6 +3,67 @@
 > Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
 > at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
 
+## 2026-05-11: TIK-86 — module-level `threading.Lock()` around `build_leaderboard`
+
+**Context**: `tests/integration/test_routes.py::TestConcurrentRequests::test_concurrent_homepage_requests`
+intermittently fails with `IndexError: tuple index out of range` (and two
+related `NoneType` AttributeErrors). Local stress repro: 200 iterations
+of 10-thread concurrent `build_leaderboard()` calls → 29 errors / 2000
+calls (~1.5%). Stack traces point to
+`sqlalchemy.cyextension.resultproxy._apply_processors`, i.e. a SQLAlchemy
+2.0.49 race when the cython result-row processor reads a tuple whose
+column count does not match the compiled statement metadata. The race
+is real but **does not fire in production today**: `Makefile:145` runs
+`gunicorn --workers 4 --sync`, so each request lives in a single-thread
+process and the leaderboard query has no in-process peer. The test
+client, however, fans 10 threads through one engine and trips it.
+
+**Options considered**:
+
+1. **Switch `joinedload` → `selectinload` in `build_leaderboard`.** Wider
+   load pattern, makes N relationship-queries per request, but verified
+   experimentally to keep the same race (29 errors / 200 iters under
+   identical stress). Rejected.
+2. **Disable SQLAlchemy compile cache for this one query
+   (`session.connection().execution_options(compiled_cache=None)`).**
+   Theory-driven (the cache is the suspected race source) but empirically
+   reduced the failure rate without eliminating it. Rejected.
+3. **Module-level `threading.Lock()` around the body of
+   `build_leaderboard`.** Sync prod workers never contend it; threaded
+   test client serialises through it; 5-minute `@cache.cached` keeps
+   the hot path off the lock 99% of the time. Verified: 200 iters × 10
+   threads = 2000 calls = 0 errors. Chosen.
+4. **Delete the flaky test.** Hides the canary; the SQLAlchemy race is
+   real and would re-emerge if anyone ever switched gunicorn to
+   `--threads N`. Rejected.
+
+**Decision**: Option 3.
+
+- New constant `_LEADERBOARD_LOCK = threading.Lock()` at module level in
+  `services/rating_service.py`.
+- Public `build_leaderboard()` becomes a 2-line wrapper that holds the
+  lock and delegates to `_build_leaderboard_impl()` (private).
+  Splitting the body out makes the lock-bypass path explicit if anyone
+  ever needs to micro-benchmark the un-serialised version.
+- New regression test
+  `test_concurrent_homepage_requests_stress` (20 × 10 threads, ~0.4s)
+  amplifies the historical 1.5%-per-batch flake rate to a >99%
+  per-batch detection, so any future regression that re-introduces the
+  race is caught locally before CI.
+
+**Anti-goals locked in by the ticket** (TIK-86 § 4):
+
+- Do not switch from `joinedload` to `selectinload` (same race, slower).
+- Do not investigate the root SQLAlchemy bug here — that belongs in an
+  upstream issue.
+- Do not modify caching, templates, JS, or CSS — they are unrelated.
+
+**Rejected alternatives we may revisit**:
+
+- File an upstream SQLAlchemy issue with the cython-result-processor
+  race repro (out of scope per § 4 anti-goals; logged as a follow-up
+  in `docs/progress.md`).
+
 ## 2026-05-11: Task-formulation skill + thin Obsidian wiki (no content duplication)
 
 **Context**: Owner asked for two related artefacts in the same turn —
