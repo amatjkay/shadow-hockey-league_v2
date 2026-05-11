@@ -12,6 +12,7 @@ The rating is used to build the leaderboard displayed on the main page.
 
 from __future__ import annotations
 
+import threading
 from typing import Any, cast
 
 from sqlalchemy.orm import joinedload
@@ -19,6 +20,13 @@ from sqlalchemy.orm import joinedload
 from models import Achievement, AchievementType, League, Manager, Season
 from services._types import SessionLike
 from services.scoring_service import get_base_points
+
+# Serializes the joinedload-heavy leaderboard query across threads to avoid a
+# SQLAlchemy 2.0 cython result-processor race that produces `IndexError: tuple
+# index out of range` and `None` rows under concurrent reads (TIK-86). Prod runs
+# `gunicorn --workers 4 --sync` so contention is impossible; the lock matters
+# for the threaded test client and any future `--threads >1` worker.
+_LEADERBOARD_LOCK = threading.Lock()
 
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
@@ -207,6 +215,11 @@ def build_leaderboard(session: SessionLike, season_id: int | None = None) -> lis
     - Loads country data for each manager in the same query
     - Loads base points and season multipliers from reference tables (1 query each)
 
+    Serialized through ``_LEADERBOARD_LOCK`` (TIK-86) to dodge a SQLAlchemy
+    cython result-processor race under concurrent threaded reads. The lock
+    is a no-op in production (sync gunicorn workers never contend it) and
+    only fires on cold-cache fan-out in the test client.
+
     Args:
         session: SQLAlchemy database session.
         season_id: Optional ``Season.id``. When provided, only achievements
@@ -219,6 +232,19 @@ def build_leaderboard(session: SessionLike, season_id: int | None = None) -> lis
 
     Returns:
         List of manager rating dictionaries, sorted by total points descending
+    """
+    with _LEADERBOARD_LOCK:
+        return _build_leaderboard_impl(session, season_id=season_id)
+
+
+def _build_leaderboard_impl(
+    session: SessionLike, season_id: int | None = None
+) -> list[dict[str, Any]]:
+    """Inner implementation of :func:`build_leaderboard` (TIK-86).
+
+    Kept separate so :func:`build_leaderboard` is just the lock wrapper —
+    callers and unit tests that need to bypass the lock (e.g. for a
+    targeted micro-benchmark) can import this directly.
     """
     # Load reference data from DB (with fallback to hardcoded)
     base_points = _get_base_points_from_db(session)

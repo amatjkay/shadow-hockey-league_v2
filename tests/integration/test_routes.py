@@ -334,6 +334,36 @@ class TestConcurrentRequests(unittest.TestCase):
         self.assertEqual(len(results), 10)
         self.assertTrue(all(code == 200 for code in results))
 
+    def test_concurrent_homepage_requests_stress(self) -> None:
+        """TIK-86 regression: repeated concurrent homepage requests stay 200.
+
+        Without the ``_LEADERBOARD_LOCK`` guard in ``rating_service``, a
+        joinedload race in SQLAlchemy 2.0 surfaces as ``IndexError: tuple
+        index out of range`` or ``None`` manager rows once every ~50 calls
+        of ``build_leaderboard()`` on a 10-thread fan-out. 20 iterations
+        amplify that to >99 % chance of catching the regression locally.
+        """
+        for _ in range(20):
+            results: list[int] = []
+            lock = threading.Lock()
+
+            def make_request() -> None:
+                response = self.client.get("/")
+                with lock:
+                    results.append(response.status_code)
+
+            threads = [threading.Thread(target=make_request) for _ in range(10)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            self.assertEqual(len(results), 10)
+            self.assertTrue(
+                all(code == 200 for code in results),
+                f"Non-200 leaderboard responses under concurrency: {results}",
+            )
+
 
 class TestAPICRUDOperations(unittest.TestCase):
     """Tests for API CRUD operations."""
