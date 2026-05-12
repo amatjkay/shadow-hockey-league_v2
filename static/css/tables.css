@@ -133,6 +133,11 @@
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
   cursor: inherit;
+  /* `vertical-align: middle` anchors the 16 px flag to x-height/2 of the
+     row text, which sits visibly below the cap-height the manager names
+     occupy (mostly capitals + Cyrillic). Nudge the flag up by 2 px so
+     its optical center matches the visual center of the names. */
+  transform: translateY(-2px);
 }
 
 /* === Top-3 medal pills (TIK-85 polish v2) =========================
@@ -207,7 +212,14 @@
     var(--shl-neon-glow-soft);
 }
 
-.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+/* Rainbow targets in top-10 rows: manager name + score cell + rank pill
+   (rows 4–10 only — rows 1–3 keep the gold/silver/bronze medal pill,
+   which has its own metallic gradient bg and would lose contrast under
+   a clipped rainbow). All three share the same magenta→violet→cyan
+   gradient and `shl-name-shimmer` keyframes so they animate in sync. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name,
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(n+4):nth-child(-n+10) .rank-cell__pill {
   background-image: linear-gradient(
     90deg,
     #f050e0 0%,
@@ -234,14 +246,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+  .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name,
+  .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+  .league-table tbody .table-row:not(.table-row--skeleton):nth-child(n+4):nth-child(-n+10) .rank-cell__pill {
     animation: none;
   }
 }
 
 /* Light theme: re-stop the gradient with AA-dark hues so the clipped
    text stays ≥4.5:1 against the lavender body bg. */
-:root[data-theme="light"] .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+:root[data-theme="light"] .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name,
+:root[data-theme="light"] .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+:root[data-theme="light"] .league-table tbody .table-row:not(.table-row--skeleton):nth-child(n+4):nth-child(-n+10) .rank-cell__pill {
   background-image: linear-gradient(
     90deg,
     var(--shl-magenta-700) 0%,
@@ -251,7 +267,9 @@
   );
 }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme]) .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name {
+  :root:not([data-theme]) .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .manager-name,
+  :root:not([data-theme]) .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .score-cell,
+  :root:not([data-theme]) .league-table tbody .table-row:not(.table-row--skeleton):nth-child(n+4):nth-child(-n+10) .rank-cell__pill {
     background-image: linear-gradient(
       90deg,
       var(--shl-magenta-700) 0%,
