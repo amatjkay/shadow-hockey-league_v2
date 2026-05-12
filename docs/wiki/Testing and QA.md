@@ -10,7 +10,7 @@ just summarises the gates.
 | Formatting | `make check` (`black --check`, `isort --check`) | 0 violations |
 | Lint | `make check` (`flake8`) | 0 errors |
 | Type check | `make check` (`mypy`) | 0 errors (TIK-53) |
-| Unit + integration | `make test` | 472 passing, coverage ≥ 87 % (TIK-54) |
+| Unit + integration | `make test` | 561 passing, coverage ≥ 87 % (TIK-54) |
 | Dependency CVEs | `make audit-deps` | 0 runtime CVEs (TIK-52) |
 | E2E smoke | `make e2e` (Playwright) | 42 scenarios green (TIK-55) |
 
@@ -32,8 +32,8 @@ do not lower the gate.
 
 ## Local caveats
 
-- 2 of 472 tests require Redis on `localhost:6379`. CI brings up a
-  service container; locally you'll see `470 passed, 2 failed`
+- 2 of 561 tests require Redis on `localhost:6379`. CI brings up a
+  service container; locally you'll see `559 passed, 2 failed`
   without Redis — not a regression. See `verification` skill § 2.
 
 ## See also

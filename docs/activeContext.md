@@ -1,59 +1,50 @@
 # Active Context — Shadow Hockey League v2
 
-> **Purpose:** This file tracks the current focus of work, recent changes, and immediate
-> next steps. All agents MUST read this before starting any task.
+> **Purpose:** Current focus + immediate next steps. Memory Bank file, read by all agents on session start (`AGENTS.md` § 1).
 
 ---
 
 ## Current Focus
 
-**Phase:** TIK-84 — M2 Synthwave brand refresh + full Concept C (B3 path).
-Token swap to magenta-primary / cyan-secondary palette sampled from the
-SHL logo, dual theme system (`[data-theme]` + `prefers-color-scheme`),
-FOUC-safe theme toggle, sticky top-nav with scroll-shadow, season tabs
-(replacing `<select>`), loading skeletons with shimmer, top-3 border
-hints (gold/silver/bronze), synthwave-rainbow top-10 sheen, Lighthouse
-polish (OG/Twitter meta, width/height on imgs, lazy loading).
+**Phase:** Maintenance. M2 (synthwave brand refresh + polish v2) and the
+`task-formulation` skill rollout are shipped; Linear backlog is empty.
 
-**Status:** PR pending — branch `devin/tik-84-1778353930-synthwave-c`
-contains all 10 commits, awaiting `make check` / `make test` and push.
-
-Previous milestone: TIK-83 (Concept A Refresh) merged at `04d9eed`.
+**Last shipped:** PR #91 (TIK-86) — `_LEADERBOARD_LOCK` in
+`services/rating_service.py` serializes `build_leaderboard()` to dodge a
+SQLAlchemy 2.0 joinedload cython race that surfaced as `IndexError: tuple
+index out of range` under concurrent reads. Sync gunicorn workers in prod
+never contend the lock; it only matters for the threaded test client and
+any future `--threads >1` worker.
 
 ---
 
 ## Status
 
-- **Branch:** `main` (post PR #85 merge, `a6620d2`).
-- **Goal:** Ship M2 Concept A (PR #86). After merge → maintenance mode.
-- **Tests:** 560 unit/integration (`make test`) + Playwright e2e smoke
-  (`make e2e` locally; `E2E Smoke (Playwright)` job in CI).
-- **Coverage gate:** ≥ 87% (TIK-54).
-- **Type check:** `mypy` is back in `make check` and CI as of TIK-53 — 0 errors
-  on the source tree (78 files).
-- **Dependency audit:** `make audit-deps` (pip-audit) wired into CI as of
-  TIK-52.
-- **Seeding:** 58 achievements, 42 managers, 5 seasons, baseline 25/26.
-- **Live dev server (when running):** `http://127.0.0.1:5000`.
+- **Branch:** `main` (post TIK-86 merge).
+- **Tests:** 561 unit/integration (`make test`, ~30s, ≥ 87% coverage gate, TIK-54).
+- **Type check:** `mypy` in `make check` and CI (TIK-53) — 0 errors.
+- **Dependency audit:** `make audit-deps` (`pip-audit`) wired into CI (TIK-52).
+- **E2E:** `make e2e` (Playwright, 42 scenarios) — local via `make run` + `scripts/create_e2e_admin.py`; CI via `E2E Smoke (Playwright)` job (TIK-55).
+- **Seeding:** 85 achievements, 63 managers, 8 countries, 5 seasons, 4 leagues. Baseline season 25/26.
+- **Live dev server:** `http://127.0.0.1:5000`.
+- **Production:** <https://shadow-hockey-league.ru/> — `gunicorn --workers 4 --sync` on Ubuntu + Nginx.
 
-## Recent Changes (post-2026-05-01)
+## Recent Changes (post-2026-05-03)
 
-- **PR #46 (docs sync 2026-05-01)** ✅ merged — retired Phase A→H plan; backlog drained.
-- **PR #47-#54 (TIK-43..TIK-50)** ✅ merged via **PR #55 (TIK-42 epic)** on 2026-05-03 — dead code purge, CC reduction, 3 monolith→package splits, test dedup, scratch archive, coverage boost. Net: 423 tests / 84% coverage / 0 files > 600 LOC / 0 functions ≥ CC D.
-- **PR #56 (docs sync 2026-05-03)** ✅ merged — TIK-42 cleanup campaign summary.
-- **PR #57 (TIK-52 deps)** ✅ merged — `pip-audit` + `make audit-deps` + CI step. WTForms 3.2.1 → 3.2.2 + dev pkg bumps.
-- **PR #58 (TIK-53 mypy)** ✅ merged — re-enabled `mypy` in `make check` and CI; fixed all 40 errors on the source tree (introduces `services/_types.py::SessionLike` for Flask-SQLAlchemy proxy compat).
-- **PR #59 (TIK-54 coverage)** ✅ merged — coverage 83% → 87% via 49 new tests targeting health error paths, admin views formatters, recalc/metrics corner cases.
-- **PR #60 (TIK-55 e2e in CI)** ✅ merged 2026-05-03 — wired `tests/e2e/test_smoke.py` into a dedicated `E2E Smoke (Playwright)` GitHub Actions job; new `scripts/create_e2e_admin.py` provisions the `e2e_admin` super-admin idempotently; `make e2e` target for local runs.
+- **PR #60 (TIK-55 e2e in CI)** ✅ merged 2026-05-03 — `tests/e2e/test_smoke.py` wired into `E2E Smoke (Playwright)` GitHub Actions job.
+- **PR #76 (TIK-59 batch)** ✅ merged 2026-05-06 — staging stabilisation.
+- **PR #79 (TIK-72 round-2 QA: TIK-74…TIK-80)** ✅ merged 2026-05-07 — hidden `Войти`, pill-shaped season selector, season-dropdown fix, canonical SVG icon paths, concise achievement tooltips, admin `__str__` + filter sidebar, **compact-10 base-points rescaling** (TIK-80).
+- **PR #86 (TIK-83 Concept A)** ✅ merged 2026-05-09 — M2 refresh.
+- **PR #87 (TIK-84 synthwave + Concept C)** ✅ merged 2026-05-09 — M2 finalised.
+- **PR #88 (TIK-85)** ✅ merged 2026-05-10 — leaderboard ghost-grid + rainbow top-10 fix.
+- **PR #89 (polish v2)** ✅ merged 2026-05-10 — tandem badges, points-modal, medal pills, pastel light-theme override.
+- **PR #90 (`task-formulation` skill + Obsidian wiki)** ✅ merged 2026-05-11 — 4-section checklist in `.agents/skills/task-formulation/`; `docs/wiki/` Obsidian vault.
+- **PR #91 (TIK-86 `_LEADERBOARD_LOCK`)** ✅ merged 2026-05-11 — concurrent-leaderboard race fix + `test_concurrent_homepage_requests_stress`.
 
 ---
 
 ## Immediate Next Steps
 
-- [x] All audit-2026-04-28 phases (2A → G) closed.
-- [x] All TIK-42 cleanup epic sub-tickets closed (PR #55).
-- [x] All TIK-51 tech-debt continuation sub-tickets closed (PRs #57-#60).
-- [x] Backlog Linear empty.
 - [ ] **Owner action — secret rotation.** `.env` was tracked in git history before PR #44.
   Rotate `GEMINI_API_KEY` at Google AI Studio; regenerate `SECRET_KEY`,
   `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET` (32+ char random) and replace in local `.env`.
@@ -67,32 +58,30 @@ Previous milestone: TIK-83 (Concept A Refresh) merged at `04d9eed`.
 
 ## Active Blockers
 
-- **[Owner-action] Secret rotation** — see «Immediate Next Steps» above. Untracking the
-  file does not rewrite history.
-- **[Owner-action] Vercel CI noise** — see «Immediate Next Steps» above.
+- **[Owner-action] Secret rotation** — see «Immediate Next Steps». Untracking the file does not rewrite history.
+- **[Owner-action] Vercel CI noise** — see «Immediate Next Steps».
 
 ---
 
 ## Notes for Next Agent
 
-- **Flask-Admin compatibility**: Flask-Admin 2.0.2 ships with the `cls=self` fallback in `BaseView._run_view`, and WTForms 3.2.x no longer accepts `allow_blank` on the base `Field`. The previous `utils/patches.py` shim is therefore obsolete and was removed in TIK-34. If a future upgrade re-introduces the incompatibility, restore the patch and call it from `create_app()` before `init_admin(app)`.
+- **Concurrency in `build_leaderboard()`**: protected by `_LEADERBOARD_LOCK` (TIK-86). Production sync workers never contend it; test client + threaded workers do. If you split the function further or move it, keep the lock at the public entrypoint.
+- **Flask-Admin compatibility**: Flask-Admin 2.0.2 ships with the `cls=self` fallback in `BaseView._run_view`, and WTForms 3.2.x no longer accepts `allow_blank` on the base `Field`. The previous `utils/patches.py` shim is therefore obsolete and was removed in TIK-34.
 - **Admin JS**: Shared logic is in `static/js/admin/autofill.js`.
-- **Rate limiting**: shared `Limiter` lives in `services/extensions.py`. Both `app.py` (`@app.before_request`-style protection of the admin login form) and the `services/api/` package (15 API endpoints across `countries.py`, `managers.py`, `achievements.py`) use it. Storage is Redis in production, in-memory in dev/test. Admin-side login throttling lives in `services/admin/_rate_limit.py`.
+- **Rate limiting**: shared `Limiter` in `services/extensions.py`. `app.py` (admin-login protection) and `services/api/` (15 endpoints across `countries.py`, `managers.py`, `achievements.py`) both use it. Redis in prod, in-memory in dev/test. Admin login throttling: `services/admin/_rate_limit.py`.
 - **Subleague scoring**: always go through `services/scoring_service.py::get_base_points(ach_type, league)` — never compare `league.code == "1"` directly. The helper reads `League.base_points_field`, which respects `parent_code` so subleagues `2.1`/`2.2` inherit `base_points_l2` from parent `2`.
-- **Audit log**: `register_audit_request_hook(app)` is wired in `app.py::register_extensions`. It populates `g.current_user_id` from `flask_login.current_user` so the existing `after_flush` listener writes to `audit_logs` for admin CRUD. `audit_service.log_action()` is still the explicit API used by `services/recalc_service.py` for non-CRUD events.
-- **Admin views**: All `ModelView` subclasses live in `services/admin/views.py` (Country, League, Season, Manager, Achievement, AuditLog, SystemControl). Base class `SHLModelView` is in `services/admin/base.py`. `init_admin(app)` lives in `services/admin/__init__.py` and is the single entrypoint called from `app.py`.
-- **Public API**: `services/api/` is a package; routes are split per resource (`countries.py`, `managers.py`, `achievements.py`) and registered onto a single `api` Blueprint created in `services/api/__init__.py`. Admin-side lookup endpoints are in `blueprints/admin_api/lookups.py`.
-- **Type narrowing**: where mypy needs help with Flask-SQLAlchemy session proxies or `Optional[Foo]` fields after a `is not None` guard, use the `SessionLike` alias from `services/_types.py` and `cast(Foo, model.field)` rather than `# type: ignore`. Pattern established in TIK-53.
-- **Prometheus metrics**: `services/metrics_service.py` is a singleton. `app.py::register_extensions` initialises it unconditionally (even under `TESTING`); `reset_metrics()` cleans `prometheus_client.REGISTRY` so test fixtures can rebind cleanly. Production behaviour is unchanged — `TESTING=False` there.
-- **HTTP compression**: Flask-Compress is wired in `app.py::register_extensions` (br + gzip, level 6, `>=500 B`). Disabled in `TESTING` so `test_client` responses stay byte-comparable.
-- **`?fields=` projection**: opt-in only, plumbed through `paginate_query` for listing endpoints (`GET /api/managers`, `GET /api/achievements`, ...). Single-record endpoints (`/<id>`) still return the full record.
-- **Testing**:
-  - Unit/integration: `venv/bin/pytest tests --ignore=tests/e2e -n auto`. ~40s, expect 472 pass (or 470 + 2 skipped/failing locally if no Redis service is running — those 2 tests need a real Redis to set up Flask-Limiter).
-  - Smoke e2e (local): boot `make run` in one shell; in another, run `python scripts/create_e2e_admin.py` then `make e2e`. The CI `E2E Smoke (Playwright)` job does the same in a fresh runner with a Redis service.
-- **Database**: `dev.db` is the primary SQLite database (untracked since PR #44); recreate locally via `make init-db` (or, for the e2e flow specifically, `python -c "from app import create_app; from models import db; app = create_app(); app.app_context().push(); db.create_all()"` — the bare schema bootstrap CI uses).
-- **Cache key**: any new `@cache.cached` decorator that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`).
-- **mcp-servers/**: untracked since PR #44. Reinstate via `make mcp-install`.
+- **Audit log**: `register_audit_request_hook(app)` is wired in `app.py::register_extensions`. It populates `g.current_user_id` from `flask_login.current_user` so the existing `after_flush` listener writes `audit_logs` for admin CRUD. `audit_service.log_action()` is the explicit API for non-CRUD events (used by `services/recalc_service.py`).
+- **Admin views**: All `ModelView` subclasses live in `services/admin/views.py` (Country, League, Season, Manager, Achievement, AuditLog, SystemControl). Base `SHLModelView` in `services/admin/base.py`. `init_admin(app)` is the single entrypoint, called from `app.py`.
+- **Public API**: `services/api/` is a package; routes split per resource (`countries.py`, `managers.py`, `achievements.py`), all registered onto a single `api` Blueprint in `services/api/__init__.py`. Admin-side lookup endpoints: `blueprints/admin_api/lookups.py`.
+- **Type narrowing**: prefer `SessionLike` alias from `services/_types.py` + `cast(Foo, model.field)` over `# type: ignore`. Pattern established in TIK-53.
+- **Prometheus metrics**: `services/metrics_service.py` is a singleton. `app.py::register_extensions` initialises it unconditionally; `reset_metrics()` cleans `prometheus_client.REGISTRY` for test fixtures. Production unchanged.
+- **HTTP compression**: Flask-Compress in `app.py::register_extensions` (br + gzip, level 6, `>=500 B`). Disabled under `TESTING`.
+- **`?fields=` projection**: opt-in via `paginate_query` for listing endpoints. Single-record `/<id>` endpoints always return full record.
+- **Cache key partitioning**: any `@cache.cached` view that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`); a static prefix shares the bucket across `?season=` variants.
+- **Testing locally**: `make test` (~30s, 561 passing). Two tests in `tests/test_app_extra.py::TestCreateAppEnvFallback` need a real Redis on `localhost:6379` to set up Flask-Limiter — CI brings up a `redis` service container; locally you'll see `559 passed, 2 failed` without it. That's expected.
+- **Database**: `dev.db` is the primary SQLite (untracked since PR #44); recreate via `make init-db`.
+- **mcp-servers/**: untracked since PR #44; reinstate via `make mcp-install`.
 
 ---
 
-_Last updated: 2026-05-09 — TIK-84 M2 synthwave + Concept C (B3) on `devin/tik-84-1778353930-synthwave-c`._
+_Last updated: 2026-05-12 — post-TIK-86 (`_LEADERBOARD_LOCK`) + docs cleanup._

@@ -27,12 +27,10 @@ mandates the three `docs/`+`PROJECT_KNOWLEDGE.md` files marked **MB** below;
 | `.agents/skills/codebase-map/SKILL.md` | Navigating the `services/api/` / `blueprints/admin_api/` / `services/admin/` packages without reading whole files. |
 | `.agents/skills/verification/SKILL.md` | Pre-handoff QA recipe (lint + types + tests + audit-deps + e2e). |
 | `.agents/skills/linear-sync/SKILL.md` | Updating `TIK-NN` ticket status via the `linear` MCP. |
-| `docs/MIGRATIONS.md` | Adding/changing an Alembic migration. |
+| `.agents/skills/db-migration/SKILL.md` | Adding/changing an Alembic migration. |
 | `docs/ADMIN_RECALC.md` | Working on rating recalculation or admin recalc UI. |
-| `docs/AI_WORKFLOW.md` | Decomposing a complex multi-step task (short pointer; canonical body in `.agents/skills/task-formulation/SKILL.md`). |
 | `docs/wiki/Home.md` | Obsidian-compatible graph view over the project. Open `docs/wiki/` as a vault. Thin navigation only — no duplicated content. |
 | `.agents/skills/task-formulation/SKILL.md` | Before any non-trivial code change: fill the 4-section checklist (Context / Result / DoD / Scope & Anti-Goals). |
-| `docs/GITHUB_CLI.md` | Need a less-common `gh` command. |
 | `docs/TROUBLESHOOTING.md` | Investigating a bug or environmental flake. |
 | `docs/decisionLog.md` | About to make (or look up) a non-trivial design decision. Use `tail -5` or grep by date — never read whole. |
 | `docs/progress.md` | Need recent progress / open work items. Use `tail -50` — never read whole. |
@@ -48,6 +46,8 @@ mandates the three `docs/`+`PROJECT_KNOWLEDGE.md` files marked **MB** below;
 - `docs/archive/2026-Q2.md` — rotated `progress.md` (4 entries 2026-04-30 →
   2026-05-01) + `decisionLog.md` (8 entries 2026-04-23 → 2026-04-29). Verbatim
   move; reference only when asked about pre-2026-04-30 design history.
+- `docs/archive/handoff-2026-05-07.md` — one-off cross-agent handoff after the
+  TIK-71/72 batch landed. Reference only when investigating the M2 refresh era.
 
 ## Conventions
 

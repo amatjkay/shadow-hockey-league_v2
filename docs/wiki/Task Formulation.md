@@ -2,7 +2,6 @@
 
 Canonical: [`.agents/skills/task-formulation/SKILL.md`](../../.agents/skills/task-formulation/SKILL.md).
 Issue template: [`.github/ISSUE_TEMPLATE/well-formed-task.md`](../../.github/ISSUE_TEMPLATE/well-formed-task.md).
-Short pointer: [docs/AI_WORKFLOW.md](../AI_WORKFLOW.md).
 
 ## The 4 sections
 
