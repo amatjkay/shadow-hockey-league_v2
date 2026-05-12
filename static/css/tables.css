@@ -114,8 +114,25 @@
   object-fit: contain;
 }
 
-.table-row__countries {
+/* Country flag — uniform 24×16 (3:2) box across local PNGs and FlagCDN
+   (which serves 3:2). `object-fit: cover` guarantees identical visual
+   size regardless of the source's intrinsic dimensions; the subtle
+   1 px outline keeps white-on-white flags (e.g. FIN, JPN) from
+   bleeding into the row background. Higher specificity than
+   `.table-items img` so we win the cascade without `!important`.
+   Cursor falls back to the row's pointer (the achievement-icon
+   `cursor: help` from `.table-items img` is unwanted here).
+   Width/height attributes on the `<img>` in templates/index.html
+   match (24/16) so the layout reserves the same box before CSS
+   applies. */
+.table-items .table-row__countries {
+  width: 24px;
+  height: 16px;
+  object-fit: cover;
   vertical-align: middle;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+  cursor: inherit;
 }
 
 /* === Top-3 medal pills (TIK-85 polish v2) =========================
@@ -340,6 +357,12 @@
   font-size: 0.85em;
 }
 
+/* Leaderboard column alignment policy (TIK-87):
+   - rank-cell / score-cell  → center  (compact numeric pills)
+   - manager-cell            → left    (flag + name + tandem badge)
+   - league-cups-cell        → left    (achievement icon row)
+   The left-align falls out of the cascade from `.table td`; the
+   centred numeric columns are the only deliberate override. */
 .league-table .rank-cell,
 .league-table .score-cell {
   text-align: center;
