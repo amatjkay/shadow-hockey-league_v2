@@ -2,8 +2,7 @@
 
 Alembic-only. **Never** call `db.create_all()` in production; **never**
 hand-edit `migrations/versions/*` after merge. Canonical recipe lives
-in [docs/MIGRATIONS.md](../MIGRATIONS.md); a richer how-to is in
-`.agents/skills/db-migration/SKILL.md`.
+in [`.agents/skills/db-migration/SKILL.md`](../../.agents/skills/db-migration/SKILL.md).
 
 ## When you need a migration
 

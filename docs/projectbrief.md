@@ -10,23 +10,26 @@ Manager ranking is determined by the sum of points from all their achievements.
 The points for each achievement are calculated using the formula:
 **Points = Base Points × Season Multiplier**
 
-#### Base Points by League and Type
+#### Base Points by League and Type (compact-10 scale, TIK-80)
 | Achievement Type | League 1 (Elite) | League 2 |
 | :--- | :--- | :--- |
-| **TOP1** (Champion) | 800 | 300 |
-| **TOP2** (Runner-up) | 550 | 200 |
-| **TOP3** (Third place) | 450 | 100 |
-| **BEST** (Best Regular Season) | 50 | 40 |
-| **R3** (Round 3 Playoff) | 30 | 20 |
-| **R1** (Round 1 Playoff) | 10 | 5 |
+| **TOP1** (Champion) | 10.00 | 6.00 |
+| **TOP2** (Runner-up) | 5.00 | 3.00 |
+| **TOP3** (Third place) | 2.50 | 1.50 |
+| **BEST** (Best Regular Season) | 3.00 | 1.80 |
+| **R3** (Round 3 Playoff) | 1.50 | 0.90 |
+| **R1** (Round 1 Playoff) | 0.75 | 0.45 |
 
-#### Season Multipliers (Recency Weighting)
-To prioritize recent performance, older achievements have a discount multiplier:
-- **25/26**: 1.00 (Current/Baseline)
-- **24/25**: 0.95
-- **23/24**: 0.90
-- **22/23**: 0.85
-- **21/22**: 0.80
+Subleagues (`2.1`, `2.2`) inherit `base_points_l2` through `League.base_points_field`.
+Ground truth: `achievement_types` table in `dev.db`.
+
+#### Season Multipliers (Recency Weighting, decay `0.7 ^ years_ago`)
+To prioritize recent performance, older achievements decay exponentially:
+- **25/26**: 1.0000 (Current/Baseline)
+- **24/25**: 0.7000
+- **23/24**: 0.4900
+- **22/23**: 0.3430
+- **21/22**: 0.2400
 
 ### 2. Leaderboard Rules
 - **Sorting**: Total points (Descending) → Name (Ascending).

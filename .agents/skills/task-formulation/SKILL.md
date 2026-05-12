@@ -137,7 +137,5 @@ decompose — not a signal to start coding faster.
   into a TIK-NN Linear ticket and back.
 - `.agents/skills/verification/SKILL.md` — runs the DoD checks
   (`make check && make test && make audit-deps`) before handoff.
-- `docs/AI_WORKFLOW.md` — short pointer to this skill (the English
-  one-pager kept for quick scanning).
 - `.github/ISSUE_TEMPLATE/well-formed-task.md` — the same checklist
   rendered as a GitHub issue form.

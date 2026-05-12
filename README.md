@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
 [![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-472%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-561%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
@@ -57,28 +57,30 @@ git-submodule `skills/superpowers` (см. [AGENTS.md § 7](AGENTS.md#7-superpowe
 points = base_points(league, achievement_type) × season_multiplier
 ```
 
-### Базовые очки
+### Базовые очки (compact-10 шкала, TIK-80)
 
-Источник истины — `data/seed/achievements.json` + таблица `achievement_types` в `dev.db`.
+Источник истины — таблица `achievement_types` в `dev.db` (seed: `data/seed/achievements.json`).
 
 | Код    | Достижение           | Лига 1 | Лига 2 |
 | ------ | -------------------- | ------ | ------ |
-| `TOP1` | Чемпион              | 800    | 400    |
-| `TOP2` | Финалист             | 400    | 200    |
-| `TOP3` | Бронзовый призёр     | 200    | 100    |
-| `BEST` | Лучший в регулярке   | 200    | 100    |
-| `R3`   | Полуфинал (1/2)      | 100    | 50     |
-| `R1`   | Четвертьфинал (1/4)  | 50     | 25     |
+| `TOP1` | Чемпион              | 10.00  | 6.00   |
+| `TOP2` | Финалист             | 5.00   | 3.00   |
+| `TOP3` | Бронзовый призёр     | 2.50   | 1.50   |
+| `BEST` | Лучший в регулярке   | 3.00   | 1.80   |
+| `R3`   | Полуфинал (1/2)      | 1.50   | 0.90   |
+| `R1`   | Четвертьфинал (1/4)  | 0.75   | 0.45   |
 
-### Множители сезонов
+Сабли́ги (`2.1`, `2.2`) наследуют `base_points_l2` через `League.base_points_field`.
 
-| Сезон | Множитель       |
-| ----- | --------------- |
-| 25/26 | ×1.00 (базовый) |
-| 24/25 | ×0.80           |
-| 23/24 | ×0.50           |
-| 22/23 | ×0.30           |
-| 21/22 | ×0.20           |
+### Множители сезонов (decay 0.7 ^ years_ago)
+
+| Сезон | Множитель |
+| ----- | --------- |
+| 25/26 | 1.0000    |
+| 24/25 | 0.7000    |
+| 23/24 | 0.4900    |
+| 22/23 | 0.3430    |
+| 21/22 | 0.2400    |
 
 ---
 
@@ -126,7 +128,7 @@ shadow-hockey-league_v2/
 │   ├── seed/                   #   Исходные данные (JSON)
 │   ├── export/                 #   Экспорт из БД (JSON)
 │   └── schemas.py              #   Валидация JSON схем
-├── tests/                      # Pytest тесты (472 теста, ≥ 87% gate)
+├── tests/                      # Pytest тесты (561 тест, ≥ 87% gate)
 │   ├── integration/            #   Интеграционные тесты
 │   └── e2e/                    #   Playwright smoke (запуск вручную, см. README ниже)
 ├── docs/                       # Документация
@@ -149,7 +151,7 @@ shadow-hockey-league_v2/
 | ------------- | ------------------------------------------------ |
 | `make setup`  | Установка зависимостей + инициализация БД        |
 | `make run`    | Запуск сервера разработки                        |
-| `make test`   | Запуск тестов (472 unit/integration)             |
+| `make test`   | Запуск тестов (561 unit/integration)             |
 | `make check`  | Все проверки (black + isort + flake8 + mypy)     |
 | `make lint`   | Проверка кода (flake8)                           |
 | `make format` | Форматирование (black + isort)                   |
@@ -159,7 +161,7 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-**472 unit/integration теста** (≥ 87% покрытие — CI gate с TIK-54) + **42-сценарный Playwright smoke**:
+**561 unit/integration тест** (≥ 87% покрытие — CI gate с TIK-54) + **42-сценарный Playwright smoke**:
 
 - **Unit:** rating service, validation, cache, API auth, models
 - **Integration:** routes, API CRUD, database constraints, cache invalidation
@@ -253,15 +255,14 @@ API Key передаётся в заголовке `X-API-Key`. Scopes: `read`, 
 
 | Файл                                                 | Описание                       |
 | ---------------------------------------------------- | ------------------------------ |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)       | Архитектура системы            |
-| [`docs/API.md`](docs/API.md)                         | REST API документация          |
-| [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md)           | Заметки по изменениям схемы БД |
-| [`docs/ADMIN_RECALC.md`](docs/ADMIN_RECALC.md)       | Админка и логика перерасчета   |
-| [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md)         | Постановка задач для ИИ        |
-| [`docs/GITHUB_CLI.md`](docs/GITHUB_CLI.md)           | Работа с GitHub через CLI      |
-| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок           |
-| [`docs/SUPERPOWERS.md`](docs/SUPERPOWERS.md)         | obra/superpowers skill bridge  |
-| [`CHANGELOG.md`](CHANGELOG.md)                       | История изменений              |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)       | Архитектура системы                          |
+| [`docs/API.md`](docs/API.md)                         | REST API документация                        |
+| [`docs/ADMIN_RECALC.md`](docs/ADMIN_RECALC.md)       | Админка и логика перерасчёта                 |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Устранение неполадок                         |
+| [`docs/SUPERPOWERS.md`](docs/SUPERPOWERS.md)         | obra/superpowers skill bridge                |
+| [`docs/wiki/Home.md`](docs/wiki/Home.md)             | Obsidian-vault: навигационный граф проекта   |
+| [`docs/INDEX.md`](docs/INDEX.md)                     | Когда какой doc грузить (для AI-агентов)     |
+| [`AGENTS.md`](AGENTS.md)                             | Правила для AI-агентов (single source of truth) |
 
 ---
 

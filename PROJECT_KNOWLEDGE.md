@@ -11,21 +11,21 @@
 - **Multiplier**: Defined in the `Season` model.
 - **Auto-calculation**: Achievements MUST be auto-calculated on the server-side via `on_model_change` to ensure database integrity.
 
-### Reference Data Baselines
+### Reference Data Baselines (compact-10 scale, TIK-80)
 
-> Source of truth: `data/seed/achievements.json` + `seed_db.py` + `achievement_types`/`seasons` rows in `dev.db`. Verify with `SELECT code, base_points_l1, base_points_l2 FROM achievement_types` before changing.
+> Source of truth: `achievement_types`/`seasons` rows in `dev.db` (seed: `data/seed/achievements.json` + `seed_db.py`). Verify with `SELECT code, base_points_l1, base_points_l2 FROM achievement_types` before changing.
 
 | Code | Name | L1 (Elite) | L2 |
 | :--- | :--- | ---: | ---: |
-| `TOP1` | Top 1 | 800 | 400 |
-| `TOP2` | Top 2 | 400 | 200 |
-| `TOP3` | Top 3 | 200 | 100 |
-| `BEST` | Best Regular | 200 | 100 |
-| `R3` | Round 3 (semifinal exit) | 100 | 50 |
-| `R1` | Round 1 (quarterfinal exit) | 50 | 25 |
+| `TOP1` | Top 1 | 10.00 | 6.00 |
+| `TOP2` | Top 2 | 5.00 | 3.00 |
+| `TOP3` | Top 3 | 2.50 | 1.50 |
+| `BEST` | Best Regular | 3.00 | 1.80 |
+| `R3` | Round 3 (semifinal exit) | 1.50 | 0.90 |
+| `R1` | Round 1 (quarterfinal exit) | 0.75 | 0.45 |
 
 - **Baseline Season**: 25/26 (Multiplier = 1.0).
-- **Historical Multipliers**: 24/25 = 0.8, 23/24 = 0.5, 22/23 = 0.3, 21/22 = 0.2.
+- **Historical Multipliers** (decay `0.7 ^ years_ago`): 24/25 = 0.7000, 23/24 = 0.4900, 22/23 = 0.3430, 21/22 = 0.2400.
 
 ## 2. Infrastructure & Tech Stack
 
@@ -49,11 +49,11 @@
 
 ## 5. Testing
 
-- **Unit / integration**: `make test` (or `pytest --ignore=tests/e2e -n auto`) — currently 472 passing. Coverage gate ≥ 87% (TIK-54).
+- **Unit / integration**: `make test` (or `pytest --ignore=tests/e2e -n auto`) — currently 561 passing (~30s). Coverage gate ≥ 87% (TIK-54).
 - **Type check**: `mypy` is part of `make check` (TIK-53) and the `Quality & Tests` CI job — 0 errors on the source tree (78 files).
 - **Dependency audit**: `make audit-deps` (`pip-audit` on `requirements.txt` + `requirements-dev.txt`) runs in CI (TIK-52).
 - **Smoke e2e**: `tests/e2e/test_smoke.py` (Playwright, 42 scenarios). Locally: boot `make run`, then `python scripts/create_e2e_admin.py && make e2e`. CI runs the same script in the dedicated `E2E Smoke (Playwright)` job (TIK-55, PR #60). Excluded from `pytest` auto-collection via `tests/e2e/conftest.py`.
 - **Cache key partitioning**: any `@cache.cached` view that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`); a static prefix shares the bucket across `?season=` variants.
 
 ---
-_Last updated: 2026-05-03 — post-TIK-51 (mypy/pip-audit/e2e in CI, 87% coverage)._
+_Last updated: 2026-05-12 — post-TIK-86 (`_LEADERBOARD_LOCK`) + docs cleanup; compact-10 (TIK-80) values reflected._

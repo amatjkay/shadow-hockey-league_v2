@@ -42,4 +42,4 @@ Central service for recomputing standings and points after data mutations.
 
 - **API Reference** (`docs/API.md`) — endpoints for bulk operations.
 - **Architecture** (`ARCHITECTURE.md`) — data model and service boundaries.
-- **Migration Notes** (`MIGRATIONS.md`) — recent introduction of `Match` model and service extraction.
+- **DB migrations**: `.agents/skills/db-migration/SKILL.md` — Alembic recipe.
