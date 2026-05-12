@@ -110,6 +110,13 @@
     vertical-align: middle;
   }
 
+  /* Mobile keeps the same 24×16 country flag as desktop so the
+     visual size stays identical across breakpoints (TIK-87). */
+  .table-items .table-row__countries {
+    width: 24px;
+    height: 16px;
+  }
+
   .rating-ach-item {
     flex-direction: column;
     align-items: flex-start;
@@ -138,5 +145,10 @@
   .table-items img {
     width: 30px;
     height: 30px;
+  }
+
+  .table-items .table-row__countries {
+    width: 24px;
+    height: 16px;
   }
 }
