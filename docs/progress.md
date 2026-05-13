@@ -80,6 +80,47 @@ scrolling through 498 lines.
 - [x] Before/after HTML render byte-identical (md5 match).
 - [x] `docs/progress.md` updated (this entry).
 
+## 2026-05-13: TIK-94 — tests: fallback consistency (`BASE_POINTS`/`SEASON_MULTIPLIER` ↔ seed)
+
+Detection-only consistency tests (P3 from the rating-service audit) for the
+two fallback dictionaries `services.rating_service` keeps in case
+`achievement_types` / `seasons` are empty.
+
+**What landed**
+
+- `tests/test_rating_fallback_consistency.py` — new file, 2 tests:
+  - `test_base_points_fallback_matches_seeded_reference_data`: seeds the
+    reference tables via `data.seed_service.SeedService._seed_reference_data`
+    (the same codepath `seed_db.py` runs), then iterates every
+    `(root_league.code, ach_type.code)` in DB and compares
+    `services.scoring_service.get_base_points(ach_type, league)` against
+    `services.rating_service.BASE_POINTS[(league_code, type_code)]`
+    with tolerance `1e-9`. Asserts both directions (no missing keys in
+    fallback, no extras either). Subleagues (`parent_code is not None`,
+    i.e. `2.1`/`2.2`) are intentionally skipped — they inherit
+    `base_points_l2` via `League.base_points_field` and the flat
+    `BASE_POINTS` dict only covers root leagues `1` and `2`.
+  - `test_season_multiplier_fallback_matches_seeded_reference_data`:
+    iterates every seeded `Season` and compares `Season.multiplier`
+    against `SEASON_MULTIPLIER[s.code]` with tolerance `1e-9`. Asserts
+    both directions.
+- On drift either test collects every offending key into a single
+  `pytest.fail()` so the diff is visible at a glance.
+
+**Anti-Goals respected (per TIK-94)**
+
+- No edits to `services/rating_service.py`, `services/scoring_service.py`,
+  `models.py`, or `data/seed/*.json`.
+- If a real drift were found, the follow-up is a separate ticket + an
+  `xfail` marker on the offending test — not a silent fix here.
+
+**Verification**
+
+- `./venv/bin/pytest tests/test_rating_fallback_consistency.py -v` — 2/2 pass.
+- `./venv/bin/pytest tests --ignore=tests/e2e -n auto --cov=...` —
+  578 passed in ~31s, coverage 89% (≥ 87% gate, TIK-54).
+- `make check` (black/isort/flake8/mypy + pip-audit) — clean.
+
 ## 2026-05-13: TIK-89 Phase 3 — rotate `docs/progress.md` + `docs/decisionLog.md` to `docs/archive/2026-Q2.md` (T13 + T14)
 
 Batch B Phase 3 of the 14-item owner-actions catalog (T13 + T14).
