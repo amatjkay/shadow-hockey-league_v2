@@ -159,6 +159,32 @@ else
     log_info "OWNER_ADMIN_USER/OWNER_ADMIN_PASSWORD not set in .env — skipping"
 fi
 
+# Wait for Redis before restarting Gunicorn so every worker resolves the
+# Redis backend on startup. Without this loop, a slow-starting Redis (or
+# a node-local Redis restarted in the same window) lets a worker fall
+# back to per-process SimpleCache and produces the TIK-100 season-tab
+# hang: cached pages live in one worker's heap, every other worker
+# computes the leaderboard from scratch.
+log_info "=== Waiting for Redis (max 30s) ==="
+REDIS_OK=0
+for i in $(seq 1 30); do
+    if command -v redis-cli &> /dev/null; then
+        if redis-cli ping 2>/dev/null | grep -q '^PONG$'; then
+            REDIS_OK=1
+            log_info "Redis ping OK via redis-cli (attempt $i)"
+            break
+        fi
+    elif python3 -c "import redis; r=redis.Redis(host='localhost',port=6379,socket_connect_timeout=2); r.ping(); print('ok')" 2>/dev/null | grep -q '^ok$'; then
+        REDIS_OK=1
+        log_info "Redis ping OK via python (attempt $i)"
+        break
+    fi
+    sleep 1
+done
+if [ "$REDIS_OK" != "1" ]; then
+    log_warn "Redis ping did not succeed within 30s — continuing anyway (Gunicorn workers will fall back to SimpleCache and /health will report cache_backend_type=SimpleCache)"
+fi
+
 # Restart service
 log_info "=== Restarting $SERVICE_NAME ==="
 
@@ -195,6 +221,23 @@ except Exception:
 
         if [ "$STATUS" = "healthy" ]; then
             log_info "Health check PASSED (status: $STATUS)"
+            # Warm the leaderboard cache on every Gunicorn worker so the
+            # first real user does not pay the cold-cache cost (TIK-100:
+            # serial curls observed 18.7s → 27.8s → 5.8s on prod). We hit
+            # ``/`` plus one URL per season so each ``_leaderboard_cache_key``
+            # variant lands in Redis. ``--max-time 30`` guards against a
+            # wedged worker; failures here are logged but non-fatal — the
+            # deploy already passed the health check above.
+            log_info "=== Warming leaderboard cache ==="
+            for url in "http://127.0.0.1:8000/" \
+                       "http://127.0.0.1:8000/?season=1" \
+                       "http://127.0.0.1:8000/?season=2" \
+                       "http://127.0.0.1:8000/?season=3" \
+                       "http://127.0.0.1:8000/?season=4" \
+                       "http://127.0.0.1:8000/?season=5"; do
+                curl -sf -o /dev/null -w "warmup %{url}: %{time_total}s\n" --max-time 30 "$url" \
+                    || log_warn "warmup failed for $url (non-fatal)"
+            done
             log_info "=========================================="
             log_info "Deployment completed successfully!"
             log_info "Commit: $(git log --oneline -1)"

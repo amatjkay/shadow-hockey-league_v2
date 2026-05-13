@@ -31,6 +31,11 @@ def health_check() -> dict[str, Any]:
 
     start_time = time.time()
 
+    cache_backend = getattr(cache, "cache", None)
+    cache_backend_type = (
+        type(cache_backend).__name__ if cache_backend is not None else "uninitialised"
+    )
+
     health_status: dict[str, Any] = {
         "status": "healthy",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -44,6 +49,14 @@ def health_check() -> dict[str, Any]:
         "redis_status": "unknown",
         "cache_status": "unknown",
         "database_status": "unknown",
+        # TIK-100: surface the actual backend per worker so a partial Redis
+        # fallback (only some Gunicorn workers running SimpleCache) is
+        # visible without grepping journald. ``cache_type_config`` is what
+        # the worker *asked* for; ``cache_backend_type`` is what
+        # ``flask_caching`` actually wired up.
+        "cache_backend_type": cache_backend_type,
+        "cache_type_config": str(current_app.config.get("CACHE_TYPE", "unknown")),
+        "cache_key_prefix": str(current_app.config.get("CACHE_KEY_PREFIX", "")),
     }
 
     # Check database
