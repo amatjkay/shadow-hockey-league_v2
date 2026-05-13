@@ -1,0 +1,93 @@
+{% if not rating_rows %}
+        <div class="empty-state">
+          <p class="empty-state__message">
+            Рейтинг пуст. Добавьте менеджеров через API или запустите seed_db.py
+          </p>
+        </div>
+        {% else %}
+        <div
+          class="table-responsive"
+          id="league-table-container"
+          aria-live="polite"
+        >
+          <table class="table league-table">
+            <thead>
+              <tr>
+                <th class="table-header" scope="col">Место</th>
+                <th class="table-header" scope="col">
+                  <span class="header-with-tooltip">
+                    Очки
+                    <button
+                      type="button"
+                      class="tooltip-icon"
+                      aria-label="Открыть справку: система расчёта очков"
+                      aria-haspopup="dialog"
+                      aria-expanded="false"
+                      aria-controls="points-help"
+                      data-tooltip-toggle="points-help"
+                    >?</button>
+                  </span>
+                </th>
+                <th class="table-header" scope="col">Участник</th>
+                <th class="table-header" scope="col">Кубки</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rating_rows %}
+              {% set breakdown_payload = [] %}
+              {% for a in row.achievements %}
+              {% set _ = breakdown_payload.append({
+                'label': a.label,
+                'base': a.base,
+                'mul_display': a.mul_display,
+                'points': a.points,
+                'icon_html': a.html
+              }) %}
+              {% endfor %}
+              <tr
+                class="table-row"
+                data-breakdown="{{ breakdown_payload|tojson|forceescape }}"
+                data-rank="{{ row.rank }}"
+                data-name="{{ row.display_name }}"
+                data-country-flag="{{ row.country }}"
+                data-country-code="{{ row.country_code }}"
+                data-total="{{ row.total_display }}"
+                data-tandem="{{ 'true' if row.is_tandem else 'false' }}"
+                role="button"
+                tabindex="0"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-label="Открыть расчёт очков для {{ row.display_name }}"
+              >
+                <td class="table-items rank-cell"><span class="rank-cell__pill"><span class="rank-cell__num">{{ row.rank }}</span></span></td>
+                <td class="table-items score-cell">{{ row.total_display }}</td>
+                <td class="table-items manager-cell">
+                  <img
+                    src="{{ row.country }}"
+                    alt="{{ row.country_code }}"
+                    class="table-row__countries"
+                    width="24"
+                    height="16"
+                    loading="lazy"
+                    decoding="async"
+                    onerror="this.src='https://flagcdn.com/w40/un.png'"
+                  />
+                  <span class="manager-name">{{ row.display_name }}</span>
+                  {% if row.is_tandem %}<span
+                    class="tandem-badge"
+                    title="Запись тандема"
+                    >тандем</span
+                  >{% endif %}
+                </td>
+                <td class="table-items league-cups-cell">
+                  {% if row.achievements %} {% for a in row.achievements %} {{
+                  a.html|safe }} {% endfor %} {% else %}
+                  <span class="rating-empty">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}

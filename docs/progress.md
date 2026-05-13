@@ -9,6 +9,77 @@
 > - `## Progress (rotated 2026-05-13)` — 13 entries 2026-05-03 → 2026-05-08
 >   (later), rotated per TIK-89 / T13 to keep the latest 10 active here.
 
+## 2026-05-13: TIK-97 — split `templates/index.html` (498 LOC) into `templates/partials/_*.html`
+
+D6 of the maintenance backlog: decompose the leaderboard's single-file
+Jinja template into reusable partials so future point-edits (e.g.
+PR #105's top-10 cup icon tweak) touch a 30–100-line file instead of
+scrolling through 498 lines.
+
+**What landed**
+
+- New `templates/partials/` with six includes:
+  - `_head.html` — doctype + `<html lang="ru">` + `<head>` (meta, theme
+    FOUC-fix, CSS modules).
+  - `_header.html` — `<header>` (logo + Telegram + theme toggle + admin
+    nav), header-sentinel, and the slide-in `.mobile-menu` (logically
+    part of header navigation).
+  - `_season_selector.html` — pill-shaped `filters-bar` with
+    `season-tabs` radio group.
+  - `_leaderboard_table.html` — empty-state branch + the league
+    `<table>` (rating rows, medal pills, tandem badges, breakdown
+    `data-*` payload, points-help tooltip trigger).
+  - `_breakdown_drawer.html` — `<aside id="breakdown-sheet">` modal
+    populated from clicked-row `data-*` attributes.
+  - `_footer.html` — `<footer class="footer">` copyright block.
+- `templates/index.html` rewritten as a thin shell using
+  `{% include 'partials/_*.html' %}`. Jinja2 inherits the controller
+  context automatically, so the points-help formula tooltip
+  (`season_multipliers` + `achievement_types`) and the page-title
+  `<h1>` stay in `index.html` (they don't fit any DoD partial and the
+  DoD's anti-goal is "no new UI blocks").
+- `blueprints/main.py::index` unchanged — same `rating_rows`,
+  `seasons`, `selected_season_id`, `season_multipliers`,
+  `achievement_types` context contract.
+- No CSS, JS, controller, or business-logic changes. `templates/admin/*`
+  untouched.
+
+**Why this matters**
+
+- `index.html` shrinks 498 → 90 lines (a thin layout shell); each
+  partial is 7–95 lines and self-contained.
+- Surgical edits (e.g. changing a single breakdown-sheet aria attribute
+  or a season-tab label) now touch a focused file instead of scrolling
+  through the full template.
+- Diffs in future PRs are scoped — reviewers immediately see whether
+  a change is in the header, the leaderboard table, or the breakdown
+  modal.
+
+**Verification**
+
+- `curl http://127.0.0.1:5000/` and `curl http://127.0.0.1:5000/?season=5`
+  before vs after — md5 identical (3114 / 3040 lines, same hash):
+  - root  `cbd7ca0c5d17bdb130f392247e3e675d` (before == after).
+  - s=5   `934968f2c241a3a41a20dbbedf748cb6` (before == after).
+- `make check` — clean (black, isort, flake8, mypy, pip-audit).
+- `make test` — 576 passed in ~24s (+4 vs the post-TIK-86 baseline of
+  572; the delta comes from tests added in TIK-92..TIK-96 already
+  merged to `main` before this branch).
+- `make coverage` — 89% line coverage (services + blueprints + app +
+  models) — above the ≥ 87% gate (TIK-54).
+- `tests/integration/test_routes.py::Test*Homepage*` — all green
+  without any test edits.
+
+**Definition of Done**
+
+- [x] `templates/partials/` populated with the 6 DoD files.
+- [x] `templates/index.html` uses `{% include 'partials/_*.html' %}`.
+- [x] `blueprints/main.py` unchanged.
+- [x] `tests/integration/test_routes.py` passes without edits.
+- [x] `make check` + `make test` green; coverage ≥ 87 % (89 %).
+- [x] Before/after HTML render byte-identical (md5 match).
+- [x] `docs/progress.md` updated (this entry).
+
 ## 2026-05-13: TIK-89 Phase 3 — rotate `docs/progress.md` + `docs/decisionLog.md` to `docs/archive/2026-Q2.md` (T13 + T14)
 
 Batch B Phase 3 of the 14-item owner-actions catalog (T13 + T14).
