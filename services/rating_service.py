@@ -171,7 +171,10 @@ def calculate_achievement_points(
         Dictionary with points calculation details. ``points`` is rounded to
         2 decimals so the compact scale (``TOP1 L1 = 10.0``) keeps meaningful
         precision (e.g. ``10.0 × 0.49 = 4.9`` instead of being truncated to
-        ``5``).
+        ``5``). ``points_exact`` is the un-rounded ``base × mul`` — callers
+        that aggregate across achievements (e.g. the leaderboard total)
+        must sum ``points_exact`` to avoid phantom ties where two managers
+        with different careers round to the same 2-decimal total.
     """
     kind = get_achievement_kind(achievement)
 
@@ -190,12 +193,14 @@ def calculate_achievement_points(
     # Calculate points: base × multiplier
     base = bp.get((league_code, kind), 0.0)
     mul = sm.get(season_code, 1.0)
-    points = round(base * mul, 2)
+    points_exact = base * mul
+    points = round(points_exact, 2)
     label = LABEL_RU.get(kind, kind)
     mul_display = f"{mul:.2f}".replace(".", ",")
 
     return {
         "points": points,
+        "points_exact": points_exact,
         "base": base,
         "mul": mul,
         "mul_display": mul_display,
@@ -268,7 +273,7 @@ def _build_leaderboard_impl(
 
     for manager in managers:
         achievements_data: list[dict[str, Any]] = []
-        total_points = 0
+        total_points: float = 0.0
 
         # Safely handle country (BUG FIX: manager.country might be None in some tests)
         country_flag = manager.country.flag_display_url if manager.country else ""
@@ -284,8 +289,11 @@ def _build_leaderboard_impl(
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)
 
-            # total_points should always be cumulative (Lifetime) to match production
-            total_points += parsed["points"]
+            # Sum the un-rounded value so two careers like ``6.00 + 1.80``
+            # and ``6.00 + 1.26 + 0.22 + 0.32`` (= 7.7955 exactly) do not
+            # collapse to an identical 7.80 total just because each
+            # achievement was rounded to 2dp before summing.
+            total_points += parsed["points_exact"]
 
         rows.append(
             {
@@ -300,13 +308,15 @@ def _build_leaderboard_impl(
             }
         )
 
-    # Sort by total points descending, then by name ascending
+    # Sort by exact total points descending, then by name ascending.
     rows.sort(key=lambda r: (-r["total"], r["name"]))
 
-    # Assign ranks (same points = same rank)
+    # Assign ranks — strict float equality is correct here because two rows
+    # only tie when their sums of ``base × mul`` are bit-for-bit identical
+    # (i.e. the careers truly produce the same number).
     result: list[dict[str, Any]] = []
     rank = 0
-    prev_total: int | None = None
+    prev_total: float | None = None
 
     for i, row in enumerate(rows, start=1):
         if row["total"] != prev_total:
@@ -320,7 +330,40 @@ def _build_leaderboard_impl(
             }
         )
 
+    _assign_total_display(result)
     return result
+
+
+def _assign_total_display(result: list[dict[str, Any]]) -> None:
+    """Add a ``total_display`` string to every row.
+
+    Default precision is 2 decimals to keep the compact-10 leaderboard short.
+    For top-10 rows where two distinct ranks would otherwise render the same
+    2-decimal value (e.g. exact totals ``7.8000`` and ``7.7955`` both display
+    as ``"7.80"`` but get different ranks), all rows in that visual-collision
+    group are bumped to 3 decimals so users can see why the ranks differ.
+
+    True ties (identical exact totals → identical rank) keep 2 decimals; the
+    shared rank pill already conveys the tie, so the third decimal would add
+    a trailing ``0`` with no extra information.
+    """
+    top10 = result[:10]
+    by_2dp: dict[str, list[int]] = {}
+    for idx, row in enumerate(top10):
+        key = f"{row['total']:.2f}"
+        by_2dp.setdefault(key, []).append(idx)
+
+    needs_3dp: set[int] = set()
+    for indices in by_2dp.values():
+        ranks = {top10[i]["rank"] for i in indices}
+        if len(ranks) > 1:
+            needs_3dp.update(indices)
+
+    for i, row in enumerate(result):
+        if i in needs_3dp:
+            row["total_display"] = f"{row['total']:.3f}"
+        else:
+            row["total_display"] = f"{row['total']:.2f}"
 
 
 # ==================== Auto-Recalculation Triggers (FR-005) ====================

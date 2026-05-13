@@ -321,7 +321,7 @@
                 data-name="{{ row.display_name }}"
                 data-country-flag="{{ row.country }}"
                 data-country-code="{{ row.country_code }}"
-                data-total="{{ '%.2f'|format(row.total) }}"
+                data-total="{{ row.total_display }}"
                 data-tandem="{{ 'true' if row.is_tandem else 'false' }}"
                 role="button"
                 tabindex="0"
@@ -330,7 +330,7 @@
                 aria-label="Открыть расчёт очков для {{ row.display_name }}"
               >
                 <td class="table-items rank-cell"><span class="rank-cell__pill"><span class="rank-cell__num">{{ row.rank }}</span></span></td>
-                <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
+                <td class="table-items score-cell">{{ row.total_display }}</td>
                 <td class="table-items manager-cell">
                   <img
                     src="{{ row.country }}"
