@@ -1,7 +1,54 @@
 # Decision Log
 
-> Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
-> at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
+> Older entries are archived verbatim at `docs/archive/2026-Q2.md`:
+> - `## Decision Log (rotated 2026-05-04)` — 8 entries 2026-04-23 → 2026-04-29.
+> - `## Decision Log (rotated 2026-05-13)` — 3 entries 2026-04-30, 2026-05-01
+>   ×2, rotated per TIK-89 / T14 to keep the latest 9 active here. The
+>   Forward-contracts blocks of all 3 archived entries are preserved verbatim
+>   under `## Active Forward Contracts` below.
+>
+> Restore via `git revert` if needed.
+
+## Active Forward Contracts
+
+> Forward-contract stubs from ADRs that have been rotated into
+> `docs/archive/2026-Q2.md`. Kept here so agents never have to read the
+> archive to know what *must not* regress. Verbatim — do not summarise.
+
+**From 2026-04-30: Token-efficiency pass** (archive):
+
+- `Flask-Compress` MUST stay disabled in `TESTING` (otherwise `response.data`
+  in test clients comes back as compressed bytes and assertions break).
+- `mcp-servers/` MUST remain in `.gitignore`. Don't `git add mcp-servers/`.
+- `paginate_query` is the canonical pagination helper. New listing endpoints
+  should go through it so they pick up `?fields=` for free.
+
+**From 2026-05-01: Sub-agents + skills + SHL-OPTIMIZER prompt v2.0** (archive):
+
+- `shl-optimizer.fewshot.md` MUST be loaded only via `@include` from
+  Instructions §4 of `shl-optimizer.prompt.md` — never inlined into the
+  system prompt and never duplicated in the `## Few-shot` section of the
+  prompt file.
+- `docs/archive/<period>.md` is the **only** destination for rotated
+  `progress.md` / `decisionLog.md` entries. Never `git rm` historical
+  records.
+- `docs/INDEX.md` MUST be updated whenever an archive file is added under
+  `docs/archive/`.
+- `token-auditor` and `doc-curator` MUST NOT modify source code or test
+  files. If a token-waste fix requires source/test changes, hand off to
+  `coder`.
+- `progress.md`, `decisionLog.md`, `docs/API.md`, and `mcp-servers/**` are
+  on the `forbidden_full_read` list — agents must use `grep -n` +
+  section-only reads.
+
+**From 2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env** (archive):
+
+- Never re-add `mcp-servers/` to tracking. Reinstall via `make mcp-install`
+  (or `cd mcp-servers && npm install`).
+- Never re-add `dev.db`. Recreate via `make init-db`.
+- Never commit `.env`. Use `.env.example` as the only template.
+
+---
 
 ## 2026-05-13: Leaderboard — sum per-achievement points at full precision; rank on exact float; 3-decimal display only for visual ties in top-10
 
@@ -601,130 +648,6 @@ contained four duplicate test classes. Coverage on services/blueprints/app was 8
   base patterns and reading them together helps debugging.
 
 **Source**: `docs/progress.md` 2026-05-03 entry; PRs #47-#55; Linear epic TIK-42.
-
----
-
-## 2026-04-30: Token-efficiency pass
-
-**Context**: Owner asked to "make the system efficient and consume fewer tokens
-in requests/responses". The repo was loading 505 MB / 18 178 vendored MCP files
-into git and ~3 000 lines of duplicated agent-context docs into every AI
-session, and HTTP responses were uncompressed.
-
-**Decision**:
-
-1. **Stop tracking `mcp-servers/` in git** (already in `.gitignore`, was
-   committed before that). Cuts agent search/index noise drastically.
-2. **`AGENTS.md` becomes the single source of agent rules.** `.antigravityrules`
-   reduced to a thin pointer file. Docs split into "always-on / on-demand /
-   archive" via `docs/INDEX.md`. `docs/audits/*` and pre-2026-04-29 `progress.md`
-   sections moved under `docs/archive/`.
-3. **HTTP responses compressed at the framework level**: `Flask-Compress`
-   (br + gzip, level 6, ≥500 B) wired in `app.py::register_extensions`.
-   Skipped in `TESTING` so unit tests stay byte-comparable.
-4. **JSON minified in production**: `JSONIFY_PRETTYPRINT_REGULAR=False`,
-   `JSON_SORT_KEYS=False` on `ProductionConfig`.
-5. **Static assets cached for 1 year**: `SEND_FILE_MAX_AGE_DEFAULT=31_536_000`
-   on `ProductionConfig`. Bust by editing the asset path / hash.
-6. **Optional client-side field selection**: `?fields=id,name,...` on any
-   paginated `/api/*` listing endpoint. `id` is always preserved. Fully
-   opt-in (no default change).
-7. **N+1 fixes** on three hot listing endpoints (`/api/managers`,
-   `/api/managers/<id>`, `/api/achievements`) via `joinedload` /
-   `selectinload`.
-
-**Rationale**:
-- AI-agent context files and the 18 178-file `mcp-servers/` dump were the
-  largest hidden cost — every grep/list/index pulled them.
-- Framework-level HTTP compression beats per-endpoint shrinkage and is safe
-  to enable globally because the mimetype allow-list excludes already-compressed
-  formats.
-- `?fields=` is opt-in so existing clients are unaffected.
-- The N+1 fixes are pure performance; serialisation output is byte-identical.
-
-**Forward contracts** (do not regress):
-- `Flask-Compress` MUST stay disabled in `TESTING` (otherwise `response.data`
-  in test clients comes back as compressed bytes and assertions break).
-- `mcp-servers/` MUST remain in `.gitignore`. Don't `git add mcp-servers/`.
-- `paginate_query` is the canonical pagination helper. New listing endpoints
-  should go through it so they pick up `?fields=` for free.
-
-**Status**: PR open against `main`. CI must pass before merge.
-
----
-
-## 2026-05-01: Sub-agents + skills + SHL-OPTIMIZER prompt v2.0
-
-**Context**: Token-economy audit of the project surfaced three structural sources of waste — heavy Memory Bank files read whole every turn (`docs/progress.md` 258 lines, `docs/decisionLog.md` 150 lines, `docs/API.md` 590 lines), the three biggest source modules read whole rather than indexed (`blueprints/admin_api.py` 893, `services/api.py` 861, `services/admin.py` 635), and duplicated coding-standards rules across `AGENTS.md` / `.antigravityrules` / `PROJECT_KNOWLEDGE.md` / `docs/techContext.md`. The pre-existing role topology (`architect`, `coder`, `reviewer`) had no role responsible for finding or fixing this waste, and no skill catalog covered "how to read a heavy file without reading the whole thing."
-
-**Decision** — implement all of:
-
-1. **Two new sub-agents** under `.agents/agents/`:
-   - `token-auditor` — finds token waste in repo, prompts, Memory Bank. Read-only with respect to source code; allowed edits limited to `.gitignore`, `Makefile`, `docs/INDEX.md`, Memory Bank, `.agents/prompts/`.
-   - `doc-curator` — rotates `progress.md` / `decisionLog.md` entries older than ~30 days into `docs/archive/<period>.md`. Verbatim move-only; no rewording or content deletion; preserves ADR forward-contracts.
-
-2. **Three new skills** under `.agents/skills/`:
-   - `token-budget` — token-cost heuristics (tokens/line per artefact type) + lazy-load patterns + per-call self-check before reading any file > 200 lines.
-   - `doc-rotation` — quarterly archive workflow with safety rules and rollback via `git revert`.
-   - `codebase-map` — `grep -n '^def\|^class'` recipes + `sed -n 'A,Bp'` read-window pattern; replaces full-file reads of the three heaviest modules.
-
-3. **SHL-OPTIMIZER prompt v2.0** under `.agents/prompts/`:
-   - `shl-optimizer.prompt.md` — single role-router with three robustness guards (empty/garbage input, unknown-task classification, multi-role requests). Parametrized via `{{PROJECT_FACTS}}` so the same skeleton applies to other Flask projects.
-   - `shl-optimizer.fewshot.md` — one example per role; loaded lazily on first activation per session via `@include` in Instructions §4 (NOT inlined into the system prompt every turn).
-
-4. **`docs/INDEX.md`** — single read-trigger map for `docs/*` plus the Memory Bank files. Tells agents which file to read for which trigger and the recommended `head`/`tail`/`grep` cap. The "forbidden full-read" list covers `progress.md`, `decisionLog.md`, `API.md`, and `mcp-servers/**`.
-
-5. **`AGENTS.md` §3 amendments** — roles table extended with the two new sub-agents and a "Detailed role file" column; NOT-DO constraints added; Handoff Protocol entries plug the new roles into the existing `architect → coder → reviewer` flow; new "Skills" sub-section listing all 7 skills (4 existing + 3 new).
-
-**Rationale**:
-
-- Two new roles instead of extending existing ones because both have *read-only-with-respect-to-source* constraints that don't fit the existing `coder`/`reviewer` mandate. Mixing them risks accidental source rewrites under "let coder also do token cleanup".
-- Lazy `@include` of fewshot (rather than inline) avoids paying the ~1.6k-token cost of fewshot examples on every turn when only one role is active.
-- Move-only rotation (no rewording) ensures historical record stays auditable; ADR forward-contracts can be referenced years later without "we summarised it" loss.
-- `docs/INDEX.md` as a read-trigger map is the smallest possible thing that lets agents avoid full-file reads of the heavy docs.
-- `{{PROJECT_FACTS}}` parametrization separates project-specific facts (stack, sources of truth, invariants) from the generic role-router skeleton, so the same prompt can be reused on other Flask projects with a single replacement.
-
-**Status**: Implemented in PR #45. Companion to PR #44 (repo-hygiene) but mergeable independently.
-
-**Forward contracts** (do not regress):
-
-- `shl-optimizer.fewshot.md` MUST be loaded only via `@include` from Instructions §4 of `shl-optimizer.prompt.md` — never inlined into the system prompt and never duplicated in the `## Few-shot` section of the prompt file.
-- `docs/archive/<period>.md` is the **only** destination for rotated `progress.md` / `decisionLog.md` entries. Never `git rm` historical records.
-- `docs/INDEX.md` MUST be updated whenever an archive file is added under `docs/archive/`.
-- `token-auditor` and `doc-curator` MUST NOT modify source code or test files. If a token-waste fix requires source/test changes, hand off to `coder`.
-- `progress.md`, `decisionLog.md`, `docs/API.md`, and `mcp-servers/**` are on the `forbidden_full_read` list — agents must use `grep -n` + section-only reads.
-
----
-
-## 2026-05-01: Repo hygiene — untrack mcp-servers/, dev.db, .env
-
-**Context**: Despite `.gitignore` listing `mcp-servers/`, `*.db`, and `.env`, all three were still tracked in `main`:
-- `mcp-servers/` — 18 178 files / ~505 MB of Node dependencies committed in `cbf3f48`.
-- `dev.db` — 155 KB SQLite snapshot kept tracked via the explicit `!dev.db` exception in `.gitignore`.
-- `.env` — committed alongside the initial repo despite `.env` being gitignored on its own line.
-
-This contradicts the prior 2026-04-23 ADR ("Removal of mcp-servers from Git") and the 2026-04-21 commit `5ffe365` ("chore(security): untrack .env and vendored mcp-servers"). Both attempts left main in the same state — vendored deps + dev DB + `.env` tracked. Dangling commit `d1361f2` re-did the untrack on 2026-04-30 but never landed on `main`.
-
-**Decision**: One consolidated PR removes all three from version control via `git rm --cached` (files stay on disk for active dev environments), drops the `!dev.db` exception, and adds `make mcp-install` so contributors can reinstate `mcp-servers/` locally via `npm install`.
-
-**Rationale**:
-- `mcp-servers/` is `node_modules`-like — must be reproducible from a manifest, not vendored. Tracked vendoring inflates clone size, slows `git status`/`grep`/`find`, and pollutes every agent's context window.
-- `dev.db` is a local development artifact; reproducible from `make seed-db`.
-- `.env` is a secret store. Values currently in the file (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET`, `GEMINI_API_KEY`, plus Redis host/port) MUST be treated as **compromised** since they have lived in public Git history since the initial commit. **Action required: rotate every secret in `.env` before/after this PR merges.** New values go into a fresh local `.env` (template lives in `.env.example`).
-
-**Implementation**:
-1. `git rm -r --cached mcp-servers/` (18 178 files removed from tracking; on-disk copies untouched).
-2. `git rm --cached dev.db .env`.
-3. `.gitignore`: drop `!dev.db` exception.
-4. `Makefile`: add `mcp-install` target that runs `npm install` inside `mcp-servers/` when a `package.json` exists.
-5. ADR (this entry) and `docs/progress.md` updated per Memory Bank protocol.
-
-**Status**: Implemented in PR `devin/<ts>-repo-hygiene`.
-
-**Forward contracts**:
-- Never re-add `mcp-servers/` to tracking. Reinstall via `make mcp-install` (or `cd mcp-servers && npm install`).
-- Never re-add `dev.db`. Recreate via `make init-db`.
-- Never commit `.env`. Use `.env.example` as the only template.
 
 ---
 
