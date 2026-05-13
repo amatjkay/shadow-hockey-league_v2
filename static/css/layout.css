@@ -34,32 +34,33 @@
    inherited light-theme tokens (magenta on dark violet = poor AA).
    Swap to a lavender gradient + magenta-700 nav so all header text
    passes AA on the new pastel surface. */
+/* Light theme header: previously faded to transparent at the bottom
+   so the rink overlay leaks through with a harsh pink hairline border
+   floating mid-air. Keep the gradient mostly opaque white-ish and use a
+   soft glass border to blend with the new "morning skate" backdrop. */
 :root[data-theme="light"] .header {
-  background: linear-gradient(
-    180deg,
-    #e8d8f7 0%,
-    #f2eafb 60%,
-    rgba(248, 240, 255, 0) 100%
-  );
-  border-bottom-color: var(--shl-magenta-300);
+  /* No own background — the header sits directly on the page lavender
+     so icons read as floating on the same surface as the rink. A blurred
+     glass panel here made the area look "pressed in" (dented). */
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 :root[data-theme="light"] .header.is-scrolled {
   box-shadow: 0 4px 24px rgba(160, 24, 189, 0.18);
-  border-bottom-color: var(--shl-magenta-500);
+  border-bottom-color: var(--shl-magenta-300);
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) .header {
-    background: linear-gradient(
-      180deg,
-      #e8d8f7 0%,
-      #f2eafb 60%,
-      rgba(248, 240, 255, 0) 100%
-    );
-    border-bottom-color: var(--shl-magenta-300);
+    background: transparent;
+    border-bottom-color: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   :root:not([data-theme]) .header.is-scrolled {
     box-shadow: 0 4px 24px rgba(160, 24, 189, 0.18);
-    border-bottom-color: var(--shl-magenta-500);
+    border-bottom-color: var(--shl-magenta-300);
   }
 }
 

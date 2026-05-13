@@ -137,6 +137,7 @@
      paired with a soft `backdrop-filter` on `.table` so the bg only
      gently diffuses (not muddies). Light-theme override below keeps
      text contrast ≥ AA against the dark-on-light card content. */
+  --shl-table-glass-bg-flat: rgba(7, 4, 35, 0.25);
   --shl-table-glass-bg: linear-gradient(
     180deg,
     rgba(7, 4, 35, 0.25) 0%,
@@ -273,6 +274,7 @@
 
   /* Leaderboard table card — light translucent glass so text
      contrast >= AA against the dark-on-light ink. */
+  --shl-table-glass-bg-flat: rgba(255, 255, 255, 0.80);
   --shl-table-glass-bg: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.80) 0%,
@@ -280,13 +282,55 @@
   );
   --shl-table-glass-border: rgba(45, 12, 80, 0.12);
 
-  /* Body bg: lavender gradient instead of starfield JPG. */
-  --shl-body-bg: linear-gradient(
+  /* Body bg: lavender base + atmospheric pastel "spotlights" so the
+     light theme has visual depth comparable to the dark-theme starfield
+     JPG. Layered radial-gradients (CSS-only — no new assets) cast soft
+     pools of pink / cyan / violet across the page; they sit on top of
+     the base linear gradient and fade to transparent so card glass and
+     text contrast stay >= AA. */
+  --shl-body-bg:
+    radial-gradient(
+      ellipse 75% 55% at 12% 16%,
+      rgba(235, 175, 250, 0.85) 0%,
+      rgba(235, 175, 250, 0) 65%
+    ),
+    radial-gradient(
+      ellipse 65% 50% at 88% 20%,
+      rgba(155, 210, 255, 0.80) 0%,
+      rgba(155, 210, 255, 0) 65%
+    ),
+    radial-gradient(
+      ellipse 85% 60% at 50% 95%,
+      rgba(180, 145, 230, 0.80) 0%,
+      rgba(180, 145, 230, 0) 70%
+    ),
+    radial-gradient(
+      circle 460px at 80% 70%,
+      rgba(255, 180, 215, 0.70) 0%,
+      rgba(255, 180, 215, 0) 75%
+    ),
+    linear-gradient(
+      180deg,
+      #fbf7ff 0%,
+      #f2eafb 40%,
+      #e8d8f7 75%,
+      #f5e8ff 100%
+    );
+
+  /* Atmospheric overlay (see body::before). Reuses the dark-theme
+     rink JPG, brightened + slightly desaturated so it reads as a
+     "morning skate" backdrop behind the spotlights. Multiply blend
+     keeps the ice-cool tones from washing the page pure white. */
+  --shl-body-overlay: url("../img/background2.jpg");
+  --shl-body-overlay-opacity: 0.7;
+  --shl-body-overlay-filter: brightness(1.5) saturate(0.85) hue-rotate(-8deg) contrast(0.95);
+  --shl-body-overlay-blend: multiply;
+  --shl-body-overlay-mask: linear-gradient(
     180deg,
-    #fbf7ff 0%,
-    #f2eafb 40%,
-    #e8d8f7 75%,
-    #f5e8ff 100%
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 1) 35%,
+    rgba(0, 0, 0, 1) 80%,
+    rgba(0, 0, 0, 0) 100%
   );
 }
 
@@ -363,6 +407,7 @@
     --shl-ink-soft: #3d2160;
     --shl-ink-muted: #5b3f80;
 
+    --shl-table-glass-bg-flat: rgba(255, 255, 255, 0.80);
     --shl-table-glass-bg: linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.80) 0%,
@@ -370,12 +415,45 @@
     );
     --shl-table-glass-border: rgba(45, 12, 80, 0.12);
 
-    --shl-body-bg: linear-gradient(
+    --shl-body-bg:
+      radial-gradient(
+        ellipse 75% 55% at 12% 16%,
+        rgba(235, 175, 250, 0.85) 0%,
+        rgba(235, 175, 250, 0) 65%
+      ),
+      radial-gradient(
+        ellipse 65% 50% at 88% 20%,
+        rgba(155, 210, 255, 0.80) 0%,
+        rgba(155, 210, 255, 0) 65%
+      ),
+      radial-gradient(
+        ellipse 85% 60% at 50% 95%,
+        rgba(180, 145, 230, 0.80) 0%,
+        rgba(180, 145, 230, 0) 70%
+      ),
+      radial-gradient(
+        circle 460px at 80% 70%,
+        rgba(255, 180, 215, 0.70) 0%,
+        rgba(255, 180, 215, 0) 75%
+      ),
+      linear-gradient(
+        180deg,
+        #fbf7ff 0%,
+        #f2eafb 40%,
+        #e8d8f7 75%,
+        #f5e8ff 100%
+      );
+
+    --shl-body-overlay: url("../img/background2.jpg");
+    --shl-body-overlay-opacity: 0.7;
+    --shl-body-overlay-filter: brightness(1.5) saturate(0.85) hue-rotate(-8deg) contrast(0.95);
+    --shl-body-overlay-blend: multiply;
+    --shl-body-overlay-mask: linear-gradient(
       180deg,
-      #fbf7ff 0%,
-      #f2eafb 40%,
-      #e8d8f7 75%,
-      #f5e8ff 100%
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 1) 35%,
+      rgba(0, 0, 0, 1) 80%,
+      rgba(0, 0, 0, 0) 100%
     );
   }
 }
@@ -404,6 +482,38 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  /* Isolation gives body its own stacking context so the
+     ::before atmospheric overlay (z-index -1) sits above
+     body bg but below any descendants. */
+  position: relative;
+  isolation: isolate;
+}
+
+/* Atmospheric overlay (light theme only). Reuses the dark-theme
+   rink JPG but heavily brightened + slightly desaturated so the
+   page reads as "morning skate" — physical hockey context returns
+   to the light theme without new assets. SVG grain layer adds
+   paper-like depth. Dark theme keeps `--shl-body-overlay` unset and
+   the pseudo stays invisible. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image: var(--shl-body-overlay, none);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: var(--shl-body-overlay-opacity, 0);
+  filter: var(--shl-body-overlay-filter, none);
+  mix-blend-mode: var(--shl-body-overlay-blend, normal);
+  /* Vertical mask softens the horizon line where the rink photo
+     meets the lavender top of the page — without this the JPG's
+     stand/ice boundary reads as a hard horizontal seam. Top fade is
+     longer than bottom so the header transition stays gentle. */
+  -webkit-mask-image: var(--shl-body-overlay-mask, none);
+  mask-image: var(--shl-body-overlay-mask, none);
 }
 
 ul, ol {

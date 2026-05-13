@@ -107,7 +107,11 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 10px 14px;
-  background: var(--shl-table-glass-bg);
+  /* Flat 1-stop glass tone so the bottom of the bar matches the top
+     of the adjacent .table — using the full `--shl-table-glass-bg`
+     gradient produced a visible step where bar bottom (faded) meets
+     table top (fresh start). */
+  background: var(--shl-table-glass-bg-flat);
   border: 1px solid var(--shl-table-glass-border);
   border-bottom: 0;
   border-radius: var(--shl-radius-lg) var(--shl-radius-lg) 0 0;
@@ -120,6 +124,11 @@
   border-top: 0;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  /* Drop the white inset highlight on the table's top edge when the
+     filters bar is glued to it — otherwise a 1px hairline reads as a
+     visible seam between the tabs row and the <thead>. */
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.18);
 }
 
 .filters-bar__select {
@@ -300,6 +309,37 @@
     width: calc(100% - 24px);
     max-width: none;
     padding: 8px 10px;
+  }
+}
+
+/* Light-theme overrides for inactive season tabs. The default rule uses
+   `color: var(--shl-ink-on-dark)` (white) and `background: --shl-cyan-tint-08`
+   (8% magenta) which over the white table-card became near-invisible
+   white-on-white once the rink overlay made the surrounding glass look
+   busier. Bump bg + flip text to the dark ink token. Active tab keeps
+   filled-magenta + white text. */
+:root[data-theme="light"] .season-tabs__tab {
+  background: rgba(160, 24, 189, 0.10);
+  color: var(--shl-ink);
+}
+:root[data-theme="light"] .season-tabs__tab:hover {
+  background: rgba(160, 24, 189, 0.18);
+}
+:root[data-theme="light"] .season-tabs__input:checked + .season-tabs__tab {
+  background: var(--shl-cyan-500);
+  color: var(--shl-ink-on-dark);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .season-tabs__tab {
+    background: rgba(160, 24, 189, 0.10);
+    color: var(--shl-ink);
+  }
+  :root:not([data-theme]) .season-tabs__tab:hover {
+    background: rgba(160, 24, 189, 0.18);
+  }
+  :root:not([data-theme]) .season-tabs__input:checked + .season-tabs__tab {
+    background: var(--shl-cyan-500);
+    color: var(--shl-ink-on-dark);
   }
 }
 
