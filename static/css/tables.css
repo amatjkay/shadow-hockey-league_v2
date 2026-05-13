@@ -234,23 +234,13 @@
 
 /* === Top-10 row accent + animated rainbow name (TIK-85 polish v2) ===
    Top-10 rows used to carry a magenta→cyan background wash on top of
-   the table card. The wash read as a pink stripe on the dark-glass
-   chrome (user feedback), so the row background is removed here — the
-   rainbow shimmer on `.manager-name` / `.score-cell` / `.rank-cell__num`
-   and the 2 px inset accent stripe still telegraph "top-10". The text
-   rainbow gradient stops are swapped to AA-dark hues in light theme so
-   contrast stays ≥4.5:1 against the lavender body. */
-.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) {
-  box-shadow: inset 2px 0 0 var(--shl-cyan-tint-25);
-}
-
-/* Hover keeps the inset accent so it doesn't flicker on lift; the
-   `.table-row:hover` rule on top of this layers a soft glow. */
-.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10):hover {
-  box-shadow:
-    inset 2px 0 0 var(--shl-cyan-tint-25),
-    var(--shl-neon-glow-soft);
-}
+   the table card and a 2 px inset accent stripe on the left edge.
+   Both read as a stacked pink stripe on the dark-glass chrome (user
+   feedback), so both are removed — the rainbow shimmer on
+   `.manager-name` / `.score-cell` / `.rank-cell__num` is left as the
+   sole "top-10" cue. The text rainbow gradient stops are swapped to
+   AA-dark hues in light theme so contrast stays ≥4.5:1 against the
+   lavender body. */
 
 /* Rainbow targets in top-10 rows: manager name + score cell + rank
    number. The rank digit is wrapped in `.rank-cell__num` so rows 1–3
