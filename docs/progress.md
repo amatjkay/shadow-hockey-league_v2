@@ -9,6 +9,30 @@
 > - `## Progress (rotated 2026-05-13)` — 13 entries 2026-05-03 → 2026-05-08
 >   (later), rotated per TIK-89 / T13 to keep the latest 10 active here.
 
+## 2026-05-13: TIK-95 — CI: add Postgres matrix job (alembic + integration)
+
+Non-blocking `integration-postgres` job added to
+`.github/workflows/deploy.yml`. Validates that all 23 Alembic
+migrations apply cleanly against `postgres:16-alpine` and that a
+subset of integration tests (`test_admin_integration.py`,
+`test_cache_invalidation.py`) pass on Postgres.
+
+**What landed**
+
+- `.github/workflows/deploy.yml`: new `integration-postgres` job
+  (`continue-on-error: true`; not in `deploy.needs`).
+- `requirements.txt`: added `psycopg2-binary>=2.9.9`.
+- `tests/integration/conftest.py`: monkey-patches
+  `config.TestingConfig` to use the Postgres `DATABASE_URL` when
+  `RUN_INTEGRATION_POSTGRES=1`. Skips `test_routes.py` (hard-coded
+  SQLite setup; TODO for follow-up).
+- `docs/TROUBLESHOOTING.md`: new § 5 «Локальный прогон под Postgres».
+- `docs/techContext.md`: CI pipeline description updated.
+
+**No changes** to `models.py`, `app.py`, `config.py`, `seed_db.py`.
+
+---
+
 ## 2026-05-13: TIK-89 Phase 3 — rotate `docs/progress.md` + `docs/decisionLog.md` to `docs/archive/2026-Q2.md` (T13 + T14)
 
 Batch B Phase 3 of the 14-item owner-actions catalog (T13 + T14).

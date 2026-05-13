@@ -10,6 +10,13 @@ SQLAlchemy>=2.0.0
 # Database migrations
 alembic>=1.14.0
 
+# PostgreSQL DBAPI driver. Production deploy is still SQLite; this is
+# pulled in so the TIK-95 ``integration-postgres`` CI job can run
+# ``alembic upgrade head`` + a subset of integration tests against
+# ``postgres:16-alpine``. SQLAlchemy ignores it when ``DATABASE_URL``
+# points at SQLite, so adding it here is a no-op for prod.
+psycopg2-binary>=2.9.9
+
 # Production server
 gunicorn>=23.0.0
 

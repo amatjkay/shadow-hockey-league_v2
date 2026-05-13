@@ -81,7 +81,42 @@ chmod -R 755 static/
 
 ---
 
-## 5. Полезные команды
+## 5. Локальный прогон под Postgres
+
+Для проверки совместимости миграций и integration-тестов на Postgres
+(TIK-95) запустите одноразовый контейнер и укажите `DATABASE_URL`:
+
+```bash
+# 1. Поднять Postgres
+docker run --rm -d --name shl-pg \
+  -e POSTGRES_USER=shl -e POSTGRES_PASSWORD=shl -e POSTGRES_DB=shl \
+  -p 5432:5432 postgres:16-alpine
+
+# 2. Дождаться готовности
+until docker exec shl-pg pg_isready -U shl; do sleep 1; done
+
+# 3. Прогнать миграции
+DATABASE_URL="postgresql+psycopg2://shl:shl@localhost:5432/shl" \
+  ./venv/bin/alembic upgrade head
+
+# 4. Запустить integration-подмножество
+DATABASE_URL="postgresql+psycopg2://shl:shl@localhost:5432/shl" \
+  RUN_INTEGRATION_POSTGRES=1 \
+  ./venv/bin/pytest -v \
+    tests/integration/test_admin_integration.py \
+    tests/integration/test_cache_invalidation.py
+
+# 5. Остановить контейнер
+docker stop shl-pg
+```
+
+> `test_routes.py` использует файловый SQLite (`tempfile.mkstemp`)
+> и автоматически пропускается в postgres-режиме — см.
+> `tests/integration/conftest.py`.
+
+---
+
+## 6. Полезные команды
 
 ```bash
 # Проверить статус

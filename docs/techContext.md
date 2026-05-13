@@ -204,12 +204,12 @@ make mcp-install  # Reinstate untracked mcp-servers/ workspace
 
 ## CI / GitHub Actions pipeline
 
-`.github/workflows/deploy.yml` runs three sequential jobs on every push to a PR
-branch:
+`.github/workflows/deploy.yml` runs three sequential jobs (+ one parallel non-blocking leg) on every push to a PR branch:
 
 1. **`quality-and-tests`** — `black --check`, `isort --check`, `flake8`, `mypy`, `pytest --ignore=tests/e2e --cov` (≥ 87% gate), `pip-audit -r requirements.txt`.
 2. **`e2e-smoke`** — boots a Redis service, installs Playwright (chromium only), creates the schema with `db.create_all()`, runs `seed_db.py`, provisions the `e2e_admin` super-admin via `scripts/create_e2e_admin.py`, boots the dev server in the background, runs the 42-scenario Playwright suite. Depends on `quality-and-tests`.
 3. **`deploy`** — production deploy (only on `main`); depends on `e2e-smoke`.
+4. **`integration-postgres`** *(TIK-95, non-blocking)* — boots `postgres:16-alpine` + Redis services, runs `alembic upgrade head` against the Postgres database, then executes a subset of integration tests (`test_admin_integration.py`, `test_cache_invalidation.py`; `test_routes.py` is collected but skipped — hard-coded SQLite setup). `continue-on-error: true` ensures failures here never block merge to `main`. Does not gate `deploy`.
 
 ---
 
