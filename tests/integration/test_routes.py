@@ -10,21 +10,19 @@ Unlike unit tests, these use a real SQLite database file.
 Migrated from tests_integration.py
 """
 
-import os
 import re
-import tempfile
 import threading
 import time
-import unittest
 
-from app import create_app
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
 from services.rating_service import build_leaderboard
+from tests.integration._postgres_utils import IntegrationTestCase
 
 
 def enable_sqlite_fk(session):
-    """Enable foreign key constraints for SQLite."""
-    session.execute(db.text("PRAGMA foreign_keys=ON"))
+    """Enable foreign key constraints for SQLite (no-op on Postgres)."""
+    if db.engine.dialect.name == "sqlite":
+        session.execute(db.text("PRAGMA foreign_keys=ON"))
 
 
 def _seed_reference_data():
@@ -70,31 +68,8 @@ def _seed_reference_data():
     return {c: lg.id for c, lg in leagues.items()}, {c: s.id for c, s in seasons.items()}, types
 
 
-class TestEmptyDatabase(unittest.TestCase):
+class TestEmptyDatabase(IntegrationTestCase):
     """Tests for empty database scenarios."""
-
-    def setUp(self) -> None:
-        """Set up test fixtures with empty database."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_empty_database_homepage(self) -> None:
         """Home page loads successfully with empty database."""
@@ -109,31 +84,8 @@ class TestEmptyDatabase(unittest.TestCase):
         self.assertIn("Shadow Hockey League", html)
 
 
-class TestBulkLoadPerformance(unittest.TestCase):
+class TestBulkLoadPerformance(IntegrationTestCase):
     """Tests for bulk data load performance."""
-
-    def setUp(self) -> None:
-        """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_bulk_load_100_managers(self) -> None:
         """Performance test: Load 100 managers with achievements."""
@@ -153,7 +105,7 @@ class TestBulkLoadPerformance(unittest.TestCase):
 
             # Create countries
             for i in range(10):
-                country = Country(code=f"COD{i:03d}", flag_path="/static/img/flags/test.png")
+                country = Country(code=f"C{i:02d}", flag_path="/static/img/flags/test.png")
                 db.session.add(country)
             db.session.commit()
 
@@ -202,7 +154,7 @@ class TestBulkLoadPerformance(unittest.TestCase):
 
             # Create countries
             for i in range(10):
-                country = Country(code=f"COD{i:03d}", flag_path="/static/img/flags/test.png")
+                country = Country(code=f"C{i:02d}", flag_path="/static/img/flags/test.png")
                 db.session.add(country)
             db.session.commit()
 
@@ -234,35 +186,16 @@ class TestBulkLoadPerformance(unittest.TestCase):
         self.assertLess(elapsed, 2.0, f"Page load took {elapsed:.2f}s (expected < 2s)")
 
 
-class TestTransactionRollback(unittest.TestCase):
+class TestTransactionRollback(IntegrationTestCase):
     """Tests for transaction rollback on errors."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
+        super().setUp()
         with self.app.app_context():
-            db.create_all()
-
             country = Country(code="TST", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_unique_constraint_rollback(self) -> None:
         """Transaction rolls back on unique constraint violation."""
@@ -280,40 +213,21 @@ class TestTransactionRollback(unittest.TestCase):
             self.assertEqual(initial_count, final_count)
 
 
-class TestConcurrentRequests(unittest.TestCase):
+class TestConcurrentRequests(IntegrationTestCase):
     """Tests for concurrent request handling."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
+        super().setUp()
         with self.app.app_context():
-            db.create_all()
-
             country = Country(code="CON", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
 
             for i in range(10):
-                manager = Manager(name=f"Manager {i}", country_id=1)
+                manager = Manager(name=f"Manager {i}", country_id=country.id)
                 db.session.add(manager)
             db.session.commit()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_concurrent_homepage_requests(self) -> None:
         """Handle 10 concurrent homepage requests."""
@@ -365,23 +279,17 @@ class TestConcurrentRequests(unittest.TestCase):
             )
 
 
-class TestAPICRUDOperations(unittest.TestCase):
+class TestAPICRUDOperations(IntegrationTestCase):
     """Tests for API CRUD operations."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
+        super().setUp()
         with self.app.app_context():
-            db.create_all()
-
             country = Country(code="API", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
+            self.country_id = country.id
 
             from models import ApiKey
             from services.api_auth import generate_api_key, hash_api_key
@@ -395,18 +303,6 @@ class TestAPICRUDOperations(unittest.TestCase):
                 )
             )
             db.session.commit()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def _post(self, url: str, json: dict):
         return self.client.post(url, json=json, headers={"X-API-Key": self.api_key})
@@ -456,31 +352,8 @@ class TestAPICRUDOperations(unittest.TestCase):
         self.assertEqual(response.status_code, 409)
 
 
-class TestRatingCalculationIntegration(unittest.TestCase):
+class TestRatingCalculationIntegration(IntegrationTestCase):
     """Tests for rating service integration with real database."""
-
-    def setUp(self) -> None:
-        """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_rating_calculation_with_real_db(self) -> None:
         """Rating calculation with real database data."""
@@ -531,23 +404,17 @@ class TestRatingCalculationIntegration(unittest.TestCase):
         self.assertEqual(test_entry["total"], 13.5)
 
 
-class TestCascadeDelete(unittest.TestCase):
+class TestCascadeDelete(IntegrationTestCase):
     """Tests for cascade delete behavior."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
+        super().setUp()
         with self.app.app_context():
-            db.create_all()
-
             country = Country(code="DEL", flag_path="/static/img/flags/test.png")
             db.session.add(country)
             db.session.commit()
+            self.country_id = country.id
 
             from models import ApiKey
             from services.api_auth import generate_api_key, hash_api_key
@@ -561,18 +428,6 @@ class TestCascadeDelete(unittest.TestCase):
                 )
             )
             db.session.commit()
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def _delete(self, url: str):
         return self.client.delete(url, headers={"X-API-Key": self.api_key})
@@ -615,32 +470,14 @@ class TestCascadeDelete(unittest.TestCase):
             self.assertEqual(after_count, 0)
 
 
-class TestDatabaseConstraints(unittest.TestCase):
+class TestDatabaseConstraints(IntegrationTestCase):
     """Tests for database constraint enforcement."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-
+        super().setUp()
         with self.app.app_context():
-            db.create_all()
             enable_sqlite_fk(db.session)
-
-    def tearDown(self) -> None:
-        """Clean up after tests."""
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_country_code_unique(self) -> None:
         """Country code must be unique."""
@@ -693,30 +530,12 @@ class TestDatabaseConstraints(unittest.TestCase):
                 db.session.commit()
 
 
-class TestLeaderboardTotalFormatting(unittest.TestCase):
+class TestLeaderboardTotalFormatting(IntegrationTestCase):
     """TIK-81: leaderboard total must render as ``XX.XX`` (no float-noise).
 
     Without explicit ``"%.2f"|format`` in ``templates/index.html``, sums of
     round-2 floats can render as e.g. ``20.380000000000003`` (TIK-80 T6).
     """
-
-    def setUp(self) -> None:
-        self.db_fd, self.db_path = tempfile.mkstemp(suffix=".db")
-        self.app = create_app("config.TestingConfig")
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.db_path}"
-        self.client = self.app.test_client()
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self) -> None:
-        with self.app.app_context():
-            db.session.remove()
-            db.drop_all()
-        os.close(self.db_fd)
-        try:
-            os.unlink(self.db_path)
-        except OSError:
-            pass
 
     def test_score_cell_formatted_to_two_decimals(self) -> None:
         """Score-cell renders as ``\\d+\\.\\d{2}`` without float-noise tail."""
@@ -768,4 +587,6 @@ class TestLeaderboardTotalFormatting(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    import unittest
+
     unittest.main(verbosity=2)
