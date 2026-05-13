@@ -6,6 +6,28 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-13: UI — fuse season-filter tabs to leaderboard card
+
+Small UI-only follow-up after the PR #99 glass-table refresh.
+
+- `templates/index.html`: drop the `<span class="filters-bar__label">Сезон:</span>`
+  caption and replace `aria-labelledby="season-filter-label"` with
+  `aria-label="Выбор сезона"` directly on the radiogroup. Add modifier
+  class `filters-bar--attached`.
+- `static/css/sections.css`:
+  - Remove dead `.filters-bar__label` + `::before` (calendar icon) rules and
+    the matching mobile-media `.filters-bar--tabs .filters-bar__label` block.
+  - Add `.filters-bar--attached` — matches `.table.league-table` width
+    (`96% / max 1200px`), reuses `--shl-table-glass-bg` + `--shl-table-glass-border`,
+    rounded top corners only, `border-bottom: 0`, same blur token as the table.
+  - Adjacent-sibling rule: `.filters-bar--attached + .table-responsive .table.league-table`
+    drops its top radius + top border so the filter bar and table render as
+    one card across both themes.
+
+No source-code, test, or schema changes; pure CSS + template tweak.
+
+---
+
 ## 2026-05-13: TIK-88 — owner-actions catalog + secrets fail-fast + .gitignore
 
 Batch A of the 14-item owner-actions catalog (T01 + T02 + T03 + T07 + T08).
