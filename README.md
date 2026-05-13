@@ -6,8 +6,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
-[![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-572%20passed-brightgreen.svg)](#)
+[![Coverage](https://img.shields.io/badge/Coverage-95.07%25-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-576%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
