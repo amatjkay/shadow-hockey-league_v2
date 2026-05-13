@@ -225,6 +225,41 @@ class TestHealthBlueprint(unittest.TestCase):
         self.assertEqual(data["cache_status"], "error")
         self.assertEqual(data["status"], "degraded")
 
+    def test_health_endpoint_has_cache_backend_fields(self) -> None:
+        """TIK-100: /health exposes cache backend identity on both code paths.
+
+        ``cache_backend_type``, ``cache_type_config`` and ``cache_key_prefix``
+        must be present and JSON-serializable strings regardless of whether
+        the Redis probe succeeds (healthy path) or raises (fallback path).
+        Concrete values are env-dependent and intentionally not asserted.
+        """
+        # Healthy path — Redis probe succeeds.
+        fake_client = MagicMock()
+        fake_client.ping.return_value = True
+        fake_client.info.return_value = {"used_memory": 0}
+        fake_client.set.return_value = True
+        fake_client.get.return_value = "ok"
+        with patch("redis.Redis", return_value=fake_client):
+            response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        for field in ("cache_backend_type", "cache_type_config", "cache_key_prefix"):
+            self.assertIn(field, data)
+            self.assertIsInstance(data[field], str)
+
+        # Fallback path — Redis probe raises.
+        import redis as _redis
+
+        bad_client = MagicMock()
+        bad_client.ping.side_effect = _redis.ConnectionError("simulated outage")
+        with patch("redis.Redis", return_value=bad_client):
+            response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        for field in ("cache_backend_type", "cache_type_config", "cache_key_prefix"):
+            self.assertIn(field, data)
+            self.assertIsInstance(data[field], str)
+
     def test_health_endpoint_database_error_marks_degraded(self) -> None:
         """When the DB session raises, /health reports ``database_status=error``.
 

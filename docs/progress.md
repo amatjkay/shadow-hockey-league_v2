@@ -12,6 +12,49 @@
 >   2026-05-08 → 2026-05-13, rotated per TIK-92 to hold this file under
 >   ~200 lines per the `doc-rotation` skill / TIK-92 DoD.
 
+## 2026-05-13: TIK-100 — Prod hotfix: cache pre-warm + backend-type instrumentation
+
+Hotfix for the production "season-tab hang" — `?season=N` tab switches
+on https://shadow-hockey-league.ru/ were taking 18.7s → 27.8s → 5.8s on
+three back-to-back curls (Redis cache miss), strongly indicating a partial
+fallback where only some Gunicorn workers wired up `RedisCache` and the rest
+ran per-process `SimpleCache`. `/health` did not surface this because it
+only checks the worker that serves the probe.
+
+**What landed**
+
+- `scripts/deploy.sh`: ping Redis with a 30s retry-loop before
+  `systemctl restart` (tries `redis-cli ping` first, falls back to a
+  `python3 -c "import redis; ..."` one-liner); after the existing
+  5× `/health` success loop, serially curl `/` and `?season=1..5` with
+  `--max-time 30` so the leaderboard is hot in Redis before real traffic.
+- `blueprints/health.py`: always expose `cache_backend_type`
+  (`type(cache.cache).__name__`), `cache_type_config`
+  (`CACHE_TYPE` config value), and `cache_key_prefix` on every response —
+  so polling `/health` from multiple workers finally lets us see partial
+  fallback.
+- `services/cache_service.py`: `_LoggingCache(Cache)` subclass that logs
+  `cache backend selected: backend=... config_type=...` once per worker
+  on `init_app` — gives a journald breadcrumb (`journalctl -u
+  shadow-hockey-league | grep 'cache backend selected'` → 4 rows per
+  deploy, one per worker).
+- `tests/test_blueprints.py`: new
+  `test_health_endpoint_has_cache_backend_fields` asserts presence + str
+  type of the three new fields on both the healthy and Redis-disconnected
+  paths (env-independent — values intentionally not asserted).
+
+`app.py` / `models.py` / `config.py` untouched per AGENTS § 2 file-safety.
+
+**Verification**
+
+- `make check` (black + isort + flake8 + mypy + pip-audit) — green.
+- `make test` — 580 passed (up from 572), coverage 88% (≥ 87% gate, TIK-54).
+- Local `curl /health` confirms the three new fields are present on the
+  Redis-disconnected fallback path.
+
+**Post-merge validation** — hit `/health` 5×; expect
+`cache_backend_type=RedisCache` stable across all four workers.
+
 ## 2026-05-13: TIK-99 — `test_routes.py` honours `DATABASE_URL` for Postgres CI matrix
 
 Coder follow-up to TIK-95 (PR #115) — the second of two TODOs documented

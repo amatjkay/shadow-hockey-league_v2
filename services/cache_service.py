@@ -7,13 +7,41 @@ when managers, achievements, or countries are modified.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
+from flask import Flask
 from flask_caching import Cache
 from flask_caching.backends.rediscache import RedisCache
 from flask_caching.backends.simplecache import SimpleCache
 
+
+class _LoggingCache(Cache):
+    """Cache subclass that logs the selected backend once per worker.
+
+    Production runs four Gunicorn workers; each one independently resolves
+    Redis at startup and silently falls back to ``SimpleCache`` on failure
+    (see ``app.py::register_extensions``). Without per-worker visibility,
+    a partial fallback (some workers on Redis, others on SimpleCache) is
+    indistinguishable from a clean Redis deploy at the ``/health`` level,
+    which is what TIK-100 set out to fix.
+
+    The log line is emitted on ``init_app`` and intentionally formatted so
+    journald aggregation (``journalctl -u shadow-hockey-league | grep
+    'cache backend selected'``) yields exactly one row per worker PID.
+    """
+
+    def init_app(self, app: Flask, config: Any | None = None) -> None:
+        super().init_app(app, config)
+        backend_name = type(self.cache).__name__ if self.cache is not None else "uninitialised"
+        app.logger.info(
+            "cache backend selected: backend=%s config_type=%s",
+            backend_name,
+            app.config.get("CACHE_TYPE"),
+        )
+
+
 # Cache instance - to be initialized in create_app
-cache: Cache = Cache()
+cache: Cache = _LoggingCache()
 
 logger = logging.getLogger(__name__)
 
