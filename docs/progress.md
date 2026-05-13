@@ -12,6 +12,69 @@
 >   2026-05-08 → 2026-05-13, rotated per TIK-92 to hold this file under
 >   ~200 lines per the `doc-rotation` skill / TIK-92 DoD.
 
+## 2026-05-13: TIK-99 — `test_routes.py` honours `DATABASE_URL` for Postgres CI matrix
+
+Coder follow-up to TIK-95 (PR #115) — the second of two TODOs documented
+in the integration-postgres CI job comments. PR #115 collected-then-skipped
+all 14 `tests/integration/test_routes.py` tests on the Postgres leg because
+every `setUp` hard-coded `self.app.config["SQLALCHEMY_DATABASE_URI"] =
+f"sqlite:///{tempfile}"`, bypassing the conftest-level Postgres override.
+TIK-99 teaches the file to honour `$DATABASE_URL` so the Postgres CI leg
+actually validates route behaviour.
+
+**What landed**
+
+- New `tests/integration/_postgres_utils.py` (105 lines): shared
+  `IntegrationTestCase` base class + `truncate_all_tables()` helper.
+  - On Postgres (`DATABASE_URL=postgresql+psycopg2://...`): re-uses the
+    alembic-built schema and isolates tests via `TRUNCATE ... RESTART
+    IDENTITY CASCADE` (the same strategy `tests/integration/conftest.py`
+    uses for the global `db.drop_all` shim).
+  - On SQLite (default `make test` flow): unchanged — `tempfile.mkstemp`
+    + `db.create_all` in setUp / `db.drop_all` + `os.unlink` in tearDown.
+- `tests/integration/test_routes.py`: all 9 `TestCase` subclasses
+  (`TestEmptyDatabase`, `TestBulkLoadPerformance`,
+  `TestTransactionRollback`, `TestConcurrentRequests`,
+  `TestAPICRUDOperations`, `TestRatingCalculationIntegration`,
+  `TestCascadeDelete`, `TestDatabaseConstraints`,
+  `TestLeaderboardTotalFormatting`) now inherit from
+  `IntegrationTestCase`. Custom setUps call `super().setUp()` first and
+  layer their fixture data on top. Removed the per-class
+  tempfile/`SQLALCHEMY_DATABASE_URI` boilerplate (≈ 20 lines per class).
+- `enable_sqlite_fk` is now a no-op on Postgres (FKs are always enforced
+  there) and only emits `PRAGMA foreign_keys=ON` on SQLite.
+- `TestBulkLoadPerformance` seed: country codes shortened from
+  `f"COD{i:03d}"` (6 chars) to `f"C{i:02d}"` (3 chars) so they fit
+  `Country.code = db.String(3)`. SQLite silently truncates / ignores
+  VARCHAR length; Postgres rejects with `StringDataRightTruncation`. The
+  test never depended on the code value, only that it was unique.
+- `tests/integration/conftest.py`: deleted the `pytest_collection_modifyitems`
+  skip-list (lines 90–115 in the old file) that PR #115 added with the
+  `TODO(TIK-95-followup)` marker. Kept the `_pg_create_all` /
+  `_pg_drop_all` monkey-patch — that's TIK-98 territory and supports
+  `test_admin_integration.py` / `test_cache_invalidation.py`.
+
+**Out of scope (anti-goals)**
+
+- `models.py` / alembic migrations untouched — that's TIK-98.
+- `.github/workflows/deploy.yml` untouched — PR #115 stays as-is.
+- `app.py` / `config.py` untouched.
+- Other integration tests untouched.
+
+**Verification**
+
+- `make check` (black + isort + flake8 + mypy on 91 files): green.
+- `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87`
+  (SQLite, default flow): 579 passed in 31.42 s, coverage 94.56 %
+  (gate ≥ 87 %).
+- Local Postgres smoke (docker `postgres:16-alpine` + `alembic upgrade
+  head` clean, then `RUN_INTEGRATION_POSTGRES=1
+  DATABASE_URL=postgresql+psycopg2://...
+  pytest tests/integration/test_routes.py
+  tests/integration/test_admin_integration.py
+  tests/integration/test_cache_invalidation.py -v`): 47 passed in 9.36 s
+  (14 from `test_routes.py`, all previously skipped, now exercised).
+
 ## 2026-05-13: TIK-92 — Memory Bank rotation part 2 (progress.md + decisionLog.md → 2026-Q2 archive)
 
 Doc-curator follow-up to TIK-89 / Phase 3 (PR #109). Per the `doc-rotation`

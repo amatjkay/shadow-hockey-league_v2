@@ -20,8 +20,6 @@ from __future__ import annotations
 
 import os
 
-import pytest
-
 _RUN_PG = os.environ.get("RUN_INTEGRATION_POSTGRES") == "1"
 _DB_URL = os.environ.get("DATABASE_URL", "")
 
@@ -85,31 +83,3 @@ if _RUN_PG and _is_postgres_url(_DB_URL):
 
     db.drop_all = _pg_drop_all  # type: ignore[method-assign]
     db.create_all = _pg_create_all  # type: ignore[method-assign]
-
-
-def pytest_collection_modifyitems(
-    config: pytest.Config,  # noqa: ARG001
-    items: list[pytest.Item],
-) -> None:
-    """Skip SQLite-only integration suites when the Postgres CI job is active.
-
-    ``tests/integration/test_routes.py`` hard-codes
-    ``self.app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{...}"``
-    in every ``setUp``, bypassing any conftest-level override.  Until a
-    follow-up PR teaches it to honour ``DATABASE_URL``, we skip the
-    entire module in the Postgres leg.
-
-    TODO(TIK-95-followup): make test_routes.py honour DATABASE_URL so
-    it can validate route behaviour on Postgres as well.
-    """
-    if not (_RUN_PG and _is_postgres_url(_DB_URL)):
-        return
-
-    skip_marker = pytest.mark.skip(
-        reason="SQLite-only test setup (hard-coded sqlite:/// path); "
-        "see TODO in tests/integration/conftest.py.",
-    )
-    for item in items:
-        fspath = str(item.fspath).replace("\\", "/")
-        if "tests/integration/test_routes.py" in fspath:
-            item.add_marker(skip_marker)
