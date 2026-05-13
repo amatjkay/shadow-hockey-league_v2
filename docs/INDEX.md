@@ -44,9 +44,15 @@ mandates the three `docs/`+`PROJECT_KNOWLEDGE.md` files marked **MB** below;
 - `docs/archive/audits/` — past audit artefacts (analysis, plans, inventories).
   Reference only when explicitly asked.
 - `docs/archive/progress-pre-2026-04-29.md` — pre-cycle progress entries.
-- `docs/archive/2026-Q2.md` — rotated `progress.md` (4 entries 2026-04-30 →
-  2026-05-01) + `decisionLog.md` (8 entries 2026-04-23 → 2026-04-29). Verbatim
-  move; reference only when asked about pre-2026-04-30 design history.
+- `docs/archive/2026-Q2.md` — rotated `progress.md` + `decisionLog.md`:
+  - `## Progress (rotated 2026-05-04)` — 4 entries 2026-04-30 → 2026-05-01.
+  - `## Decision Log (rotated 2026-05-04)` — 8 entries 2026-04-23 → 2026-04-29.
+  - `## Progress (rotated 2026-05-13)` — 13 entries 2026-05-03 → 2026-05-08
+    (later), per TIK-89 / T13.
+  - `## Decision Log (rotated 2026-05-13)` — 3 entries 2026-04-30 + 2026-05-01
+    ×2, per TIK-89 / T14. Forward-contracts kept verbatim as a stub at the
+    top of `docs/decisionLog.md`.
+  Verbatim move; reference only when asked about pre-2026-05-08 design history.
 - `docs/archive/handoff-2026-05-07.md` — one-off cross-agent handoff after the
   TIK-71/72 batch landed. Reference only when investigating the M2 refresh era.
 
