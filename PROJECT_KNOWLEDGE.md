@@ -27,6 +27,20 @@
 - **Baseline Season**: 25/26 (Multiplier = 1.0).
 - **Historical Multipliers** (decay `0.7 ^ years_ago`): 24/25 = 0.7000, 23/24 = 0.4900, 22/23 = 0.3430, 21/22 = 0.2400.
 
+### Leaderboard Summation Precision
+
+`Achievement.final_points` and `calculate_achievement_points()["points"]`
+are rounded to 2 decimals — that's the value shown per achievement in
+the breakdown panel. The **leaderboard total**, however, sums the
+un-rounded `base × mul` via `calculate_achievement_points()["points_exact"]`
+so two careers that differ by sub-cent amounts (e.g. `7.8000` vs
+`7.7955`) keep distinct totals and therefore distinct ranks. Rows in
+the top-10 whose 2-decimal display would collide with a different-rank
+neighbour are rendered at 3 decimals via `row.total_display`; all
+other rows stay at the compact 2-decimal format. True ties (identical
+exact totals → shared rank) keep 2 decimals because the rank pill
+already conveys the tie.
+
 ## 2. Infrastructure & Tech Stack
 
 - **Core**: Flask 3.1+ (Application Factory pattern in `app.py`).

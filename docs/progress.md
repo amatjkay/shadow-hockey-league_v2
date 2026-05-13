@@ -34,8 +34,9 @@ Three surgical follow-ups, no source-code changes.
 - `make check` — clean (`pip-audit`: "No known vulnerabilities found";
   `black` / `isort` / `flake8` / `mypy` all 0 errors).
 - `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87 -q` —
-  **572 passed, 94.99% coverage** (unchanged from TIK-88; no new tests
-  required).
+  **576 passed, ≥ 87% coverage** (baseline bumped to 576 by the rating /
+  tiebreak work that landed below in PR #103; T04/T05/T06 add no new
+  tests).
 
 **Catalog (`docs/owner-actions.md`)**
 
@@ -43,6 +44,117 @@ Three surgical follow-ups, no source-code changes.
   `open question` (separate PRs in Phase 2 + Phase 3).
 
 ---
+
+## 2026-05-13: Rating — full-precision leaderboard totals + 3-decimal tiebreak display in top-10
+
+User report: production leaderboard showed **two managers tied at rank 2**
+(`Aliaksandr Naidzionau` and `Юрий Shestakov`, both displayed as `7.80`)
+even though their achievement sets were completely different.
+
+Root cause: `services/rating_service.calculate_achievement_points`
+returned `round(base * mul, 2)` and `_build_leaderboard_impl` summed
+those *already-rounded* per-achievement values into `total`. For the
+reported pair the exact totals were `7.8000` vs `7.7955` (a real
+0.0045 gap that should put them in distinct ranks), but the per-row
+rounding inflated one of the four contributions for the second manager
+(`0.45 × 0.70 = 0.315 → round(., 2) = 0.32`, +0.005) just enough to
+make the rounded sums collide at `7.80`.
+
+Fix (`PR-pending`, branch `devin/<ts>-leaderboard-precision-rank`):
+
+- `calculate_achievement_points` now returns an additional un-rounded
+  field `points_exact = base * mul` alongside the existing rounded
+  `points` (which stays at 2dp for the per-achievement breakdown
+  panel).
+- `_build_leaderboard_impl` sums `points_exact` into `total`
+  (`float`, was `int` initialised to `0`) and sorts / ranks on the
+  exact value. Strict float equality is the right tiebreak here: two
+  rows only share rank when every `base * mul` is bit-for-bit
+  identical, i.e. when the careers really do produce the same total.
+- New helper `_assign_total_display(result)` walks the top-10 rows,
+  groups them by their 2-decimal display, and bumps the entire
+  collision group to 3 decimals whenever those rows hold different
+  ranks. Other rows (rank ≥ 11, or rank groups whose 2dp displays
+  don't collide) keep the compact `XX.XX` format. True ties (same
+  exact total → same rank) stay at 2dp — the shared rank pill
+  already conveys the tie, so a trailing `0` would be noise.
+- `templates/index.html` consumes the new `row.total_display` for
+  both the score cell and the `data-total` row attribute. The
+  breakdown panel still renders per-achievement `points` at 2dp via
+  `breakdown_payload`.
+
+Regression coverage in `tests/test_rating_service.py::TestLeaderboardPrecisionAndTies`:
+
+- Phantom-tie scenario (Aliaksandr/Юрий arithmetic) → distinct ranks,
+  `"7.800"` / `"7.796"` display.
+- True tie (identical careers) → shared rank, `"7.80"` on both rows
+  (no trailing-zero bump).
+- Non-colliding rows keep 2dp (`"10.00"`, `"2.50"`).
+- `points_exact` is exposed for callers that aggregate
+  (`0.45 × 0.49 = 0.2205`, vs `points = 0.22`).
+
+`make check` clean (black / isort / flake8 / mypy). `make test` —
+576 passed (was 572); `services/rating_service.py` coverage 99 %.
+
+---
+
+## 2026-05-13: UI — fix points-formula tooltip positioning + outside-click + close button
+
+Bug: clicking the `?` icon next to the *Очки* header opened the dialog
+visually anchored to the bottom of the leaderboard table (often below
+the fold) instead of centred in the viewport, and the backdrop only
+covered the table — so clicks outside the table never reached the
+backdrop and the modal stayed open.
+
+Root cause: the table now carries `backdrop-filter: blur(3px)
+saturate(115%)` (PR #99 glass refresh). Per the CSS spec, `filter` /
+`backdrop-filter` / `transform` create a *containing block* for
+`position: fixed` descendants. The tooltip dialog and its
+`inset: 0` backdrop lived inside the table's `<th>`, so "fixed" was
+fixed-to-the-table, not fixed-to-the-viewport.
+
+Fix:
+- `templates/index.html`: lift the `.tooltip-backdrop` and
+  `.tooltip-content` siblings out of `<th>` and re-anchor them next to
+  the `breakdown-sheet` aside at the document level — well clear of
+  any containing-block-creating ancestor. Toggle button keeps its
+  spot beside the *Очки* header. Add a small `× ` close button
+  (`.tooltip-close`, `data-tooltip-close="points-help"`) in the
+  modal's top-right.
+- `static/js/script.js::shlInitTooltips`: new
+  `[data-tooltip-close]` handler that mirrors the backdrop's
+  `setOpen(id, false)` call.
+- `static/css/components.css`: `.tooltip-body` is now
+  `position: relative` so the close button can absolutely-position;
+  `.tooltip-intro` gets `padding-right: 36px` so its text doesn't run
+  under the new button. Light/dark theme tokens unchanged.
+
+No source-code, schema, or test changes.
+
+---
+
+## 2026-05-13: UI — fuse season-filter tabs to leaderboard card
+
+Small UI-only follow-up after the PR #99 glass-table refresh.
+
+- `templates/index.html`: drop the `<span class="filters-bar__label">Сезон:</span>`
+  caption and replace `aria-labelledby="season-filter-label"` with
+  `aria-label="Выбор сезона"` directly on the radiogroup. Add modifier
+  class `filters-bar--attached`.
+- `static/css/sections.css`:
+  - Remove dead `.filters-bar__label` + `::before` (calendar icon) rules and
+    the matching mobile-media `.filters-bar--tabs .filters-bar__label` block.
+  - Add `.filters-bar--attached` — matches `.table.league-table` width
+    (`96% / max 1200px`), reuses `--shl-table-glass-bg` + `--shl-table-glass-border`,
+    rounded top corners only, `border-bottom: 0`, same blur token as the table.
+  - Adjacent-sibling rule: `.filters-bar--attached + .table-responsive .table.league-table`
+    drops its top radius + top border so the filter bar and table render as
+    one card across both themes.
+
+No source-code, test, or schema changes; pure CSS + template tweak.
+
+---
+
 
 ## 2026-05-13: TIK-88 — owner-actions catalog + secrets fail-fast + .gitignore
 

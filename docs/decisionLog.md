@@ -3,6 +3,80 @@
 > Older entries (2026-04-23 → 2026-04-29, 8 entries) are archived verbatim
 > at `docs/archive/2026-Q2.md`. Restore via `git revert` if needed.
 
+## 2026-05-13: Leaderboard — sum per-achievement points at full precision; rank on exact float; 3-decimal display only for visual ties in top-10
+
+**Context**: User noticed two managers (Aliaksandr Naidzionau, Юрий
+Shestakov) sharing rank 2 with identical displayed totals (`7.80`) on
+the live leaderboard, despite owning completely different achievement
+sets. Manual arithmetic showed the un-rounded totals were `7.8000` vs
+`7.7955` — a real 0.0045 gap. The "tie" was an artefact of
+`calculate_achievement_points` rounding every `base * mul` to 2 decimals
+before `_build_leaderboard_impl` summed the per-row values, with one
+contribution (`0.45 × 0.70 = 0.315`) rounding up to `0.32` and closing
+the gap.
+
+**Options considered**:
+
+1. **Sum the rounded `points` (status quo).** Simplest; matches what
+   the breakdown panel shows per row; produces phantom ties.
+   Rejected — already known to mis-rank.
+2. **Sum the rounded `points` and break ties on a secondary key
+   (count of TOP1 → count of TOP2 → newest season → name).** Hides
+   the actual cause (per-row rounding loss) behind a policy layer and
+   introduces a "fairness rule" the players never asked for. Rejected
+   in favour of fixing the arithmetic at the source.
+3. **Sum the un-rounded `base * mul`; rank on the exact float; render
+   2 decimals everywhere.** Mathematically correct, but two adjacent
+   rows in the top-10 can still display the same `XX.XX` while
+   holding different ranks (e.g. `7.7955` and `7.8000` both render
+   `7.80`), which is more confusing than the original "two 2nd
+   places". Rejected as the final form.
+4. **Sum the un-rounded `base * mul`; rank on the exact float; bump
+   *only the visually colliding rows in top-10* to 3 decimals.**
+   Chosen. The compact-10 scale (TIK-80) stays compact for 99 % of
+   the table; the longer format appears only where it actually
+   resolves ambiguity. True ties (same exact total → shared rank)
+   stay at 2 decimals because the shared rank pill already conveys
+   the tie and a trailing `0` would be noise.
+5. **Always render 3 decimals across the whole table.** Considered at
+   user prompt. Rejected — most totals collapse to `XX.X00` /
+   `X.000` because base points are 1–2 decimal and the active-season
+   multiplier is exactly `1.000`, producing trailing-zero visual
+   noise that runs against the compact-10 design intent.
+
+**Choice**: Option 4.
+
+**Implementation summary**:
+
+- `services/rating_service.calculate_achievement_points` returns an
+  extra un-rounded `points_exact = base * mul` field; the existing
+  `points` field stays at 2 dp for the per-achievement breakdown
+  panel.
+- `services/rating_service._build_leaderboard_impl` sums
+  `points_exact` into `total` (`float`, was implicitly `int(0)`) and
+  sorts / ranks on the exact value. Strict `==` is correct for the
+  rank check because two rows only share a sum when every
+  `base * mul` is bit-for-bit identical.
+- New helper `_assign_total_display(result)` groups the top-10 rows
+  by their 2-decimal display and bumps the entire collision group to
+  3 decimals iff those rows hold different ranks. All other rows get
+  the compact `XX.XX` format.
+- `templates/index.html` renders `row.total_display` for the score
+  cell and `data-total` attribute. The breakdown panel data is
+  unchanged.
+
+**Reversibility**: Pure additive Python change + one template
+substitution. To revert, drop the helper and `points_exact` field and
+restore `total_points += parsed["points"]`. No schema migration.
+
+**Regression coverage**:
+`tests/test_rating_service.py::TestLeaderboardPrecisionAndTies` — 4 tests
+covering phantom tie (different totals same 2dp), true tie (shared
+rank stays at 2 dp), non-colliding rows stay at 2 dp, and
+`points_exact` exposure.
+
+---
+
 ## 2026-05-11: TIK-86 — module-level `threading.Lock()` around `build_leaderboard`
 
 **Context**: `tests/integration/test_routes.py::TestConcurrentRequests::test_concurrent_homepage_requests`

@@ -1,12 +1,8 @@
 /* Page sections and layout */
-/* Animated synthwave-rainbow gradient on the page title (polish v1).
-   Magenta → cyan → violet → magenta sweeps under clipped text every
-   8 s. Reduced motion freezes on a single stop. */
-@keyframes shl-title-gradient {
-  0%   { background-position:   0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
+/* Static synthwave-rainbow gradient clipped to the page title text.
+   The gradient itself stays put (no sweeping animation) — users get
+   the iridescent magenta → cyan → violet → magenta colour wash without
+   the distracting right-to-left colour cycling. */
 .page-title {
   margin-bottom: 0.25rem;
   background-image: linear-gradient(
@@ -17,19 +13,10 @@
     var(--shl-magenta-500) 75%,
     var(--shl-cyan-secondary-500) 100%
   );
-  background-size: 200% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shl-title-gradient 8s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-title {
-    animation: none;
-    background-position: 0% 50%;
-  }
 }
 
 .page-section {
@@ -109,18 +96,39 @@
   padding: 10px 14px;
 }
 
-.filters-bar__label {
-  font-weight: 600;
-  color: var(--shl-cyan-100);
-  letter-spacing: 0.02em;
-  font-size: 14px;
-  white-space: nowrap;
+/* Attached variant — filter bar visually fused to the leaderboard
+   table below it. Same width / glass token as `.table.league-table`,
+   rounded top corners only, no bottom border (the table's own top edge
+   serves as the hairline divider). Adjacent-sibling rule on
+   `.league-table` drops its top radius/border so the two render as one
+   card. */
+.filters-bar--attached {
+  width: 96%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  /* Flat 1-stop glass tone so the bottom of the bar matches the top
+     of the adjacent .table — using the full `--shl-table-glass-bg`
+     gradient produced a visible step where bar bottom (faded) meets
+     table top (fresh start). */
+  background: var(--shl-table-glass-bg-flat);
+  border: 1px solid var(--shl-table-glass-border);
+  border-bottom: 0;
+  border-radius: var(--shl-radius-lg) var(--shl-radius-lg) 0 0;
+  backdrop-filter: blur(3px) saturate(115%);
+  -webkit-backdrop-filter: blur(3px) saturate(115%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-.filters-bar__label::before {
-  content: "\1F4C5";
-  margin-right: 6px;
-  font-size: 16px;
+.filters-bar--attached + .table-responsive .table.league-table {
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  /* Drop the white inset highlight on the table's top edge when the
+     filters bar is glued to it — otherwise a 1px hairline reads as a
+     visible seam between the tabs row and the <thead>. */
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.18);
 }
 
 .filters-bar__select {
@@ -302,8 +310,36 @@
     max-width: none;
     padding: 8px 10px;
   }
-  .filters-bar--tabs .filters-bar__label {
-    flex-shrink: 0;
+}
+
+/* Light-theme overrides for inactive season tabs. The default rule uses
+   `color: var(--shl-ink-on-dark)` (white) and `background: --shl-cyan-tint-08`
+   (8% magenta) which over the white table-card became near-invisible
+   white-on-white once the rink overlay made the surrounding glass look
+   busier. Bump bg + flip text to the dark ink token. Active tab keeps
+   filled-magenta + white text. */
+:root[data-theme="light"] .season-tabs__tab {
+  background: rgba(160, 24, 189, 0.10);
+  color: var(--shl-ink);
+}
+:root[data-theme="light"] .season-tabs__tab:hover {
+  background: rgba(160, 24, 189, 0.18);
+}
+:root[data-theme="light"] .season-tabs__input:checked + .season-tabs__tab {
+  background: var(--shl-cyan-500);
+  color: var(--shl-ink-on-dark);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .season-tabs__tab {
+    background: rgba(160, 24, 189, 0.10);
+    color: var(--shl-ink);
+  }
+  :root:not([data-theme]) .season-tabs__tab:hover {
+    background: rgba(160, 24, 189, 0.18);
+  }
+  :root:not([data-theme]) .season-tabs__input:checked + .season-tabs__tab {
+    background: var(--shl-cyan-500);
+    color: var(--shl-ink-on-dark);
   }
 }
 

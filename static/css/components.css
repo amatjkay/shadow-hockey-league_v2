@@ -354,35 +354,82 @@
   }
 }
 
+/* Points-formula dialog body — reuses the synthwave dark-glass aesthetic
+   from `.breakdown-sheet__panel` so both modals feel like they belong
+   to the same surface family. The `--shl-glass-*` tokens are intentionally
+   not flipped on the light theme (mirrors the breakdown drawer's
+   "keep this dialog dark in light mode" decision in base.css), which gives
+   us a single text-color baseline (`--shl-ink-on-dark-*`) regardless of
+   theme and lets magenta/cyan accents stay vibrant against the violet glass. */
 .tooltip-body {
-  padding: 14px 16px;
-  background: var(--shl-surface-95);
-  border: 1px solid var(--shl-cyan-200);
+  position: relative;
+  padding: 16px 18px;
+  background: var(--shl-glass-elev);
+  border: 1px solid var(--shl-glass-border);
   border-radius: var(--shl-radius-md);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
+  box-shadow:
+    0 12px 48px rgba(7, 4, 35, 0.55),
+    var(--shl-neon-glow-soft);
+  backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--shl-glass-blur)) saturate(1.4);
   font-size: 13px;
   line-height: 1.5;
-  color: var(--shl-ink-soft);
+  color: var(--shl-ink-on-dark-90);
+}
+
+.tooltip-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  font-family: inherit;
+  color: var(--shl-ink-on-dark);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--shl-glass-border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background-color 200ms var(--shl-ease-out),
+    border-color 200ms var(--shl-ease-out),
+    transform 200ms var(--shl-spring-ease);
+}
+
+.tooltip-close:hover {
+  background: rgba(195, 35, 224, 0.18);
+  border-color: var(--shl-magenta-300);
+  transform: scale(1.06);
+}
+
+.tooltip-close:focus-visible {
+  outline: none;
+  box-shadow: var(--shl-focus-ring), var(--shl-neon-glow-soft);
 }
 
 .tooltip-intro {
   margin: 0 0 12px;
-  padding: 0 0 10px;
-  border-bottom: 1px solid var(--shl-skyblue-tint-40);
+  padding: 0 36px 10px 0;
+  border-bottom: 1px solid var(--shl-glass-border);
   font-size: 13px;
-  color: var(--shl-ink);
+  color: var(--shl-ink-on-dark);
 }
 
 .tooltip-intro strong {
-  color: var(--shl-cyan-700);
+  color: var(--shl-magenta-300);
 }
 
 .tooltip-body h5 {
   margin: 14px 0 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--shl-cyan-700);
+  color: var(--shl-magenta-300);
+  letter-spacing: 0.2px;
 }
 
 .tooltip-body h5:first-child {
@@ -397,11 +444,11 @@
 
 .tooltip-list li {
   margin-bottom: 4px;
-  color: var(--shl-ink-soft);
+  color: var(--shl-ink-on-dark-80);
 }
 
 .tooltip-list strong {
-  color: var(--shl-cyan-700);
+  color: var(--shl-magenta-300);
 }
 
 .tooltip-table {
@@ -409,20 +456,22 @@
   border-collapse: collapse;
   margin-top: 8px;
   font-size: 12px;
+  color: var(--shl-ink-on-dark-90);
 }
 
 .tooltip-table th,
 .tooltip-table td {
   padding: 8px 10px;
   text-align: center;
-  border: 1px solid var(--shl-skyblue-tint-30);
+  border: 1px solid var(--shl-glass-border);
 }
 
 .tooltip-table th {
-  background: var(--shl-cyan-tint-15);
-  color: var(--shl-cyan-700);
+  background: rgba(195, 35, 224, 0.18);
+  color: var(--shl-ink-on-dark);
   font-weight: 600;
   text-align: left;
+  letter-spacing: 0.2px;
 }
 
 .tooltip-table th:first-child {
@@ -432,15 +481,15 @@
 .tooltip-table td:first-child {
   text-align: left;
   font-weight: 500;
-  color: var(--shl-ink);
+  color: var(--shl-ink-on-dark);
 }
 
 .tooltip-table tr:nth-child(even) {
-  background: var(--shl-surface-40);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .tooltip-table tr:hover {
-  background: var(--shl-cyan-tint-08);
+  background: rgba(195, 35, 224, 0.10);
 }
 
 /* Mobile adjustments — modal is already fixed-centered on every
