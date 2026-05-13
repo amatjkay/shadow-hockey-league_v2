@@ -18,7 +18,7 @@ from typing import Any
 
 from app import create_app
 from models import Achievement, AchievementType, Country, League, Manager, Season, db
-from services.cache_service import cache
+from services.cache_service import cache, invalidate_leaderboard_cache
 
 
 def _seed_reference_data():
@@ -270,6 +270,41 @@ class TestAPICacheInvalidation(unittest.TestCase):
         response = self._delete(f"/api/achievements/{self.achievement_id}")
         self.assertEqual(response.status_code, 200)
         self._assert_cache_invalidated()
+
+
+class TestPrefixInvalidation(unittest.TestCase):
+    """TIK-96: ``invalidate_leaderboard_cache`` must touch only ``leaderboard*``."""
+
+    def setUp(self) -> None:
+        self.app = create_app("config.TestingConfig")
+        self.client = self.app.test_client()
+        with self.app.app_context():
+            db.create_all()
+            _seed_reference_data()
+            db.session.commit()
+            cache.delete("leaderboard")
+
+    def tearDown(self) -> None:
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_prefix_invalidation_preserves_unrelated_keys(self) -> None:
+        """Unrelated cache keys survive a leaderboard invalidation."""
+        with self.app.app_context():
+            cache.set("unrelated_key", "value", timeout=60)
+
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            self.assertEqual(cache.get("unrelated_key"), "value")
+            self.assertIsNotNone(cache.get("leaderboard"))
+
+            self.assertTrue(invalidate_leaderboard_cache())
+
+            self.assertIsNone(cache.get("leaderboard"))
+            self.assertEqual(cache.get("unrelated_key"), "value")
 
 
 class TestAPILeaderboardRefresh(unittest.TestCase):

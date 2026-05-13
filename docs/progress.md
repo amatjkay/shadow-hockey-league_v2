@@ -33,6 +33,91 @@ subset of integration tests (`test_admin_integration.py`,
 
 ---
 
+## 2026-05-13: TIK-96 — prefix invalidation for `leaderboard*` cache keys
+
+**What landed**
+
+- `services/cache_service.invalidate_leaderboard_cache()` now dispatches on
+  the live backend instead of calling `cache.clear()`:
+  - `RedisCache`: `SCAN` over `{CACHE_KEY_PREFIX}leaderboard*` via
+    `cache.cache._write_client` + bulk `DELETE`. Honours
+    `CACHE_KEY_PREFIX` automatically (cachelib stores it on
+    `RedisCache.key_prefix`).
+  - `SimpleCache`: iterate `cache.cache._cache` and `cache.delete`
+    keys starting with `"leaderboard"`.
+  - Unknown backend: fall back to `cache.clear()` with a warning log.
+- Docstring rewritten to spell out the new contract and the
+  per-backend behaviour.
+- New regression test
+  `tests/integration/test_cache_invalidation.py::TestPrefixInvalidation::test_prefix_invalidation_preserves_unrelated_keys`
+  warms `/`, sets `cache.set("unrelated_key", "value")`, calls
+  `invalidate_leaderboard_cache()`, and asserts `cache.get("leaderboard")
+  is None` while `cache.get("unrelated_key") == "value"`. Runs on
+  TestingConfig (`SimpleCache`).
+
+**Why this matters**
+
+- `cache.clear()` previously scrubbed every key in the configured
+  backend on each CRUD — including Flask-Limiter rate-limiter counters
+  whenever they share the cache Redis. Surface today is small; left
+  in place this would scale into a real cost as more cached
+  namespaces land. Now we only touch the keys the view actually owns.
+- The cache-key contract (`leaderboard` + `leaderboard:{season_id}`)
+  in `blueprints/main.py::_leaderboard_cache_key` is unchanged
+  (TIK-96 anti-goal).
+
+**Verification**
+
+- `pytest tests/integration/test_cache_invalidation.py -v` — 15 passed
+  (existing 14 + new `test_prefix_invalidation_preserves_unrelated_keys`).
+- `make check` — clean (black / isort / flake8 / mypy + `pip-audit`).
+- `make test` — 561 passed, ≥ 87 % coverage gate held.
+
+---
+
+## 2026-05-13: TIK-94 — tests: fallback consistency (`BASE_POINTS`/`SEASON_MULTIPLIER` ↔ seed)
+
+Detection-only consistency tests (P3 from the rating-service audit) for the
+two fallback dictionaries `services.rating_service` keeps in case
+`achievement_types` / `seasons` are empty.
+
+**What landed**
+
+- `tests/test_rating_fallback_consistency.py` — new file, 2 tests:
+  - `test_base_points_fallback_matches_seeded_reference_data`: seeds the
+    reference tables via `data.seed_service.SeedService._seed_reference_data`
+    (the same codepath `seed_db.py` runs), then iterates every
+    `(root_league.code, ach_type.code)` in DB and compares
+    `services.scoring_service.get_base_points(ach_type, league)` against
+    `services.rating_service.BASE_POINTS[(league_code, type_code)]`
+    with tolerance `1e-9`. Asserts both directions (no missing keys in
+    fallback, no extras either). Subleagues (`parent_code is not None`,
+    i.e. `2.1`/`2.2`) are intentionally skipped — they inherit
+    `base_points_l2` via `League.base_points_field` and the flat
+    `BASE_POINTS` dict only covers root leagues `1` and `2`.
+  - `test_season_multiplier_fallback_matches_seeded_reference_data`:
+    iterates every seeded `Season` and compares `Season.multiplier`
+    against `SEASON_MULTIPLIER[s.code]` with tolerance `1e-9`. Asserts
+    both directions.
+- On drift either test collects every offending key into a single
+  `pytest.fail()` so the diff is visible at a glance.
+
+**Anti-Goals respected (per TIK-94)**
+
+- No edits to `services/rating_service.py`, `services/scoring_service.py`,
+  `models.py`, or `data/seed/*.json`.
+- If a real drift were found, the follow-up is a separate ticket + an
+  `xfail` marker on the offending test — not a silent fix here.
+
+**Verification**
+
+- `./venv/bin/pytest tests/test_rating_fallback_consistency.py -v` — 2/2 pass.
+- `./venv/bin/pytest tests --ignore=tests/e2e -n auto --cov=...` —
+  578 passed in ~31s, coverage 89% (≥ 87% gate, TIK-54).
+- `make check` (black/isort/flake8/mypy + pip-audit) — clean.
+
+---
+
 ## 2026-05-13: TIK-89 Phase 3 — rotate `docs/progress.md` + `docs/decisionLog.md` to `docs/archive/2026-Q2.md` (T13 + T14)
 
 Batch B Phase 3 of the 14-item owner-actions catalog (T13 + T14).

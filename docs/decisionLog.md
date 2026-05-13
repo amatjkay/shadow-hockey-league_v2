@@ -50,6 +50,67 @@
 
 ---
 
+## 2026-05-13: TIK-96 — prefix invalidation for `leaderboard*` keys (replaces `cache.clear()`)
+
+**Context**: `services/cache_service.invalidate_leaderboard_cache()` used to
+call `cache.clear()` on every manager/achievement/country CRUD. That
+flushed **all** keys in the configured backend — including
+Flask-Limiter rate-limiter counters when they share the same Redis
+instance (`RATELIMIT_STORAGE_URI` defaults to the cache URL in
+`app.py`). The cache-key contract owned by
+`blueprints/main.py::_leaderboard_cache_key` is narrow — `leaderboard`
+and `leaderboard:{season_id}` — so a full `flushdb` was always
+over-broad. Surface today is small; left in place it would scale into
+a real cost as more cached namespaces land.
+
+**Options Considered**:
+
+1. **Keep `cache.clear()` (status quo).** Simplest. Continues to wipe
+   unrelated keys (rate-limit counters, future cached namespaces).
+   Rejected — already known to be over-broad.
+2. **Maintain a side index of leaderboard keys in a Redis set
+   (`SADD leaderboard:_index` on write, `SMEMBERS + DEL + DEL index`
+   on invalidate).** Tightest semantics, no SCAN cost, but requires
+   intercepting every cache write (we'd need to override
+   `@cache.cached` or wrap `cache.set`). Rejected as overkill for
+   one view with at most 6 keys (`leaderboard` + 5 seasons).
+3. **`SCAN` over `{CACHE_KEY_PREFIX}leaderboard*` and `DELETE`
+   matched keys (Redis); iterate `_cache.keys()` and `cache.delete`
+   matching keys (SimpleCache); fall back to `cache.clear()` for
+   unknown backends with a warning.** Targets the exact prefix the
+   view writes, costs O(matches) on Redis via cursor-paged SCAN,
+   leaves unrelated keys alone. Chosen.
+4. **Drop the `cache.clear()` fallback for unknown backends.**
+   Considered. Rejected — silently retaining stale entries on a
+   custom backend would re-introduce the bug we just fixed in a
+   different shape. A logged `cache.clear()` is the safe default
+   when the backend type is unrecognised.
+
+**Decision**: Option 3.
+
+- `cache.cache._write_client.scan_iter(match=f"{key_prefix}leaderboard*")`
+  for `RedisCache` (`key_prefix` is whatever `cachelib` stored from
+  `CACHE_KEY_PREFIX`; defaults to `""`).
+- `cache.cache._cache.keys()` + `cache.delete(key)` for `SimpleCache`
+  (the test/dev backend).
+- `logger.warning(...)` + `cache.clear()` for anything else.
+
+**Reversibility**: Pure swap-out of the function body. To revert,
+restore the `cache.clear()` one-liner — no schema migration, no
+contract change. The cache-key contract in `_leaderboard_cache_key` is
+explicitly out of scope (TIK-96 § anti-goals).
+
+**Regression coverage**:
+`tests/integration/test_cache_invalidation.py::TestPrefixInvalidation::test_prefix_invalidation_preserves_unrelated_keys`
+warms `/`, sets an `unrelated_key`, calls
+`invalidate_leaderboard_cache()`, and asserts the `leaderboard` key
+is gone while `unrelated_key` survives. Runs on the
+`SimpleCache`-backed `TestingConfig`; the conftest-level FakeRedis
+patch covers the Redis branch transitively when env config promotes
+the backend.
+
+---
+
 ## 2026-05-13: Leaderboard — sum per-achievement points at full precision; rank on exact float; 3-decimal display only for visual ties in top-10
 
 **Context**: User noticed two managers (Aliaksandr Naidzionau, Юрий
