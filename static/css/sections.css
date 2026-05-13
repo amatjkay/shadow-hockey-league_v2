@@ -1,12 +1,8 @@
 /* Page sections and layout */
-/* Animated synthwave-rainbow gradient on the page title (polish v1).
-   Magenta → cyan → violet → magenta sweeps under clipped text every
-   8 s. Reduced motion freezes on a single stop. */
-@keyframes shl-title-gradient {
-  0%   { background-position:   0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
+/* Static synthwave-rainbow gradient clipped to the page title text.
+   The gradient itself stays put (no sweeping animation) — users get
+   the iridescent magenta → cyan → violet → magenta colour wash without
+   the distracting right-to-left colour cycling. */
 .page-title {
   margin-bottom: 0.25rem;
   background-image: linear-gradient(
@@ -17,19 +13,10 @@
     var(--shl-magenta-500) 75%,
     var(--shl-cyan-secondary-500) 100%
   );
-  background-size: 200% 100%;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shl-title-gradient 8s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-title {
-    animation: none;
-    background-position: 0% 50%;
-  }
 }
 
 .page-section {

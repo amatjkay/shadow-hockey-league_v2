@@ -367,7 +367,7 @@
                 aria-expanded="false"
                 aria-label="Открыть расчёт очков для {{ row.display_name }}"
               >
-                <td class="table-items rank-cell"><span class="rank-cell__pill">{{ row.rank }}</span></td>
+                <td class="table-items rank-cell"><span class="rank-cell__pill"><span class="rank-cell__num">{{ row.rank }}</span></span></td>
                 <td class="table-items score-cell">{{ "%.2f"|format(row.total) }}</td>
                 <td class="table-items manager-cell">
                   <img
