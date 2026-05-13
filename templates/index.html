@@ -23,7 +23,7 @@
     />
     <meta
       property="og:image"
-      content="{{ url_for('static', filename='img/logo.png', _external=True) }}"
+      content="{{ url_for('static', filename='img/logo_og.png', _external=True) }}"
     />
     <meta property="og:locale" content="ru_RU" />
     <meta name="twitter:card" content="summary" />
@@ -34,8 +34,17 @@
     />
     <link
       rel="icon"
+      type="image/x-icon"
+      href="{{ url_for('static', filename='img/favicon/favicon.ico') }}"
+    />
+    <link
+      rel="icon"
       type="image/png"
       href="{{ url_for('static', filename='img/logo.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="{{ url_for('static', filename='img/apple-touch-icon.png') }}"
     />
     <script>
       /* FOUC-fix: apply persisted theme before first paint (TIK-84).
@@ -112,9 +121,9 @@
           </a>
           <img
             src="{{ url_for('static', filename='img/logo.png') }}"
-            alt="Логотип"
-            class="img-fluid"
-            width="167"
+            alt="Логотип Shadow Hockey League"
+            class="img-fluid header-logo"
+            width="40"
             height="40"
             decoding="async"
           />
@@ -168,10 +177,10 @@
             </a>
             <img
               src="{{ url_for('static', filename='img/logo.png') }}"
-              alt="Логотип"
-              class="img-fluid"
-              width="146"
-              height="35"
+              alt="Логотип Shadow Hockey League"
+              class="img-fluid header-logo"
+              width="40"
+              height="40"
               loading="lazy"
               decoding="async"
             />
