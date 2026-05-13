@@ -39,6 +39,7 @@ def create_app(config_class: str | None = None) -> Flask:
     # Load configuration
     if config_class:
         app.config.from_object(config_class)
+        loaded_config = config_class
     else:
         env = os.environ.get("FLASK_ENV", "development")
         config_map = {
@@ -46,7 +47,15 @@ def create_app(config_class: str | None = None) -> Flask:
             "production": "config.ProductionConfig",
             "testing": "config.TestingConfig",
         }
-        app.config.from_object(config_map.get(env, "config.DevelopmentConfig"))
+        loaded_config = config_map.get(env, "config.DevelopmentConfig")
+        app.config.from_object(loaded_config)
+
+    # Fail-fast on dev-default secrets in production (T02 in
+    # docs/owner-actions.md). No-op in development / testing.
+    if loaded_config == "config.ProductionConfig":
+        from config import validate_production_secrets
+
+        validate_production_secrets(app.config)
 
     # Configure logging
     configure_logging(app)

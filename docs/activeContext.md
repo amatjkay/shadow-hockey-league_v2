@@ -21,7 +21,7 @@ any future `--threads >1` worker.
 ## Status
 
 - **Branch:** `main` (post TIK-86 merge).
-- **Tests:** 561 unit/integration (`make test`, ~30s, ≥ 87% coverage gate, TIK-54).
+- **Tests:** 572 unit/integration (`make test`, ~30s, ≥ 87% coverage gate, TIK-54).
 - **Type check:** `mypy` in `make check` and CI (TIK-53) — 0 errors.
 - **Dependency audit:** `make audit-deps` (`pip-audit`) wired into CI (TIK-52).
 - **E2E:** `make e2e` (Playwright, 42 scenarios) — local via `make run` + `scripts/create_e2e_admin.py`; CI via `E2E Smoke (Playwright)` job (TIK-55).
@@ -45,21 +45,19 @@ any future `--threads >1` worker.
 
 ## Immediate Next Steps
 
-- [ ] **Owner action — secret rotation.** `.env` was tracked in git history before PR #44.
-  Rotate `GEMINI_API_KEY` at Google AI Studio; regenerate `SECRET_KEY`,
-  `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET` (32+ char random) and replace in local `.env`.
-  Decide whether to run `git filter-repo` to scrub history (irreversible, breaks any open
-  forks/PRs). Tracked in `docs/progress.md` 2026-05-01 entry as a blocker.
-- [ ] **Owner action — Vercel integration.** Production isn't on Vercel; the
-  `Vercel` check on every PR is noise. Disconnect the GitHub ↔ Vercel
-  integration (or remove `Vercel` from required checks).
+Owner-actionable follow-ups are now tracked in
+[`docs/owner-actions.md`](owner-actions.md) (one row per T-number, mirrored
+to **TIK-88 / TIK-89 / TIK-90** in Linear). The two long-standing
+owner-actions previously inlined here are **T09** (secret rotation, incl.
+`GEMINI_API_KEY`) and **T12** (Vercel disconnect); both are owner-only and
+have moved to that catalog.
 
 ---
 
 ## Active Blockers
 
-- **[Owner-action] Secret rotation** — see «Immediate Next Steps». Untracking the file does not rewrite history.
-- **[Owner-action] Vercel CI noise** — see «Immediate Next Steps».
+- **[Owner-action] Secret rotation (T09)** — see `docs/owner-actions.md`. Untracking the `.env` file does not rewrite history.
+- **[Owner-action] Vercel CI noise (T12)** — see `docs/owner-actions.md`.
 
 ---
 
@@ -78,7 +76,7 @@ any future `--threads >1` worker.
 - **HTTP compression**: Flask-Compress in `app.py::register_extensions` (br + gzip, level 6, `>=500 B`). Disabled under `TESTING`.
 - **`?fields=` projection**: opt-in via `paginate_query` for listing endpoints. Single-record `/<id>` endpoints always return full record.
 - **Cache key partitioning**: any `@cache.cached` view that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`); a static prefix shares the bucket across `?season=` variants.
-- **Testing locally**: `make test` (~30s, 561 passing). Two tests in `tests/test_app_extra.py::TestCreateAppEnvFallback` need a real Redis on `localhost:6379` to set up Flask-Limiter — CI brings up a `redis` service container; locally you'll see `559 passed, 2 failed` without it. That's expected.
+- **Testing locally**: `make test` (~30s, 572 passing). Two tests in `tests/test_app_extra.py::TestCreateAppEnvFallback` need a real Redis on `localhost:6379` to set up Flask-Limiter — CI brings up a `redis` service container; locally you'll see `570 passed, 2 failed` without it. That's expected.
 - **Database**: `dev.db` is the primary SQLite (untracked since PR #44); recreate via `make init-db`.
 - **mcp-servers/**: untracked since PR #44; reinstate via `make mcp-install`.
 

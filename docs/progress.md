@@ -6,6 +6,49 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-13: TIK-88 — owner-actions catalog + secrets fail-fast + .gitignore
+
+Batch A of the 14-item owner-actions catalog (T01 + T02 + T03 + T07 + T08).
+Mirrors **TIK-88** in Linear; **TIK-89** + **TIK-90** track the follow-up
+batches (B = agent-actionable cleanups, C = owner-only rotation / Vercel).
+
+**What landed (per `docs/owner-actions.md`)**
+
+- **T01** — `docs/owner-actions.md` published as the single source of truth
+  for owner-actionable follow-ups (14 rows + open questions).
+- **T02** — `config.py::validate_production_secrets()` raises `RuntimeError`
+  when `SECRET_KEY` / `WTF_CSRF_SECRET_KEY` / `API_KEY_SECRET` are unset or
+  still set to the dev placeholder; wired from `app.py::create_app()` when
+  `FLASK_ENV=production`. No-op in dev / testing.
+- **T03** — `.gitignore` now excludes `bandit_report*.json`, `.coverage.*`,
+  `*.log`, `.tool-versions`. The tracked-but-empty `bandit_report.json`
+  + `bandit_report_main.json` (each contained the literal string of their
+  own path) are removed via `git rm`.
+- **T07** — `docs/activeContext.md` § Immediate Next Steps replaced with a
+  link to the catalog. The two inline owner-actions (secret rotation,
+  Vercel) are now **T09** / **T12** in the catalog.
+- **T08** — `docs/INDEX.md` registers the new catalog; `AGENTS.md` § 6
+  Version History entry added.
+
+**Tests**
+
+- New file: `tests/test_config_fail_fast.py` (11 tests via parametrisation
+  over `_PRODUCTION_SECRET_DEFAULTS`).
+- Full suite: **561 → 572 passing** (+11). All other tests untouched.
+- `make check` (black + isort + flake8 + mypy) clean.
+
+**Out of scope (carried into follow-up tickets)**
+
+- **TIK-89 / Batch B**: T04 (`.env.example` cleanup), T05 (pip-audit into
+  `make check`), T06 (README precommit-install note), T10 (repo-root stub
+  cleanup — *open question*), T13 (`progress.md` rotation — *open question*),
+  T14 (`decisionLog.md` rotation — *open question*).
+- **TIK-90 / Batch C — owner-only**: T09 (secret rotation incl.
+  `GEMINI_API_KEY`), T11 (`git filter-repo` decision), T12 (Vercel
+  disconnect).
+- Architecture question (not catalog): `/health` SLA — response-time
+  budget + degraded-state escalation.
+
 ## 2026-05-11: TIK-86 — leaderboard race fix (`_LEADERBOARD_LOCK`)
 
 Bug fix landed after the `task-formulation` skill — first dogfooded use of

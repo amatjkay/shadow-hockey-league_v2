@@ -156,7 +156,7 @@ upstream issues are now handled natively by the pinned versions:
 If a future bump re-introduces either incompatibility, restore a small
 `utils/patches.py` and call `apply_patches()` from `create_app()` **before**
 `init_admin(app)`. The 42/42 Playwright smoke suite (`tests/e2e/test_smoke.py`)
-plus the 561 unit/integration tests are the regression net for this area.
+plus the 572 unit/integration tests are the regression net for this area.
 
 ---
 
@@ -165,7 +165,7 @@ plus the 561 unit/integration tests are the regression net for this area.
 ```bash
 make setup        # Install deps + init DB
 make run          # Dev server (port 5000)
-make test         # 561 unit/integration tests (excludes tests/e2e)
+make test         # 572 unit/integration tests (excludes tests/e2e)
 make check        # Black + isort + flake8 + mypy (the CI lint/type gate)
 make lint         # Flake8 only (subset of check)
 make format       # Black + isort (write mode)
@@ -228,4 +228,4 @@ The following modules were touched (or added) during the audit remediation. Futu
 
 ---
 
-Last updated: 2026-05-12 (post-TIK-86 `_LEADERBOARD_LOCK` + docs cleanup; 561 tests; compact-10 (TIK-80) values reflected).
+Last updated: 2026-05-13 (post-TIK-88 owner-actions catalog + secrets fail-fast; 572 tests; compact-10 (TIK-80) values reflected).

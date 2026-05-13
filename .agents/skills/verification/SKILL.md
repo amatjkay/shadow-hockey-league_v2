@@ -27,13 +27,13 @@ the live HTTP surface are all green before declaring a task done.
 2. **Unit + integration tests**:
 
    ```bash
-   make test                                                # all 561 tests, parallel
+   make test                                                # all 572 tests, parallel
    ./venv/bin/pytest tests --ignore=tests/e2e -n auto       # equivalent
    ```
 
    Coverage gate is **≥ 87%** (TIK-54, PR #59) — `pytest --cov` reports it.
 
-   **Local caveat:** 2 of the 561 tests (`tests/test_app_extra.py::TestCreateAppEnvFallback`)
+   **Local caveat:** 2 of the 572 tests (`tests/test_app_extra.py::TestCreateAppEnvFallback`)
    need a real Redis listening on `localhost:6379` to set up Flask-Limiter. CI brings up
    a `redis` service container, so they pass there. Locally you'll see `559 passed, 2
    failed` if you don't have Redis running — that's expected, not a regression.

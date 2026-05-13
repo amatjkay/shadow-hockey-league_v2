@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.1+-green.svg)](https://flask.palletsprojects.com/)
 [![Coverage](https://img.shields.io/badge/Coverage-87%25-yellowgreen.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-561%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-572%20passed-brightgreen.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
 ---
@@ -128,7 +128,7 @@ shadow-hockey-league_v2/
 │   ├── seed/                   #   Исходные данные (JSON)
 │   ├── export/                 #   Экспорт из БД (JSON)
 │   └── schemas.py              #   Валидация JSON схем
-├── tests/                      # Pytest тесты (561 тест, ≥ 87% gate)
+├── tests/                      # Pytest тесты (572 тестов, ≥ 87% gate)
 │   ├── integration/            #   Интеграционные тесты
 │   └── e2e/                    #   Playwright smoke (запуск вручную, см. README ниже)
 ├── docs/                       # Документация
@@ -151,7 +151,7 @@ shadow-hockey-league_v2/
 | ------------- | ------------------------------------------------ |
 | `make setup`  | Установка зависимостей + инициализация БД        |
 | `make run`    | Запуск сервера разработки                        |
-| `make test`   | Запуск тестов (561 unit/integration)             |
+| `make test`   | Запуск тестов (572 unit/integration)             |
 | `make check`  | Все проверки (black + isort + flake8 + mypy)     |
 | `make lint`   | Проверка кода (flake8)                           |
 | `make format` | Форматирование (black + isort)                   |
@@ -161,7 +161,7 @@ shadow-hockey-league_v2/
 
 ## 🧪 Тесты
 
-**561 unit/integration тест** (≥ 87% покрытие — CI gate с TIK-54) + **42-сценарный Playwright smoke**:
+**572 unit/integration теста** (≥ 87% покрытие — CI gate с TIK-54) + **42-сценарный Playwright smoke**:
 
 - **Unit:** rating service, validation, cache, API auth, models
 - **Integration:** routes, API CRUD, database constraints, cache invalidation

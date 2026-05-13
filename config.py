@@ -134,3 +134,36 @@ class TestingConfig(Config):
             # Add foreign key pragma for SQLite
             return base_url + "?foreign_keys=on"
         return base_url
+
+
+# Pairs of (env-var name, dev-default literal) that ProductionConfig must
+# not start with. Kept in sync with the class bodies above so the validator
+# stays a single source of truth for the placeholders.
+_PRODUCTION_SECRET_DEFAULTS: tuple[tuple[str, str], ...] = (
+    ("SECRET_KEY", "dev-secret-key-change-in-production"),
+    ("WTF_CSRF_SECRET_KEY", "csrf-dev-key-change-in-production"),
+    ("API_KEY_SECRET", "api-key-secret-change-in-production"),
+)
+
+
+def validate_production_secrets(config: dict) -> None:
+    """Fail-fast guard for ProductionConfig (T02 in docs/owner-actions.md).
+
+    Raises ``RuntimeError`` if any required production secret is missing or
+    still set to the dev placeholder shipped in this file. Called from
+    ``app.create_app()`` after ``app.config.from_object(...)`` when
+    ``FLASK_ENV=production``. No-op in development / testing.
+    """
+    missing: list[str] = []
+    for name, dev_default in _PRODUCTION_SECRET_DEFAULTS:
+        value = config.get(name)
+        if not value or value == dev_default:
+            missing.append(name)
+    if missing:
+        joined = ", ".join(missing)
+        raise RuntimeError(
+            f"ProductionConfig refuses to start: {joined} is unset or still "
+            "uses the dev placeholder. Generate a strong value with "
+            '`python -c "import secrets; print(secrets.token_hex(32))"` and '
+            "set it in the production .env / systemd unit."
+        )
