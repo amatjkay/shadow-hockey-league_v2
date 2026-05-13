@@ -441,3 +441,151 @@ class TestRatingCalculation(unittest.TestCase):
         self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.490)  # 0.7^2
         self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.343)  # 0.7^3
         self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.240)  # 0.7^4 (rounded)
+
+
+class TestLeaderboardPrecisionAndTies(unittest.TestCase):
+    """Regression tests for full-precision summation + ``total_display``.
+
+    Pre-fix, ``build_leaderboard`` summed ``round(base * mul, 2)`` per
+    achievement, so two managers whose un-rounded totals differed by tiny
+    amounts (e.g. 7.8000 vs 7.7955) collapsed to an identical 7.80 total
+    and shared a rank ("two 2nd places"). Post-fix, the leaderboard sums
+    the exact ``base * mul`` per achievement so the ranks correctly
+    separate, and rows in top-10 whose 2-decimal display would otherwise
+    collide are bumped to 3-decimal precision via ``total_display``.
+    """
+
+    def setUp(self) -> None:
+        self.app = create_app("config.TestingConfig")
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+        league_ids, season_ids, type_map = _seed_reference_data()
+        self.league_ids = league_ids
+        self.season_ids = season_ids
+        self.type_map = type_map
+
+        self.country = Country(code="RUS", flag_path="/static/img/flags/rus.png")
+        db.session.add(self.country)
+        db.session.flush()
+
+    def tearDown(self) -> None:
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def _add_manager(self, name: str) -> Manager:
+        m = Manager(name=name, country_id=self.country.id)
+        db.session.add(m)
+        db.session.flush()
+        return m
+
+    def _add_achievement(
+        self, manager: Manager, ach_type: str, league: str, season: str
+    ) -> Achievement:
+        ach = Achievement(
+            type_id=self.type_map[ach_type].id,
+            league_id=self.league_ids[league],
+            season_id=self.season_ids[season],
+            title=ach_type,
+            icon_path=f"/static/img/cups/{ach_type.lower()}.svg",
+            manager_id=manager.id,
+        )
+        db.session.add(ach)
+        db.session.flush()
+        return ach
+
+    def test_phantom_tie_resolved_by_full_precision_sum(self) -> None:
+        """Aliaksandr/Юрий scenario: same 2dp display, different exact totals.
+
+        - Manager A:  TOP1 L2 25/26 (6.0) + BEST L2 25/26 (1.8)
+            = 7.8000 exact
+        - Manager B:  TOP1 L2 25/26 (6.0) + BEST L2 24/25 (1.8×0.7)
+                      + R1 L2 23/24 (0.45×0.49) + R1 L2 24/25 (0.45×0.7)
+            = 7.7955 exact
+
+        Both rounded to 2dp → "7.80", but exact totals differ → ranks
+        must separate.
+        """
+        a = self._add_manager("Manager A")
+        b = self._add_manager("Manager B")
+        self._add_achievement(a, "TOP1", "2", "25/26")
+        self._add_achievement(a, "BEST", "2", "25/26")
+        self._add_achievement(b, "TOP1", "2", "25/26")
+        self._add_achievement(b, "BEST", "2", "24/25")
+        self._add_achievement(b, "R1", "2", "23/24")
+        self._add_achievement(b, "R1", "2", "24/25")
+        db.session.commit()
+
+        result = build_leaderboard(db.session)
+        row_a = next(r for r in result if r["name"] == "Manager A")
+        row_b = next(r for r in result if r["name"] == "Manager B")
+
+        # Exact totals: A > B by 0.0045.
+        self.assertAlmostEqual(row_a["total"], 7.8, places=6)
+        self.assertAlmostEqual(row_b["total"], 7.7955, places=6)
+        self.assertGreater(row_a["total"], row_b["total"])
+
+        # Ranks separate — no more "two 2nd places".
+        self.assertNotEqual(row_a["rank"], row_b["rank"])
+        self.assertEqual(row_a["rank"], 1)
+        self.assertEqual(row_b["rank"], 2)
+
+        # Both rows are in top-10 with colliding 2dp displays → 3dp bump.
+        self.assertEqual(row_a["total_display"], "7.800")
+        self.assertEqual(row_b["total_display"], "7.796")
+
+    def test_true_tie_keeps_two_decimals_and_shared_rank(self) -> None:
+        """Identical careers → identical totals → shared rank, 2dp display.
+
+        The third decimal would be a trailing zero (``7.800`` / ``7.800``)
+        that adds no information; the shared rank pill already conveys the
+        tie.
+        """
+        a = self._add_manager("Twin A")
+        b = self._add_manager("Twin B")
+        for m in (a, b):
+            self._add_achievement(m, "TOP1", "2", "25/26")  # 6.0 each
+            self._add_achievement(m, "BEST", "2", "25/26")  # 1.8 each
+        db.session.commit()
+
+        result = build_leaderboard(db.session)
+        row_a = next(r for r in result if r["name"] == "Twin A")
+        row_b = next(r for r in result if r["name"] == "Twin B")
+
+        self.assertEqual(row_a["total"], row_b["total"])
+        self.assertEqual(row_a["rank"], row_b["rank"])
+        # Shared rank → no precision bump, both render with 2 decimals.
+        self.assertEqual(row_a["total_display"], "7.80")
+        self.assertEqual(row_b["total_display"], "7.80")
+
+    def test_non_colliding_rows_keep_two_decimals(self) -> None:
+        """Rows whose 2dp displays don't collide with anyone keep 2dp."""
+        a = self._add_manager("Solo A")
+        b = self._add_manager("Solo B")
+        self._add_achievement(a, "TOP1", "1", "25/26")  # 10.00
+        self._add_achievement(b, "TOP3", "1", "25/26")  # 2.50
+        db.session.commit()
+
+        result = build_leaderboard(db.session)
+        row_a = next(r for r in result if r["name"] == "Solo A")
+        row_b = next(r for r in result if r["name"] == "Solo B")
+
+        self.assertEqual(row_a["total_display"], "10.00")
+        self.assertEqual(row_b["total_display"], "2.50")
+
+    def test_points_exact_exposed_for_callers(self) -> None:
+        """``calculate_achievement_points`` must expose un-rounded ``points_exact``.
+
+        ``0.45 × 0.49 = 0.2205`` — ``points`` rounds to ``0.22``, but
+        ``points_exact`` must keep the un-rounded value so callers that
+        aggregate (e.g. ``build_leaderboard``) can avoid phantom ties.
+        """
+        m = self._add_manager("Exact Test")
+        ach = self._add_achievement(m, "R1", "2", "23/24")
+        db.session.commit()
+
+        parsed = calculate_achievement_points(ach)
+        self.assertEqual(parsed["points"], 0.22)
+        self.assertAlmostEqual(parsed["points_exact"], 0.2205, places=6)
