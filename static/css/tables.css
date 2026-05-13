@@ -4,24 +4,30 @@
    leaderboard chrome — only a hairline `--shl-cyan-tint-15` row
    separator remains, the outer 3 px ring is replaced by a single 1 px
    glass border + rounded corners. Cell padding is bumped slightly so
-   numbers/names breathe. The previous full-grid `1px solid magenta`
-   on every cell rendered as a "ghost grid" against the deep-purple
-   page background. */
+   numbers/names breathe.
+
+   Chrome refresh (user feedback): the table card now reads as tinted
+   dark glass instead of a white-on-grey wash — translucent deep-violet
+   fill + `backdrop-filter: blur` so the synthwave starfield gently
+   diffuses through. The token `--shl-table-glass-bg` resolves to a
+   dark tint on the dark theme and a near-white tint on light theme,
+   so dark-on-light text contrast is preserved (see base.css). */
 .table {
   width: 70%;
   margin: 0 auto;
   text-align: left;
   font-weight: bold;
-  border: 1px solid var(--shl-glass-border);
+  border: 1px solid var(--shl-table-glass-border);
   border-radius: var(--shl-radius-lg);
   border-collapse: separate;
   border-spacing: 0;
   overflow: hidden;
-  background: linear-gradient(
-    90deg,
-    var(--shl-surface-50),
-    var(--shl-bg-mid-13)
-  );
+  background: var(--shl-table-glass-bg);
+  backdrop-filter: blur(3px) saturate(115%);
+  -webkit-backdrop-filter: blur(3px) saturate(115%);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .table.league-table {
@@ -226,23 +232,15 @@
   }
 }
 
-/* === Top-10 row tint + animated rainbow name (TIK-85 polish v2) =====
-   Keeps the static row-background wash from PR #88 (so cells stay
-   readable) and adds an animated magenta→violet→cyan gradient on
-   `.manager-name` for the top-10 only. The gradient is clipped to the
-   text so it doesn't bleed onto the rest of the row, and the colour
-   stops are swapped to AA-dark hues under light theme so contrast
-   stays ≥4.5:1 against the lavender body. */
+/* === Top-10 row accent + animated rainbow name (TIK-85 polish v2) ===
+   Top-10 rows used to carry a magenta→cyan background wash on top of
+   the table card. The wash read as a pink stripe on the dark-glass
+   chrome (user feedback), so the row background is removed here — the
+   rainbow shimmer on `.manager-name` / `.score-cell` / `.rank-cell__num`
+   and the 2 px inset accent stripe still telegraph "top-10". The text
+   rainbow gradient stops are swapped to AA-dark hues in light theme so
+   contrast stays ≥4.5:1 against the lavender body. */
 .league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) {
-  /* `--shl-cyan-tint-08` is aliased to a magenta-on-dark tint
-     (rgba(195,35,224,0.08)) per the synthwave token swap; pairing
-     it with `--shl-skyblue-tint-12` (true cyan rgba(65,186,248)) gives
-     a gentle magenta→cyan wash on the row background. */
-  background-image: linear-gradient(
-    90deg,
-    var(--shl-cyan-tint-08) 0%,
-    var(--shl-skyblue-tint-12) 100%
-  );
   box-shadow: inset 2px 0 0 var(--shl-cyan-tint-25);
 }
 
