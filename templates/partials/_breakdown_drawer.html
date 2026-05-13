@@ -1,0 +1,58 @@
+<!-- Breakdown sheet (TIK-84 polish v2): right-drawer on desktop /
+         bottom-sheet on mobile. Populated from the clicked row's
+         data-* attributes (incl. JSON in data-breakdown). Hidden by
+         default; JS toggles `is-visible` and `hidden`. -->
+    <aside
+      id="breakdown-sheet"
+      class="breakdown-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="breakdown-sheet-title"
+      aria-hidden="true"
+      hidden
+    >
+      <div
+        class="breakdown-sheet__backdrop"
+        data-breakdown-close
+        aria-hidden="true"
+      ></div>
+      <div class="breakdown-sheet__panel" tabindex="-1">
+        <header class="breakdown-sheet__header">
+          <span class="breakdown-sheet__rank-pill" aria-hidden="true">
+            <span class="breakdown-sheet__rank-num">—</span>
+          </span>
+          <span class="breakdown-sheet__identity">
+            <img
+              class="breakdown-sheet__flag"
+              alt=""
+              src=""
+              width="24"
+              height="16"
+              decoding="async"
+            />
+            <h2
+              id="breakdown-sheet-title"
+              class="breakdown-sheet__name"
+            >—</h2>
+            <span class="breakdown-sheet__tandem-badge" hidden>тандем</span>
+          </span>
+          <button
+            type="button"
+            class="breakdown-sheet__close"
+            aria-label="Закрыть"
+            data-breakdown-close
+          >×</button>
+        </header>
+        <div class="breakdown-sheet__total">
+          <span class="breakdown-sheet__total-label">Итого</span>
+          <span class="breakdown-sheet__total-value">0</span>
+        </div>
+        <ul
+          class="breakdown-sheet__list"
+          aria-label="Достижения и расчёт очков"
+        ></ul>
+        <p class="breakdown-sheet__formula-note">
+          <strong>Формула:</strong> база × множитель сезона
+        </p>
+      </div>
+    </aside>

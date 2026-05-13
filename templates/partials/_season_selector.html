@@ -1,0 +1,36 @@
+<div class="filters-bar filters-bar--tabs filters-bar--attached">
+          <div
+            class="season-tabs"
+            role="radiogroup"
+            aria-label="Выбор сезона"
+            aria-controls="league-table-container"
+            data-season-tabs
+          >
+            <input
+              type="radio"
+              id="season-tab-all"
+              name="season-filter"
+              value=""
+              class="season-tabs__input"
+              data-season-radio
+              {% if not selected_season_id %}checked{% endif %}
+            />
+            <label for="season-tab-all" class="season-tabs__tab">
+              <span class="season-tabs__caption">Все сезоны</span>
+            </label>
+            {% for s in seasons %}
+            <input
+              type="radio"
+              id="season-tab-{{ s.id }}"
+              name="season-filter"
+              value="{{ s.id }}"
+              class="season-tabs__input"
+              data-season-radio
+              {% if selected_season_id == s.id %}checked{% endif %}
+            />
+            <label for="season-tab-{{ s.id }}" class="season-tabs__tab">
+              <span class="season-tabs__caption">Сезон {{ s.code }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
