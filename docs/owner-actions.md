@@ -37,7 +37,7 @@
 | **T07** | `docs/activeContext.md` § Immediate Next Steps — replace the inline 2-item list with a link to this catalog. | this PR | A / TIK-88 |
 | **T08** | `docs/INDEX.md` + `AGENTS.md` § 6 Version History — register this catalog. | this PR | A / TIK-88 |
 | **T09** | Rotate secrets at the provider + regenerate locally (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET` via `python -c "import secrets; print(secrets.token_hex(32))"`; `GEMINI_API_KEY` at Google AI Studio). | owner-only | C / TIK-90 |
-| **T10** | Repo-root stub files (7 total: `locustfile.py`, `run_performance_test.py`, `test_mcp_client.py`, `test_linear_mcp.py`, `check_mcp_status.sh`, `bandit_report.json`, `bandit_report_main.json`) — each contains a single line with its own relative path instead of real content. Decide: delete (preferred) or fill, then remove the matching exclusions in `pyproject.toml` / `.flake8`. See "Open questions" below for the recommended path. | open question | B / TIK-89 |
+| **T10** | Repo-root stub files — 7 total: `bandit_report.json` + `bandit_report_main.json` removed in TIK-88 / Batch A; `locustfile.py`, `run_performance_test.py`, `test_mcp_client.py`, `test_linear_mcp.py`, `check_mcp_status.sh` removed in TIK-89 / Phase 2 along with all matching exclusions in `pyproject.toml` (`[tool.black]` `force-exclude`, `[tool.isort]` `skip`, `[tool.mypy]` `exclude`) and `.flake8` `exclude`. `pytest --collect-only` at the repo root now works without `tests/`. | done | B / TIK-89 |
 | **T11** | Decide whether to scrub `.env` from git history via `git filter-repo`. Irreversible; breaks any open forks / PRs. Untracking the file (already done before PR #44) does **not** rewrite history. | owner-only | C / TIK-90 |
 | **T12** | Disconnect the GitHub ↔ Vercel integration (project is not deployed on Vercel; the red `Vercel` check on every PR is noise). Alternative: remove `Vercel` from the required-checks set. | owner-only | C / TIK-90 |
 | **T13** | Decompose `docs/progress.md` (1045 lines) — move entries older than 30 days to `docs/archive/<period>.md` verbatim, per the `doc-rotation` skill. | open question | B / TIK-89 |
@@ -47,19 +47,23 @@
 
 ## Open questions (need owner input)
 
-### T10 — repo-root stub files
+### T10 — repo-root stub files (resolved 2026-05-13)
 
-The seven files in question are each one byte longer than their own
-filename: they all contain the string `./<filename>:` and a newline. This
-looks like the residue of a `for f in *; do echo "./$f:" > "$f"; done`
-mishap, not an intentional placeholder. They break `pytest --collect-only`
-at the repo root (3 of them start with `test_`) and need scoped exclusions
-in `pyproject.toml`, `.flake8` to keep `make check` green.
+The seven files in question were each one byte longer than their own
+filename: they all contained the string `./<filename>:` and a newline,
+the residue of a `for f in *; do echo "./$f:" > "$f"; done` mishap.
+They broke `pytest --collect-only` at the repo root (3 of them started
+with `test_`) and needed scoped exclusions in `pyproject.toml` and
+`.flake8` to keep `make check` green.
 
-**Recommended path (agent opinion).** Delete all seven, remove the matching
-exclusions in `pyproject.toml` + `.flake8`. None of the files reference any
-real implementation. If load-testing or MCP smoke-checking is genuinely
-needed, file a fresh ticket against a clean baseline.
+**Resolution.** Deleted in two waves — `bandit_report.json` +
+`bandit_report_main.json` in TIK-88 / Batch A (PR #96); the remaining
+five (`locustfile.py`, `run_performance_test.py`, `test_mcp_client.py`,
+`test_linear_mcp.py`, `check_mcp_status.sh`) plus all matching exclusions
+in TIK-89 / Phase 2. `pytest --collect-only` at the repo root now
+collects 576 tests cleanly without `tests/`. If load-testing or MCP
+smoke-checking is genuinely needed, file a fresh ticket against a clean
+baseline.
 
 ### T13 / T14 — doc decomposition
 

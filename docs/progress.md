@@ -6,6 +6,50 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-13: TIK-89 Phase 2 — delete 5 repo-root stub files + drop their lint exclusions (T10)
+
+Batch B Phase 2 of the 14-item owner-actions catalog (T10 only).
+
+**What landed**
+
+- Deleted 5 single-line stub files at the repo root: `locustfile.py`,
+  `run_performance_test.py`, `test_mcp_client.py`, `test_linear_mcp.py`,
+  `check_mcp_status.sh`. Each contained only `./<filename>:` — residue
+  of a `for f in *; do echo "./$f:" > "$f"; done` mishap, no real
+  implementation. The matching `bandit_report*.json` pair was already
+  cleared in TIK-88.
+- Removed the now-orphaned exclusions:
+  - `pyproject.toml::[tool.black].force-exclude` (whole block, 4
+    entries) plus the now-stale paragraph in the leading comment.
+  - `pyproject.toml::[tool.isort].skip` (4 entries).
+  - `pyproject.toml::[tool.mypy].exclude` (4 entries).
+  - `.flake8::exclude` (4 entries).
+
+**Why this matters**
+
+`pytest --collect-only` at the repo root previously crashed on the three
+`test_*.py` stubs (the parser tried to import them as test modules and
+failed on `./test_mcp_client.py:` syntax). The work-around was the
+`tests/` path override everywhere; the proper fix is no work-around.
+
+**Verification**
+
+- `pytest --collect-only -q` (no path, from repo root) — **576 tests
+  collected in 0.25s**, no errors.
+- `make check` — clean (`pip-audit`: "No known vulnerabilities found";
+  `black`: 88 files unchanged; `isort`: skipped 14 files, was 18, the
+  4 stubs are gone; `flake8`: 0 errors; `mypy`: "Success: no issues
+  found in 88 source files").
+- `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87 -q`
+  — **576 passed, 95.07% coverage** (unchanged from main baseline).
+
+**Catalog (`docs/owner-actions.md`)**
+
+- T10 flipped from `open question` → `done`. T13 / T14 stay
+  `open question` (next PR / Phase 3).
+
+---
+
 ## 2026-05-13: TIK-89 Phase 1 — `.env.example` cross-platform + `pip-audit` in `make check` + README pre-commit note
 
 Batch B Phase 1 of the 14-item owner-actions catalog (T04 + T05 + T06).
