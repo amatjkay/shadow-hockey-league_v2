@@ -132,6 +132,22 @@
   --shl-glass-blur: 14px;
   --shl-glass-border: rgba(195, 35, 224, 0.18);
 
+  /* Leaderboard table card — dark tinted glass (rgba 7,4,35 sampled
+     from the deep page bg) with a subtle top-to-bottom vignette. Paired
+     with `backdrop-filter: blur` on `.table` so the synthwave starfield
+     softly diffuses through. Light-theme override below keeps text
+     contrast ≥ AA against the dark-on-light card content. */
+  --shl-table-glass-bg: linear-gradient(
+    180deg,
+    rgba(7, 4, 35, 0.58) 0%,
+    rgba(7, 4, 35, 0.42) 100%
+  );
+  --shl-table-glass-border: rgba(255, 255, 255, 0.06);
+  /* Body text inside the table card. Stays light on the dark glass
+     in dark theme so ranks 11+ remain readable; flips to deep ink in
+     light theme where the card is a translucent white. */
+  --shl-table-ink: rgba(255, 255, 255, 0.92);
+
   /* Neon-glow box-shadow recipes — magenta + cyan layered. */
   --shl-neon-glow-magenta:
     0 0 0 1px rgba(195, 35, 224, 0.55),
@@ -259,6 +275,16 @@
   /* `--shl-ink-on-dark` stays #fff (used in tooltip header on the
      bg-deep-* cards, which we deliberately keep dark in light mode). */
 
+  /* Leaderboard table card — light translucent glass so text
+     contrast >= AA against the dark-on-light ink. */
+  --shl-table-glass-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 255, 255, 0.65) 100%
+  );
+  --shl-table-glass-border: rgba(45, 12, 80, 0.12);
+  --shl-table-ink: #1a0b2e;
+
   /* Body bg: lavender gradient instead of starfield JPG. */
   --shl-body-bg: linear-gradient(
     180deg,
@@ -341,6 +367,14 @@
     --shl-ink: #1a0b2e;
     --shl-ink-soft: #3d2160;
     --shl-ink-muted: #5b3f80;
+
+    --shl-table-glass-bg: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.80) 0%,
+      rgba(255, 255, 255, 0.65) 100%
+    );
+    --shl-table-glass-border: rgba(45, 12, 80, 0.12);
+    --shl-table-ink: #1a0b2e;
 
     --shl-body-bg: linear-gradient(
       180deg,
