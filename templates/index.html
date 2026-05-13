@@ -296,52 +296,6 @@
                       aria-controls="points-help"
                       data-tooltip-toggle="points-help"
                     >?</button>
-                    <div
-                      class="tooltip-backdrop"
-                      data-tooltip-backdrop="points-help"
-                      hidden
-                    ></div>
-                    <div
-                      class="tooltip-content"
-                      id="points-help"
-                      role="dialog"
-                      aria-modal="true"
-                      aria-label="Система расчёта очков"
-                      hidden
-                    >
-                      <div class="tooltip-body">
-                        <p class="tooltip-intro">
-                          <strong>Формула:</strong> база × множитель сезона
-                        </p>
-
-                        <h5>📊 Множители сезонов</h5>
-                        <ul class="tooltip-list">
-                          {% for code, mul in season_multipliers.items() %}
-                          <li><strong>s{{ code }}</strong> ×{{ "%.2f"|format(mul) }}</li>
-                          {% endfor %}
-                        </ul>
-
-                        <h5>🏆 Базовые очки</h5>
-                        <table class="tooltip-table">
-                          <thead>
-                            <tr>
-                              <th>Достижение</th>
-                              <th>Л1</th>
-                              <th>Л2</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for at in achievement_types %}
-                            <tr>
-                              <td>{{ at.name }}</td>
-                              <td>{{ at.base_points_l1 }}</td>
-                              <td>{{ at.base_points_l2 }}</td>
-                            </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
                   </span>
                 </th>
                 <th class="table-header" scope="col">Участник</th>
@@ -419,6 +373,66 @@
     </footer>
 
     <div class="overlay"></div>
+
+    <!-- Points-formula tooltip dialog — lifted out of the leaderboard
+         <th> because the table's `backdrop-filter` was creating a
+         containing block for the modal's `position: fixed`,
+         dragging it down with the table and clipping the backdrop
+         to the table's bounds. Anchored to the body so the modal
+         centres on the viewport and the backdrop covers the full
+         page. -->
+    <div
+      class="tooltip-backdrop"
+      data-tooltip-backdrop="points-help"
+      hidden
+    ></div>
+    <div
+      class="tooltip-content"
+      id="points-help"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Система расчёта очков"
+      hidden
+    >
+      <div class="tooltip-body">
+        <button
+          type="button"
+          class="tooltip-close"
+          aria-label="Закрыть"
+          data-tooltip-close="points-help"
+        >×</button>
+        <p class="tooltip-intro">
+          <strong>Формула:</strong> база × множитель сезона
+        </p>
+
+        <h5>📊 Множители сезонов</h5>
+        <ul class="tooltip-list">
+          {% for code, mul in season_multipliers.items() %}
+          <li><strong>s{{ code }}</strong> ×{{ "%.2f"|format(mul) }}</li>
+          {% endfor %}
+        </ul>
+
+        <h5>🏆 Базовые очки</h5>
+        <table class="tooltip-table">
+          <thead>
+            <tr>
+              <th>Достижение</th>
+              <th>Л1</th>
+              <th>Л2</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for at in achievement_types %}
+            <tr>
+              <td>{{ at.name }}</td>
+              <td>{{ at.base_points_l1 }}</td>
+              <td>{{ at.base_points_l2 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- Breakdown sheet (TIK-84 polish v2): right-drawer on desktop /
          bottom-sheet on mobile. Populated from the clicked row's

@@ -84,6 +84,13 @@ function shlInitTooltips() {
         });
     });
 
+    document.querySelectorAll('[data-tooltip-close]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            const id = el.getAttribute('data-tooltip-close');
+            setOpen(id, false);
+        });
+    });
+
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && activeId) {
             setOpen(activeId, false);
