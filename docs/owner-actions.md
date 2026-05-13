@@ -31,9 +31,9 @@
 | **T01** | Create `docs/owner-actions.md` — this file. | this PR | A / TIK-88 |
 | **T02** | `ProductionConfig` fail-fast: refuse to start when `SECRET_KEY` / `WTF_CSRF_SECRET_KEY` / `API_KEY_SECRET` are unset or set to a dev placeholder. | this PR | A / TIK-88 |
 | **T03** | `.gitignore`: add `bandit_report*.json`, `.coverage.*`, `*.log`, `.tool-versions`. `git rm` the tracked-but-empty `bandit_report.json` + `bandit_report_main.json`. | this PR | A / TIK-88 |
-| **T04** | Make `.env.example` platform-neutral (current `DATABASE_URL` default is a Windows path). | follow-up | B / TIK-89 |
-| **T05** | Wire `pip-audit` into `make check` (today it only runs via `make audit-deps` + CI). | follow-up | B / TIK-89 |
-| **T06** | README *Быстрый старт*: add a one-line note about `make precommit-install` (the git hook does not install itself). | follow-up | B / TIK-89 |
+| **T04** | Make `.env.example` platform-neutral (current `DATABASE_URL` default is a Windows path). | done | B / TIK-89 |
+| **T05** | Wire `pip-audit` into `make check` (today it only runs via `make audit-deps` + CI). | done | B / TIK-89 |
+| **T06** | README *Быстрый старт*: add a one-line note about `make precommit-install` (the git hook does not install itself). | done | B / TIK-89 |
 | **T07** | `docs/activeContext.md` § Immediate Next Steps — replace the inline 2-item list with a link to this catalog. | this PR | A / TIK-88 |
 | **T08** | `docs/INDEX.md` + `AGENTS.md` § 6 Version History — register this catalog. | this PR | A / TIK-88 |
 | **T09** | Rotate secrets at the provider + regenerate locally (`SECRET_KEY`, `WTF_CSRF_SECRET_KEY`, `API_KEY_SECRET` via `python -c "import secrets; print(secrets.token_hex(32))"`; `GEMINI_API_KEY` at Google AI Studio). | owner-only | C / TIK-90 |

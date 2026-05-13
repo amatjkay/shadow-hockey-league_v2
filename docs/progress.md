@@ -50,6 +50,45 @@ failed on `./test_mcp_client.py:` syntax). The work-around was the
 
 ---
 
+## 2026-05-13: TIK-89 Phase 1 — `.env.example` cross-platform + `pip-audit` in `make check` + README pre-commit note
+
+Batch B Phase 1 of the 14-item owner-actions catalog (T04 + T05 + T06).
+Three surgical follow-ups, no source-code changes.
+
+**What landed**
+
+- **T04** — `.env.example` `DATABASE_URL` default flipped from a Windows-only
+  absolute path (`sqlite:///C:/dev/shadow/shadow-hockey-league_v2/dev.db`) to
+  a relative path (`sqlite:///dev.db`) that `config.get_database_url()`
+  resolves to an absolute path off `BASE_DIR` on any platform. The
+  Windows / Linux / VPS absolute-path examples remain in the comment block
+  above as an escape hatch.
+- **T05** — `make check` now lists `audit-deps` as a prerequisite, so
+  `pip-audit -r requirements.txt -r requirements-dev.txt` runs in the same
+  gate developers use locally and CI runs in `quality-and-tests`. `make
+  audit-deps` stays as a standalone entry point.
+- **T06** — README *Быстрый старт* (Linux/Mac block) now lists
+  `make precommit-install` as an explicit step alongside `make setup` and
+  `make run`, with a short paragraph explaining why `make setup` does *not*
+  call it (hooks live in `.git/hooks/`, opt-in per checkout; CI still runs
+  `make check` + `make test` + `make audit-deps` regardless).
+
+**Verification**
+
+- `make check` — clean (`pip-audit`: "No known vulnerabilities found";
+  `black` / `isort` / `flake8` / `mypy` all 0 errors).
+- `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87 -q` —
+  **576 passed, ≥ 87% coverage** (baseline bumped to 576 by the rating /
+  tiebreak work that landed below in PR #103; T04/T05/T06 add no new
+  tests).
+
+**Catalog (`docs/owner-actions.md`)**
+
+- T04 / T05 / T06 flipped from `follow-up` → `done`. T10 / T13 / T14 stay
+  `open question` (separate PRs in Phase 2 + Phase 3).
+
+---
+
 ## 2026-05-13: Rating — full-precision leaderboard totals + 3-decimal tiebreak display in top-10
 
 User report: production leaderboard showed **two managers tied at rank 2**
@@ -159,6 +198,7 @@ Small UI-only follow-up after the PR #99 glass-table refresh.
 No source-code, test, or schema changes; pure CSS + template tweak.
 
 ---
+
 
 ## 2026-05-13: TIK-88 — owner-actions catalog + secrets fail-fast + .gitignore
 

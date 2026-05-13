@@ -24,14 +24,20 @@
 ### Linux/Mac
 
 ```bash
-make setup     # git submodules + установка зависимостей + инициализация БД
-make run       # Запуск сервера разработки
+make setup                # git submodules + установка зависимостей + инициализация БД
+make precommit-install    # Активирует pre-commit hooks (one-shot per checkout)
+make run                  # Запуск сервера разработки
 ```
 
 `make setup` ставит цель `submodules-init` первой, чтобы инициализировать
 git-submodule `skills/superpowers` (см. [AGENTS.md § 7](AGENTS.md#7-superpowers-skill-bridge-since-2026-05-04)).
 Без этого симлинки `.agents/skills/superpowers` и `.kilo/skills/superpowers`
 указывают в пустой каталог — superpowers-скиллы не загрузятся.
+
+`make precommit-install` — отдельный one-shot шаг: `make setup` его не вызывает,
+потому что pre-commit hooks ставятся в `.git/hooks/` (вне venv) и каждый
+разработчик решает сам, нужны они ему локально или нет. CI всё равно прогонит
+`make check` + `make test` + `make audit-deps` независимо от хуков.
 
 Приложение: `http://127.0.0.1:5000/`
 
