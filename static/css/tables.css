@@ -265,6 +265,15 @@
   color: transparent;
   animation: shl-name-shimmer 8s linear infinite;
   font-weight: 700;
+  font-size: 1.12em;
+}
+
+/* Top-10 cup icons: bump from the default 30x30 to 36x36 so the
+   achievement row reads as visually distinct alongside the larger
+   rainbow-shimmer name/score/rank text in the same row. */
+.league-table tbody .table-row:not(.table-row--skeleton):nth-child(-n+10) .league-cups-cell img {
+  width: 36px;
+  height: 36px;
 }
 
 @keyframes shl-name-shimmer {
