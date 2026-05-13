@@ -193,9 +193,11 @@ class League(db.Model):
     __tablename__ = "leagues"
 
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(
-        db.String(10), unique=True, nullable=False, index=True
-    )  # "1", "2", "2.1", "2.2"
+    # `code` uses an inline ``UNIQUE`` constraint (not a separate
+    # ``CREATE UNIQUE INDEX``) so the self-referential FK
+    # ``parent_code -> leagues.code`` passes Postgres' referent-uniqueness
+    # check during ``CREATE TABLE`` (TIK-98).
+    code = db.Column(db.String(10), unique=True, nullable=False)  # "1", "2", "2.1", "2.2"
     name = db.Column(db.String(50), nullable=False)  # Human-readable label
     parent_code = db.Column(
         db.String(10),

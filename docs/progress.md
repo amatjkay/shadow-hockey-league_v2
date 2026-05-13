@@ -22,14 +22,19 @@ f"sqlite:///{tempfile}"`, bypassing the conftest-level Postgres override.
 TIK-99 teaches the file to honour `$DATABASE_URL` so the Postgres CI leg
 actually validates route behaviour.
 
+Rebased on top of TIK-98 (PR #116): now that `models.py::League.code`
+declares an inline `UNIQUE` constraint, real `db.create_all` /
+`db.drop_all` cycles are safe on Postgres, so the helper drops the
+earlier TRUNCATE approach and uses the same one-DB-per-test rhythm
+as the rest of the integration suite.
+
 **What landed**
 
-- New `tests/integration/_postgres_utils.py` (105 lines): shared
-  `IntegrationTestCase` base class + `truncate_all_tables()` helper.
-  - On Postgres (`DATABASE_URL=postgresql+psycopg2://...`): re-uses the
-    alembic-built schema and isolates tests via `TRUNCATE ... RESTART
-    IDENTITY CASCADE` (the same strategy `tests/integration/conftest.py`
-    uses for the global `db.drop_all` shim).
+- New `tests/integration/_postgres_utils.py`: shared
+  `IntegrationTestCase` base class.
+  - On Postgres (`DATABASE_URL=postgresql+psycopg2://...`): re-uses
+    that URL and lets `db.create_all` / `db.drop_all` cycle the
+    schema per test (works natively post-TIK-98). No tempfile.
   - On SQLite (default `make test` flow): unchanged — `tempfile.mkstemp`
     + `db.create_all` in setUp / `db.drop_all` + `os.unlink` in tearDown.
 - `tests/integration/test_routes.py`: all 9 `TestCase` subclasses
@@ -48,15 +53,13 @@ actually validates route behaviour.
   `Country.code = db.String(3)`. SQLite silently truncates / ignores
   VARCHAR length; Postgres rejects with `StringDataRightTruncation`. The
   test never depended on the code value, only that it was unique.
-- `tests/integration/conftest.py`: deleted the `pytest_collection_modifyitems`
-  skip-list (lines 90–115 in the old file) that PR #115 added with the
-  `TODO(TIK-95-followup)` marker. Kept the `_pg_create_all` /
-  `_pg_drop_all` monkey-patch — that's TIK-98 territory and supports
-  `test_admin_integration.py` / `test_cache_invalidation.py`.
+- `tests/integration/conftest.py`: deleted the
+  `pytest_collection_modifyitems` skip-list that PR #115 added with the
+  `TODO(TIK-95-followup)` marker. The TIK-98 bootstrap drop_all stays.
 
 **Out of scope (anti-goals)**
 
-- `models.py` / alembic migrations untouched — that's TIK-98.
+- `models.py` / alembic migrations untouched — already addressed by TIK-98.
 - `.github/workflows/deploy.yml` untouched — PR #115 stays as-is.
 - `app.py` / `config.py` untouched.
 - Other integration tests untouched.
@@ -65,15 +68,69 @@ actually validates route behaviour.
 
 - `make check` (black + isort + flake8 + mypy on 91 files): green.
 - `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87`
-  (SQLite, default flow): 579 passed in 31.42 s, coverage 94.56 %
-  (gate ≥ 87 %).
+  (SQLite, default flow): green.
 - Local Postgres smoke (docker `postgres:16-alpine` + `alembic upgrade
   head` clean, then `RUN_INTEGRATION_POSTGRES=1
   DATABASE_URL=postgresql+psycopg2://...
   pytest tests/integration/test_routes.py
   tests/integration/test_admin_integration.py
-  tests/integration/test_cache_invalidation.py -v`): 47 passed in 9.36 s
-  (14 from `test_routes.py`, all previously skipped, now exercised).
+  tests/integration/test_cache_invalidation.py -v`): all 47 tests pass —
+  14 of them from `test_routes.py` were previously skipped by PR #115.
+
+---
+
+## 2026-05-13: TIK-98 — models.py: inline League.code uniqueness for native Postgres CREATE TABLE
+
+Follow-up to TIK-95 (PR #115). On Postgres, `db.create_all()` failed
+because `models.py::League.code` declared `unique=True, index=True`,
+which made SQLAlchemy emit a separate `CREATE UNIQUE INDEX
+ix_leagues_code` rather than an inline `UNIQUE (code)` constraint —
+Postgres rejects the self-referential FK
+`leagues.parent_code -> leagues.code` during `CREATE TABLE` when the
+referent's uniqueness only arrives via a later index. Owner-approval
+to touch `models.py` was granted for this single change.
+
+**What landed**
+
+- `models.py::League.code`: dropped `index=True`, kept `unique=True`,
+  so SQLAlchemy renders `UNIQUE (code)` inline in `CREATE TABLE
+  leagues`. Verified via `CreateTable(...).compile(dialect=postgresql)`
+  and `db.metadata.tables['leagues'].constraints`.
+- New alembic revision `3f6f9ed6c154_inline_league_code_unique.py`
+  (down_revision `a4f1e9b2c5d7`): drops the now-redundant
+  `ix_leagues_code` index via `batch_alter_table`. The inline UNIQUE
+  constraint was already created by revision `b2c3d4e5f6a7`
+  (`op.create_table(..., sa.UniqueConstraint("code"), ...)`).
+  `downgrade()` recreates the original non-unique `ix_leagues_code`.
+- `tests/integration/conftest.py`: removed the
+  `_pg_create_all` / `_pg_drop_all` monkey-patch shim (TIK-95
+  follow-up). The Postgres `TestingConfig` URL override stays in
+  place, and a one-shot `db.drop_all()` runs at conftest import to
+  clear data seeded by `alembic upgrade head` (the CI step before
+  pytest) so each test's `setUp` starts on empty tables — real
+  `db.drop_all` / `db.create_all` cycles between tests are now safe
+  on Postgres thanks to the inline `UNIQUE (code)` constraint.
+
+**Verification**
+
+- `make check` — clean (`black`, `isort`, `flake8` count=0, `mypy`
+  0 issues in 90 source files; `pip-audit` no known vulnerabilities).
+- `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87`
+  — **579 passed**, total coverage **94.65%**.
+- `docker run -d postgres:16-alpine` + `alembic upgrade head` —
+  applied 24 revisions cleanly (`a4f1e9b2c5d7 -> 3f6f9ed6c154`); on
+  the resulting schema, `leagues` shows `leagues_code_key` (UNIQUE
+  CONSTRAINT) and no `ix_leagues_code` per `\d leagues`.
+- `RUN_INTEGRATION_POSTGRES=1 pytest tests/integration/test_admin_integration.py tests/integration/test_cache_invalidation.py -v`
+  — **33 passed** (DoD asked for 32; one extra test currently lives
+  in the suite).
+
+**Ready for Review**
+
+- PR: `[TIK-98] models.py: inline League.code uniqueness for native
+  Postgres CREATE TABLE`.
+
+---
 
 ## 2026-05-13: TIK-92 — Memory Bank rotation part 2 (progress.md + decisionLog.md → 2026-Q2 archive)
 
