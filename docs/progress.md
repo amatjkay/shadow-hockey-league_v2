@@ -80,6 +80,49 @@ scrolling through 498 lines.
 - [x] Before/after HTML render byte-identical (md5 match).
 - [x] `docs/progress.md` updated (this entry).
 
+## 2026-05-13: TIK-93 — README badges: bump Coverage 87 → 95.07 % / Tests 572 → 576
+
+Trivial doc drift fix flagged by TIK-93. README badge block (lines 9–10)
+still advertised the pre-TIK-86 / pre-TIK-89-Phase-2 baseline (`Coverage
+87% / Tests 572 passed`), even though the real numbers since those two
+landings have been **576 passed, 95.07 % coverage** (recorded inline in
+this file on 2026-05-13 under both Phase 1 and Phase 2 entries).
+
+Note: TIK-94 landed in parallel and bumped the count to **578** by adding
+`tests/test_rating_fallback_consistency.py`. TIK-93's badge bump is still
+strictly the right floor (it removes a ≥4-test drift); the next badge
+bump to `578` can ride on whichever follow-up doc-accuracy sweep cleans
+up the 3 inline `572` mentions deeper in the README.
+
+**What landed**
+
+- `README.md` badges only:
+  - `Coverage-87%-yellowgreen` → `Coverage-95.07%-brightgreen`.
+  - `Tests-572%20passed-brightgreen` → `Tests-576%20passed-brightgreen`.
+
+**Out of scope** (per Linear scope-in "обновление двух бейджей"):
+
+- The three inline `572` mentions deeper in `README.md` (structure tree,
+  `make test` table row, testing-section heading) — left for a follow-up
+  doc-accuracy sweep. Same rationale as the `activeContext.md` Tests
+  line (`AGENTS.md § 2` forbids editing it from this ticket).
+
+**Verification**
+
+- `pytest tests --ignore=tests/e2e -n auto --cov --cov-fail-under=87 -q`
+  — **576 passed, 95.07 % coverage** (last 5 lines pasted into the PR
+  description). Recorded *before* TIK-94 merged; rebasing onto post-TIK-94
+  `main` would show 578 passed, but that's TIK-94's bump, not TIK-93's.
+- `make check` — clean (`pip-audit`, `black --check`, `isort --check`,
+  `flake8`, `mypy` — 0 errors).
+
+**Catalog (`docs/owner-actions.md`)**
+
+- N/A — TIK-93 is a docs-only badge bump, not in the T01..T14
+  owner-actions catalog.
+
+---
+
 ## 2026-05-13: TIK-96 — prefix invalidation for `leaderboard*` cache keys
 
 **What landed**
@@ -162,6 +205,8 @@ two fallback dictionaries `services.rating_service` keeps in case
 - `./venv/bin/pytest tests --ignore=tests/e2e -n auto --cov=...` —
   578 passed in ~31s, coverage 89% (≥ 87% gate, TIK-54).
 - `make check` (black/isort/flake8/mypy + pip-audit) — clean.
+
+---
 
 ## 2026-05-13: TIK-89 Phase 3 — rotate `docs/progress.md` + `docs/decisionLog.md` to `docs/archive/2026-Q2.md` (T13 + T14)
 
