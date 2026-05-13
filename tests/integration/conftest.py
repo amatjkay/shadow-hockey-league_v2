@@ -8,12 +8,11 @@ Postgres CI job: the ``integration-postgres`` workflow sets
 ``DATABASE_URL=postgresql+psycopg2://...`` and
 ``RUN_INTEGRATION_POSTGRES=1``.  We then monkey-patch
 ``config.TestingConfig`` so every call to
-``create_app("config.TestingConfig")`` points at the Postgres URL,
-and replace ``db.create_all`` / ``db.drop_all`` with Postgres-aware
-shims so the alembic-owned schema survives between tests.
+``create_app("config.TestingConfig")`` points at the Postgres URL.
 
-We do NOT touch ``config.py`` or ``models.py`` (AGENTS.md § 2
-forbids it without owner approval) — every patch here is test-only.
+``db.create_all`` / ``db.drop_all`` now work on Postgres natively
+because ``models.py::League.code`` uses an inline ``UNIQUE`` constraint
+(TIK-98) — the previous monkey-patch shim is no longer needed.
 """
 
 from __future__ import annotations
@@ -31,10 +30,7 @@ def _is_postgres_url(url: str) -> bool:
 
 
 if _RUN_PG and _is_postgres_url(_DB_URL):
-    from sqlalchemy import text
-
     from config import TestingConfig
-    from models import db
 
     TestingConfig.SQLALCHEMY_DATABASE_URI = _DB_URL  # type: ignore[assignment]
 
@@ -44,47 +40,23 @@ if _RUN_PG and _is_postgres_url(_DB_URL):
 
     TestingConfig.get_database_url = _pg_get_database_url  # type: ignore[assignment]
 
-    # The schema is owned by ``alembic upgrade head`` (the CI step
-    # before pytest). Many integration tests call ``db.drop_all()``
-    # in tearDown and ``db.create_all()`` in setUp for isolation —
-    # the standard pattern on SQLite. On Postgres those calls would
-    # destroy the alembic schema and then fail to recreate it,
-    # because ``models.py`` declares ``unique=True`` columns as a
-    # separate UNIQUE INDEX (not an inline ``UniqueConstraint``).
-    # Postgres rejects ``FOREIGN KEY(parent_code) REFERENCES
-    # leagues(code)`` during ``CREATE TABLE`` when the referent's
-    # uniqueness only arrives via a later ``CREATE UNIQUE INDEX``;
-    # SQLite is lenient about this.
-    #
-    # TODO(TIK-95-followup): teach ``models.py`` to use inline
-    # ``UniqueConstraint`` for self-referential FKs so plain
-    # ``db.create_all`` works on Postgres without this shim.
-    #
-    # In the meantime we keep alembic's schema between tests and
-    # provide isolation via ``TRUNCATE ... RESTART IDENTITY
-    # CASCADE``.
+    # ``alembic upgrade head`` (the CI step before pytest) seeds reference
+    # data into ``achievement_types`` / ``leagues`` / ``seasons``. The
+    # unittest-style integration tests assume the SQLite-shaped contract
+    # where ``setUp`` starts on empty tables, so we drop the alembic
+    # schema once at conftest import time and let each test's ``setUp``
+    # call ``db.create_all()`` to recreate fresh tables. Real
+    # ``db.drop_all()`` / ``db.create_all()`` cycles between tests are now
+    # safe on Postgres because ``models.py::League.code`` uses an inline
+    # ``UNIQUE`` constraint (TIK-98), so the self-referential FK
+    # ``leagues.parent_code -> leagues.code`` no longer hits the
+    # referent-uniqueness check that previously required a shim.
+    from app import create_app  # noqa: E402
+    from models import db  # noqa: E402
 
-    def _pg_drop_all(*_args: object, **_kwargs: object) -> None:
-        """Reset all tables in dependency order — schema stays."""
-        tables = ", ".join(f'"{t.name}"' for t in db.metadata.sorted_tables)
-        if not tables:
-            return
-        with db.engine.begin() as conn:
-            conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
-
-    def _pg_create_all(*_args: object, **_kwargs: object) -> None:
-        """Alembic owns the schema; we truncate to start each test clean.
-
-        Mirrors SQLite's ``db.create_all`` on an in-memory DB —
-        which always starts empty. Without this, alembic-seeded
-        reference data (e.g. ``achievement_types.TOP1`` in
-        ``b2c3d4e5f6a7_add_reference_tables.py``) would collide with
-        rows the first test inserts in setUp.
-        """
-        _pg_drop_all()
-
-    db.drop_all = _pg_drop_all  # type: ignore[method-assign]
-    db.create_all = _pg_create_all  # type: ignore[method-assign]
+    _bootstrap_app = create_app("config.TestingConfig")
+    with _bootstrap_app.app_context():
+        db.drop_all()
 
 
 def pytest_collection_modifyitems(
