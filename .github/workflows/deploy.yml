@@ -54,6 +54,86 @@ jobs:
           REDIS_HOST: "localhost"
         run: make test
 
+  integration-postgres:
+    name: "Integration (Postgres)"
+    # TIK-95: non-blocking validation that Alembic migrations + a subset
+    # of integration tests work against PostgreSQL. The ``deploy`` job
+    # below never depends on this leg, so a failure here cannot block a
+    # merge to ``main``. ``continue-on-error: true`` additionally turns
+    # the GitHub status check into a warning rather than a blocker on
+    # the PR. SQLite stays the default for the main test suite — see
+    # ``quality-and-tests`` above.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: shl_ci
+          POSTGRES_PASSWORD: shl_ci
+          POSTGRES_DB: shl_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shl_ci -d shl_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql+psycopg2://shl_ci:shl_ci@localhost:5432/shl_ci"
+      RUN_INTEGRATION_POSTGRES: "1"
+      TESTING: "1"
+      FLASK_ENV: "testing"
+      CACHE_TYPE: "RedisCache"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
+      SECRET_KEY: "ci-postgres-secret-key-not-for-prod"
+      WTF_CSRF_SECRET_KEY: "ci-postgres-csrf-secret-key-not-for-prod"
+      API_KEY_SECRET: "ci-postgres-api-key-secret-not-for-prod"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install -r requirements-dev.txt
+
+      - name: Alembic upgrade head (Postgres)
+        run: ./venv/bin/alembic upgrade head
+
+      - name: Run integration test subset (Postgres)
+        # ``tests/integration/conftest.py`` monkey-patches
+        # ``config.TestingConfig`` so ``create_app("config.TestingConfig")``
+        # points at the Postgres URL when ``RUN_INTEGRATION_POSTGRES=1``.
+        # ``test_routes.py`` hard-codes ``sqlite:///{tempfile}`` in setUp
+        # and is collected-then-skipped by the same conftest in this mode.
+        run: |
+          ./venv/bin/pytest -v \
+            tests/integration/test_routes.py \
+            tests/integration/test_admin_integration.py \
+            tests/integration/test_cache_invalidation.py
+
   e2e-smoke:
     name: "E2E Smoke (Playwright)"
     needs: quality-and-tests
