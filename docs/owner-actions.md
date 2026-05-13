@@ -40,8 +40,8 @@
 | **T10** | Repo-root stub files — 7 total: `bandit_report.json` + `bandit_report_main.json` removed in TIK-88 / Batch A; `locustfile.py`, `run_performance_test.py`, `test_mcp_client.py`, `test_linear_mcp.py`, `check_mcp_status.sh` removed in TIK-89 / Phase 2 along with all matching exclusions in `pyproject.toml` (`[tool.black]` `force-exclude`, `[tool.isort]` `skip`, `[tool.mypy]` `exclude`) and `.flake8` `exclude`. `pytest --collect-only` at the repo root now works without `tests/`. | done | B / TIK-89 |
 | **T11** | Decide whether to scrub `.env` from git history via `git filter-repo`. Irreversible; breaks any open forks / PRs. Untracking the file (already done before PR #44) does **not** rewrite history. | owner-only | C / TIK-90 |
 | **T12** | Disconnect the GitHub ↔ Vercel integration (project is not deployed on Vercel; the red `Vercel` check on every PR is noise). Alternative: remove `Vercel` from the required-checks set. | owner-only | C / TIK-90 |
-| **T13** | Decompose `docs/progress.md` — 13 entries 2026-05-03 → 2026-05-08 (later) rotated into `## Progress (rotated 2026-05-13)` of `docs/archive/2026-Q2.md` in TIK-89 / Phase 3 (PR pending). Latest 10 entries stay active. `wc -l` 1282 → 594. | done | B / TIK-89 |
-| **T14** | Decompose `docs/decisionLog.md` — 3 entries (2026-04-30 + 2026-05-01 ×2, matching the candidate cutoff) rotated into `## Decision Log (rotated 2026-05-13)` of `docs/archive/2026-Q2.md` in TIK-89 / Phase 3 (PR pending). `Forward contracts` blocks preserved under `## Active Forward Contracts` at the top of `docs/decisionLog.md`. `wc -l` 730 → 606. | done | B / TIK-89 |
+| **T13** | Decompose `docs/progress.md` — 13 entries 2026-05-03 → 2026-05-08 (later) rotated into `## Progress (rotated 2026-05-13)` of `docs/archive/2026-Q2.md` in TIK-89 / Phase 3 (PR #109). Second pass under TIK-92 (this PR) moved 8 more entries (2026-05-08 → 2026-05-13) into `## Progress (rotated 2026-05-13, part 2 — TIK-92)`; `wc -l` 1282 → 594 → ~200. | done | B / TIK-89, D1 / TIK-92 |
+| **T14** | Decompose `docs/decisionLog.md` — 3 entries (2026-04-30 + 2026-05-01 ×2) rotated into `## Decision Log (rotated 2026-05-13)` of `docs/archive/2026-Q2.md` in TIK-89 / Phase 3 (PR #109). Second pass under TIK-92 (this PR) moved 8 more ADRs (2026-05-03 → 2026-05-11) into `## Decision Log (rotated 2026-05-13, part 2 — TIK-92)`; `Forward contracts` blocks of the 3 archived ADRs that carried them preserved verbatim under `## Active Forward Contracts` at the top of `docs/decisionLog.md`. `wc -l` 730 → 606 → ~160. | done | B / TIK-89, D1 / TIK-92 |
 
 ---
 
@@ -67,7 +67,7 @@ baseline.
 
 ### T13 / T14 — doc decomposition (resolved 2026-05-13)
 
-**Resolution.** Rotated in TIK-89 / Phase 3 (PR pending) per the
+**Resolution (TIK-89 / Phase 3, PR #109).** Rotated per the
 `doc-rotation` skill. `docs/progress.md` keeps the latest 10 entries
 (2026-05-08 → 2026-05-13); the older 13 move verbatim into
 `## Progress (rotated 2026-05-13)` of `docs/archive/2026-Q2.md`.
@@ -78,6 +78,19 @@ into `## Decision Log (rotated 2026-05-13)` of the same archive file.
 All three archived ADRs contained `**Forward contracts**` blocks; those
 blocks are preserved verbatim at the top of `docs/decisionLog.md` under
 a new `## Active Forward Contracts` heading.
+
+**Second-pass resolution (TIK-92, this PR).** After TIK-89 Phases 1–3
+plus the same-day rating / UI / TIK-88 entries landed, both files
+re-crossed the 200-line threshold. TIK-92 narrows each file to the
+latest ~30 days *and* ≤ 200 lines per the `doc-rotation` skill: 8 more
+progress entries (2026-05-08 → 2026-05-13) move into
+`## Progress (rotated 2026-05-13, part 2 — TIK-92)` and 8 more ADRs
+(2026-05-03 → 2026-05-11) into `## Decision Log (rotated 2026-05-13,
+part 2 — TIK-92)`. Forward-contracts blocks of the 3 archived ADRs
+that carried them (2026-05-11 task-formulation, 2026-05-05 Inspector,
+2026-05-03 TIK-51) are appended verbatim under the same
+`## Active Forward Contracts` heading. Final sizes: `progress.md` ~196,
+`decisionLog.md` ~161.
 
 **Original wording (kept for context):**
 
@@ -113,4 +126,4 @@ Filing this as a separate Linear ticket once the owner picks numbers.
   `docs/archive/owner-actions-YYYY-Qn.md` quarterly).
 
 _Last updated: 2026-05-13 — initial publication, mirrors TIK-88 / TIK-89 /
-TIK-90._
+TIK-90; T13 / T14 second-pass rotation cross-linked to TIK-92._

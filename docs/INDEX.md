@@ -52,7 +52,14 @@ mandates the three `docs/`+`PROJECT_KNOWLEDGE.md` files marked **MB** below;
   - `## Decision Log (rotated 2026-05-13)` — 3 entries 2026-04-30 + 2026-05-01
     ×2, per TIK-89 / T14. Forward-contracts kept verbatim as a stub at the
     top of `docs/decisionLog.md`.
-  Verbatim move; reference only when asked about pre-2026-05-08 design history.
+  - `## Progress (rotated 2026-05-13, part 2 — TIK-92)` — 8 entries
+    2026-05-08 → 2026-05-13, per TIK-92.
+  - `## Decision Log (rotated 2026-05-13, part 2 — TIK-92)` — 8 ADRs
+    2026-05-03 → 2026-05-11, per TIK-92. Forward-contracts blocks of the
+    3 archived ADRs that carried them (2026-05-11 task-formulation,
+    2026-05-05 Inspector, 2026-05-03 TIK-51) are preserved verbatim under
+    `## Active Forward Contracts` at the top of `docs/decisionLog.md`.
+  Verbatim move; reference only when asked about pre-2026-05-13 design history.
 - `docs/archive/handoff-2026-05-07.md` — one-off cross-agent handoff after the
   TIK-71/72 batch landed. Reference only when investigating the M2 refresh era.
 
