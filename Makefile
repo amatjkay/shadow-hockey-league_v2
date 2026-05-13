@@ -65,8 +65,11 @@ format:
 	$(VENV_BIN)black .
 	$(VENV_BIN)isort .
 
-# Run all quality checks
-check:
+# Run all quality checks (lint + type + dependency CVE scan).
+# `pip-audit` is wired in here (TIK-89 / T05) so the same gate the developer
+# runs locally is what CI enforces. `make audit-deps` stays as a standalone
+# entry point.
+check: audit-deps
 	$(VENV_BIN)black --check .
 	$(VENV_BIN)isort --check-only .
 	$(VENV_BIN)flake8 . --count --show-source --statistics
