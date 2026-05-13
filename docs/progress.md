@@ -6,6 +6,41 @@
 > Older sections live in `docs/archive/progress-pre-2026-04-29.md` and
 > `docs/archive/2026-Q2.md` (4 entries 2026-04-30 → 2026-05-01).
 
+## 2026-05-13: UI — fix points-formula tooltip positioning + outside-click + close button
+
+Bug: clicking the `?` icon next to the *Очки* header opened the dialog
+visually anchored to the bottom of the leaderboard table (often below
+the fold) instead of centred in the viewport, and the backdrop only
+covered the table — so clicks outside the table never reached the
+backdrop and the modal stayed open.
+
+Root cause: the table now carries `backdrop-filter: blur(3px)
+saturate(115%)` (PR #99 glass refresh). Per the CSS spec, `filter` /
+`backdrop-filter` / `transform` create a *containing block* for
+`position: fixed` descendants. The tooltip dialog and its
+`inset: 0` backdrop lived inside the table's `<th>`, so "fixed" was
+fixed-to-the-table, not fixed-to-the-viewport.
+
+Fix:
+- `templates/index.html`: lift the `.tooltip-backdrop` and
+  `.tooltip-content` siblings out of `<th>` and re-anchor them next to
+  the `breakdown-sheet` aside at the document level — well clear of
+  any containing-block-creating ancestor. Toggle button keeps its
+  spot beside the *Очки* header. Add a small `× ` close button
+  (`.tooltip-close`, `data-tooltip-close="points-help"`) in the
+  modal's top-right.
+- `static/js/script.js::shlInitTooltips`: new
+  `[data-tooltip-close]` handler that mirrors the backdrop's
+  `setOpen(id, false)` call.
+- `static/css/components.css`: `.tooltip-body` is now
+  `position: relative` so the close button can absolutely-position;
+  `.tooltip-intro` gets `padding-right: 36px` so its text doesn't run
+  under the new button. Light/dark theme tokens unchanged.
+
+No source-code, schema, or test changes.
+
+---
+
 ## 2026-05-13: UI — fuse season-filter tabs to leaderboard card
 
 Small UI-only follow-up after the PR #99 glass-table refresh.
