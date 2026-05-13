@@ -14,8 +14,18 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .mypy_cache/
+
+# Security / audit reports (generated; previously tracked as empty stubs)
+bandit_report*.json
+
+# Logs
+*.log
+
+# asdf / tool-versions marker
+.tool-versions
 
 # IDEs
 .vscode/

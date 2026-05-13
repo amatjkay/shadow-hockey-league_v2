@@ -25,7 +25,7 @@ to a request for season Y. Test:
 ## Local dev
 
 - Redis required for `tests/test_app_extra.py::TestCreateAppEnvFallback`
-  (2 of 561 tests). CI brings up a `redis` service container. Locally
+  (2 of 572 tests). CI brings up a `redis` service container. Locally
   expect `559 passed, 2 failed` if Redis isn't running — that's not a
   regression. See `.agents/skills/verification/SKILL.md`.
 
