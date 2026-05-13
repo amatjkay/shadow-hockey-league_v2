@@ -9,6 +9,48 @@
 > - `## Progress (rotated 2026-05-13)` — 13 entries 2026-05-03 → 2026-05-08
 >   (later), rotated per TIK-89 / T13 to keep the latest 10 active here.
 
+## 2026-05-13: TIK-96 — prefix invalidation for `leaderboard*` cache keys
+
+**What landed**
+
+- `services/cache_service.invalidate_leaderboard_cache()` now dispatches on
+  the live backend instead of calling `cache.clear()`:
+  - `RedisCache`: `SCAN` over `{CACHE_KEY_PREFIX}leaderboard*` via
+    `cache.cache._write_client` + bulk `DELETE`. Honours
+    `CACHE_KEY_PREFIX` automatically (cachelib stores it on
+    `RedisCache.key_prefix`).
+  - `SimpleCache`: iterate `cache.cache._cache` and `cache.delete`
+    keys starting with `"leaderboard"`.
+  - Unknown backend: fall back to `cache.clear()` with a warning log.
+- Docstring rewritten to spell out the new contract and the
+  per-backend behaviour.
+- New regression test
+  `tests/integration/test_cache_invalidation.py::TestPrefixInvalidation::test_prefix_invalidation_preserves_unrelated_keys`
+  warms `/`, sets `cache.set("unrelated_key", "value")`, calls
+  `invalidate_leaderboard_cache()`, and asserts `cache.get("leaderboard")
+  is None` while `cache.get("unrelated_key") == "value"`. Runs on
+  TestingConfig (`SimpleCache`).
+
+**Why this matters**
+
+- `cache.clear()` previously scrubbed every key in the configured
+  backend on each CRUD — including Flask-Limiter rate-limiter counters
+  whenever they share the cache Redis. Surface today is small; left
+  in place this would scale into a real cost as more cached
+  namespaces land. Now we only touch the keys the view actually owns.
+- The cache-key contract (`leaderboard` + `leaderboard:{season_id}`)
+  in `blueprints/main.py::_leaderboard_cache_key` is unchanged
+  (TIK-96 anti-goal).
+
+**Verification**
+
+- `pytest tests/integration/test_cache_invalidation.py -v` — 15 passed
+  (existing 14 + new `test_prefix_invalidation_preserves_unrelated_keys`).
+- `make check` — clean (black / isort / flake8 / mypy + `pip-audit`).
+- `make test` — 561 passed, ≥ 87 % coverage gate held.
+
+---
+
 ## 2026-05-13: TIK-89 Phase 3 — rotate `docs/progress.md` + `docs/decisionLog.md` to `docs/archive/2026-Q2.md` (T13 + T14)
 
 Batch B Phase 3 of the 14-item owner-actions catalog (T13 + T14).
