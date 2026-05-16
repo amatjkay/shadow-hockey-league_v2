@@ -167,8 +167,28 @@ def _is_redis_available(app: Flask) -> bool:
 
     redis_url = os.environ.get("REDIS_URL")
     if not redis_url:
-        app.config[sentinel] = False
-        return False
+        # TIK-102: fall back to REDIS_HOST/REDIS_PORT/REDIS_DB when
+        # REDIS_URL is unset, so a systemd unit that only exports
+        # the granular vars (REDIS_HOST=localhost, REDIS_PORT=6379)
+        # still wires the worker to RedisCache. Mirrors the
+        # CACHE_REDIS_* defaults below — without this we lock into
+        # SimpleCache despite Redis running on localhost.
+        redis_host = os.environ.get("REDIS_HOST")
+        redis_port = os.environ.get("REDIS_PORT")
+        if redis_host or redis_port:
+            redis_url = (
+                f"redis://{redis_host or 'localhost'}:{redis_port or '6379'}"
+                f"/{os.environ.get('REDIS_DB', '0')}"
+            )
+            app.logger.info(
+                "REDIS_URL not set; constructed redis://%s:%s/%s from REDIS_HOST/REDIS_PORT/REDIS_DB",
+                redis_host or "localhost",
+                redis_port or "6379",
+                os.environ.get("REDIS_DB", "0"),
+            )
+        else:
+            app.config[sentinel] = False
+            return False
 
     default_retries = "1" if app.config.get("TESTING") else "5"
     max_attempts = int(os.environ.get("REDIS_INIT_RETRIES", default_retries))

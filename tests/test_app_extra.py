@@ -145,7 +145,11 @@ class TestRedisInitRetry:
 
         from app import _is_redis_available
 
+        # All three must be unset for the short-circuit (TIK-102 adds the
+        # REDIS_HOST/PORT/DB fallback when only REDIS_URL is missing).
         monkeypatch.delenv("REDIS_URL", raising=False)
+        monkeypatch.delenv("REDIS_HOST", raising=False)
+        monkeypatch.delenv("REDIS_PORT", raising=False)
         app = Flask(__name__)
         with patch("redis.from_url") as from_url:
             assert _is_redis_available(app) is False
@@ -154,6 +158,49 @@ class TestRedisInitRetry:
         with patch("redis.from_url") as from_url:
             assert _is_redis_available(app) is False
             from_url.assert_not_called()
+
+    def test_no_redis_url_falls_back_to_redis_host_port(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """TIK-102: when REDIS_URL is unset but REDIS_HOST/REDIS_PORT are,
+        construct the URL and probe. This is the prod scenario where the
+        systemd unit only exports the granular vars."""
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.delenv("REDIS_URL", raising=False)
+        monkeypatch.setenv("REDIS_HOST", "localhost")
+        monkeypatch.setenv("REDIS_PORT", "6379")
+        monkeypatch.setenv("REDIS_DB", "0")
+        app = Flask(__name__)
+        client = MagicMock()
+        client.ping.return_value = True
+        with patch("redis.from_url", return_value=client) as from_url:
+            assert _is_redis_available(app) is True
+            # Called once with the constructed URL.
+            from_url.assert_called_once()
+            constructed_url = from_url.call_args.args[0]
+            assert constructed_url == "redis://localhost:6379/0"
+
+    def test_redis_url_fallback_uses_default_db_when_missing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """REDIS_DB defaults to 0 when only REDIS_HOST/REDIS_PORT are set."""
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.delenv("REDIS_URL", raising=False)
+        monkeypatch.delenv("REDIS_DB", raising=False)
+        monkeypatch.setenv("REDIS_HOST", "127.0.0.1")
+        monkeypatch.setenv("REDIS_PORT", "6380")
+        app = Flask(__name__)
+        client = MagicMock()
+        client.ping.return_value = True
+        with patch("redis.from_url", return_value=client) as from_url:
+            assert _is_redis_available(app) is True
+            assert from_url.call_args.args[0] == "redis://127.0.0.1:6380/0"
 
     def test_sentinel_short_circuits_repeat_calls(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from flask import Flask
