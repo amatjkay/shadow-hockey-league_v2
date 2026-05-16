@@ -167,28 +167,23 @@ def _is_redis_available(app: Flask) -> bool:
 
     redis_url = os.environ.get("REDIS_URL")
     if not redis_url:
-        # TIK-102: fall back to REDIS_HOST/REDIS_PORT/REDIS_DB when
-        # REDIS_URL is unset, so a systemd unit that only exports
-        # the granular vars (REDIS_HOST=localhost, REDIS_PORT=6379)
-        # still wires the worker to RedisCache. Mirrors the
-        # CACHE_REDIS_* defaults below — without this we lock into
-        # SimpleCache despite Redis running on localhost.
-        redis_host = os.environ.get("REDIS_HOST")
-        redis_port = os.environ.get("REDIS_PORT")
-        if redis_host or redis_port:
-            redis_url = (
-                f"redis://{redis_host or 'localhost'}:{redis_port or '6379'}"
-                f"/{os.environ.get('REDIS_DB', '0')}"
-            )
-            app.logger.info(
-                "REDIS_URL not set; constructed redis://%s:%s/%s from REDIS_HOST/REDIS_PORT/REDIS_DB",
-                redis_host or "localhost",
-                redis_port or "6379",
-                os.environ.get("REDIS_DB", "0"),
-            )
-        else:
-            app.config[sentinel] = False
-            return False
+        # TIK-103: always probe ``redis://{REDIS_HOST or localhost}:{REDIS_PORT or 6379}/{REDIS_DB or 0}``
+        # when REDIS_URL is unset. The production systemd unit exports
+        # *none* of these vars; Redis runs on the conventional
+        # ``localhost:6379`` and ``CACHE_REDIS_HOST`` in the cache_config
+        # block below already defaults to ``"localhost"`` for the same
+        # reason. Without this default, every worker locked into
+        # SimpleCache despite Redis being live on localhost. If Redis is
+        # genuinely absent (local dev without redis-server), the retry
+        # loop exhausts and we correctly fall back to SimpleCache.
+        redis_host = os.environ.get("REDIS_HOST", "localhost")
+        redis_port = os.environ.get("REDIS_PORT", "6379")
+        redis_db = os.environ.get("REDIS_DB", "0")
+        redis_url = f"redis://{redis_host}:{redis_port}/{redis_db}"
+        app.logger.info(
+            "REDIS_URL not set; defaulting to %s (from REDIS_HOST/REDIS_PORT/REDIS_DB with localhost:6379/0 fallbacks)",
+            redis_url,
+        )
 
     default_retries = "1" if app.config.get("TESTING") else "5"
     max_attempts = int(os.environ.get("REDIS_INIT_RETRIES", default_retries))

@@ -138,26 +138,49 @@ class TestRedisInitRetry:
     5–30 s page loads on season-tab switching.
     """
 
-    def test_no_redis_url_returns_false_without_probing(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_no_redis_env_defaults_to_localhost(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """TIK-103: when no Redis env vars are set, probe
+        ``redis://localhost:6379/0`` (matches CACHE_REDIS_* defaults in
+        cache_config). Prior to TIK-103 we short-circuited to False here,
+        which on prod locked every worker into SimpleCache despite Redis
+        running on localhost.
+        """
         from flask import Flask
 
         from app import _is_redis_available
 
-        # All three must be unset for the short-circuit (TIK-102 adds the
-        # REDIS_HOST/PORT/DB fallback when only REDIS_URL is missing).
+        monkeypatch.delenv("REDIS_URL", raising=False)
+        monkeypatch.delenv("REDIS_HOST", raising=False)
+        monkeypatch.delenv("REDIS_PORT", raising=False)
+        monkeypatch.delenv("REDIS_DB", raising=False)
+        app = Flask(__name__)
+        client = MagicMock()
+        client.ping.return_value = True
+        with patch("redis.from_url", return_value=client) as from_url:
+            assert _is_redis_available(app) is True
+            from_url.assert_called_once()
+            assert from_url.call_args.args[0] == "redis://localhost:6379/0"
+
+    def test_no_redis_env_returns_false_when_unreachable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Local dev without redis-server: defaults still apply, but the
+        probe fails and we honestly fall back to SimpleCache after retries
+        (in TESTING mode the default is 1 attempt)."""
+        from flask import Flask
+
+        from app import _is_redis_available
+
         monkeypatch.delenv("REDIS_URL", raising=False)
         monkeypatch.delenv("REDIS_HOST", raising=False)
         monkeypatch.delenv("REDIS_PORT", raising=False)
         app = Flask(__name__)
-        with patch("redis.from_url") as from_url:
+        app.config["TESTING"] = True
+        client = MagicMock()
+        client.ping.side_effect = ConnectionError("ECONNREFUSED")
+        with patch("redis.from_url", return_value=client) as from_url:
             assert _is_redis_available(app) is False
-            from_url.assert_not_called()
-        # And the sentinel is cached so subsequent calls are also instant.
-        with patch("redis.from_url") as from_url:
-            assert _is_redis_available(app) is False
-            from_url.assert_not_called()
+            from_url.assert_called_once()
 
     def test_no_redis_url_falls_back_to_redis_host_port(
         self, monkeypatch: pytest.MonkeyPatch
