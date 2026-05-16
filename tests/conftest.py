@@ -50,6 +50,22 @@ class _FakeRedis:
     def keys(self, pattern="*"):
         return list(self._store.keys())
 
+    def scan_iter(self, match="*", count=None, _type=None):
+        """Yield keys matching the glob pattern.
+
+        Required by ``services.cache_service.invalidate_leaderboard_cache``
+        when the cache backend is ``RedisCache`` (TIK-102: the CI env sets
+        ``REDIS_HOST=localhost`` so the new fallback path in
+        ``_is_redis_available()`` now wires ``RedisCache`` instead of
+        silently falling back to ``SimpleCache``).
+        """
+        import fnmatch
+
+        for k in list(self._store.keys()):
+            key_str = k.decode() if isinstance(k, bytes) else k
+            if fnmatch.fnmatchcase(key_str, match):
+                yield k
+
     def ping(self):
         return True
 
