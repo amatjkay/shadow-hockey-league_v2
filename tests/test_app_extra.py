@@ -15,7 +15,7 @@ TestingConfig short-circuits production-only init paths:
 from __future__ import annotations
 
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -126,3 +126,147 @@ class TestConfigureLogging:
         # File may or may not be flushed yet; just assert the directory exists
         # and the function completed.
         assert tmp_path.exists()
+
+
+class TestRedisInitRetry:
+    """``_is_redis_available`` retries with backoff at startup (TIK-101).
+
+    Production hit a systemd-ordering race: gunicorn workers booted before
+    ``redis-server.service`` was ready, so the one-shot ``ping()`` failed and
+    each worker locked into ``SimpleCache`` permanently. With 4 workers the
+    leaderboard cache effectively had no cross-process sharing, surfacing as
+    5–30 s page loads on season-tab switching.
+    """
+
+    def test_no_redis_url_returns_false_without_probing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.delenv("REDIS_URL", raising=False)
+        app = Flask(__name__)
+        with patch("redis.from_url") as from_url:
+            assert _is_redis_available(app) is False
+            from_url.assert_not_called()
+        # And the sentinel is cached so subsequent calls are also instant.
+        with patch("redis.from_url") as from_url:
+            assert _is_redis_available(app) is False
+            from_url.assert_not_called()
+
+    def test_sentinel_short_circuits_repeat_calls(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        app = Flask(__name__)
+        client = MagicMock()
+        client.ping.return_value = True
+        with patch("redis.from_url", return_value=client) as from_url:
+            assert _is_redis_available(app) is True
+            assert _is_redis_available(app) is True
+            # Second call reads the cached sentinel and never re-probes.
+            assert from_url.call_count == 1
+
+    def test_first_attempt_success_does_not_sleep(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        app = Flask(__name__)
+        client = MagicMock()
+        client.ping.return_value = True
+        with (
+            patch("redis.from_url", return_value=client),
+            patch("app.time.sleep") as sleep,
+        ):
+            assert _is_redis_available(app) is True
+            sleep.assert_not_called()
+
+    def test_retries_then_succeeds(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The whole point of TIK-101: transient failures are recovered."""
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        monkeypatch.setenv("REDIS_INIT_RETRIES", "5")
+        monkeypatch.setenv("REDIS_INIT_RETRY_DELAY_SECONDS", "0.01")
+        app = Flask(__name__)
+
+        # First 2 attempts fail, 3rd succeeds.
+        failing = MagicMock()
+        failing.ping.side_effect = ConnectionError("ECONNREFUSED")
+        succeeding = MagicMock()
+        succeeding.ping.return_value = True
+        with patch(
+            "redis.from_url",
+            side_effect=[failing, failing, succeeding],
+        ) as from_url:
+            assert _is_redis_available(app) is True
+            assert from_url.call_count == 3
+
+    def test_exhausted_retries_falls_back_to_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        monkeypatch.setenv("REDIS_INIT_RETRIES", "3")
+        monkeypatch.setenv("REDIS_INIT_RETRY_DELAY_SECONDS", "0.01")
+        app = Flask(__name__)
+
+        failing = MagicMock()
+        failing.ping.side_effect = ConnectionError("ECONNREFUSED")
+        with patch("redis.from_url", return_value=failing) as from_url:
+            assert _is_redis_available(app) is False
+            assert from_url.call_count == 3
+
+    def test_testing_mode_defaults_to_single_attempt(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """In TESTING mode the default is 1 attempt so the suite stays fast."""
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        monkeypatch.delenv("REDIS_INIT_RETRIES", raising=False)
+        monkeypatch.setenv("REDIS_INIT_RETRY_DELAY_SECONDS", "0.01")
+        app = Flask(__name__)
+        app.config["TESTING"] = True
+
+        failing = MagicMock()
+        failing.ping.side_effect = ConnectionError("ECONNREFUSED")
+        with (
+            patch("redis.from_url", return_value=failing) as from_url,
+            patch("app.time.sleep") as sleep,
+        ):
+            assert _is_redis_available(app) is False
+            # Single attempt, no sleep because the loop didn't go round.
+            assert from_url.call_count == 1
+            sleep.assert_not_called()
+
+    def test_retry_delay_is_honoured(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Between failed attempts the loop sleeps the configured delay."""
+        from flask import Flask
+
+        from app import _is_redis_available
+
+        monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+        monkeypatch.setenv("REDIS_INIT_RETRIES", "3")
+        monkeypatch.setenv("REDIS_INIT_RETRY_DELAY_SECONDS", "0.25")
+        app = Flask(__name__)
+
+        failing = MagicMock()
+        failing.ping.side_effect = ConnectionError("ECONNREFUSED")
+        with (
+            patch("redis.from_url", return_value=failing),
+            patch("app.time.sleep") as sleep,
+        ):
+            assert _is_redis_available(app) is False
+            # 3 attempts → 2 sleeps between them; final attempt does not sleep.
+            assert sleep.call_count == 2
+            for call in sleep.call_args_list:
+                assert call.args[0] == 0.25

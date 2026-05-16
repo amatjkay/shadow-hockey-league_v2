@@ -141,10 +141,24 @@ def configure_logging(app: Flask) -> None:
 
 
 def _is_redis_available(app: Flask) -> bool:
-    """Probe Redis once and cache the result on the app for the startup phase.
+    """Probe Redis with retry-with-backoff at startup and cache the result.
 
-    Avoids opening multiple throw-away connections when both the rate limiter
-    and the cache subsystem need to know whether Redis is reachable.
+    Called from both ``_configure_rate_limiter()`` and the cache-init block in
+    ``register_extensions()``. Without retry, a transient Redis-not-yet-ready
+    window at gunicorn worker startup (systemd-ordering race with
+    ``redis-server.service``) causes the worker to fall back to ``SimpleCache``
+    permanently — leading to per-worker in-process caches that don't share
+    leaderboard data across the 4 workers, manifesting as 5–30 s page loads on
+    season-tab switching (TIK-101 root cause; TIK-100 mitigation only).
+
+    Behaviour:
+      - Probes ``REDIS_URL`` up to ``REDIS_INIT_RETRIES`` times (default 5,
+        or 1 in TESTING mode), sleeping ``REDIS_INIT_RETRY_DELAY_SECONDS``
+        (default 1.0) between attempts.
+      - Result (True/False) is cached on ``app.config["_redis_available"]``
+        for the lifetime of the worker — subsequent callers don't re-probe.
+      - Logs each retry attempt at WARNING for prod observability via the
+        systemd journal; a successful retry logs at INFO.
     """
     sentinel = "_redis_available"
     cached = app.config.get(sentinel)
@@ -156,17 +170,40 @@ def _is_redis_available(app: Flask) -> bool:
         app.config[sentinel] = False
         return False
 
-    try:
-        import redis
+    default_retries = "1" if app.config.get("TESTING") else "5"
+    max_attempts = int(os.environ.get("REDIS_INIT_RETRIES", default_retries))
+    retry_delay = float(os.environ.get("REDIS_INIT_RETRY_DELAY_SECONDS", "1.0"))
 
-        client = redis.from_url(redis_url, socket_connect_timeout=2)
-        client.ping()
-        app.config[sentinel] = True
-        return True
-    except Exception as exc:  # noqa: BLE001 - logging fallback path
-        app.logger.warning("Redis unavailable (%s), falling back to in-process backends", exc)
-        app.config[sentinel] = False
-        return False
+    last_exc: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            import redis
+
+            client = redis.from_url(redis_url, socket_connect_timeout=2)
+            client.ping()
+            if attempt > 1:
+                app.logger.info("Redis became available on attempt %d/%d", attempt, max_attempts)
+            app.config[sentinel] = True
+            return True
+        except Exception as exc:  # noqa: BLE001 - logging fallback path
+            last_exc = exc
+            if attempt < max_attempts:
+                app.logger.warning(
+                    "Redis probe attempt %d/%d failed (%s); retrying in %.1fs",
+                    attempt,
+                    max_attempts,
+                    exc,
+                    retry_delay,
+                )
+                time.sleep(retry_delay)
+
+    app.logger.warning(
+        "Redis unavailable after %d attempts (%s), falling back to in-process backends",
+        max_attempts,
+        last_exc,
+    )
+    app.config[sentinel] = False
+    return False
 
 
 def _configure_rate_limiter(app: Flask) -> None:
