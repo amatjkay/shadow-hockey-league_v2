@@ -1,6 +1,22 @@
 """Health check blueprint for Shadow Hockey League.
 
 Provides /health endpoint with comprehensive system status.
+
+## Contract (TIK-91)
+
+- ``status: healthy`` / HTTP 200 — DB up + Redis up.
+- ``status: degraded`` / HTTP 200 — DB up, Redis (or cache round-trip) down,
+  request did **not** ask for strict mode. Default for uptime checkers;
+  payload shape unchanged from pre-TIK-91.
+- ``status: degraded`` / HTTP 503 — same as above but the request passed
+  ``?strict=1`` or ``X-Health-Mode: strict``. Used by k8s readinessProbe so
+  the pod is rotated out of the load balancer when its Redis-backed cache
+  is gone, even though the app itself still serves traffic.
+- ``status: down`` / HTTP 503 — database query failed. Always 503 regardless
+  of strict mode; the app cannot serve real traffic without the DB.
+
+Latency is observed on the ``health_response_seconds`` Prometheus histogram
+labelled by the final ``status`` value, on every call.
 """
 
 from __future__ import annotations
@@ -9,7 +25,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
+from prometheus_client import Histogram
+from werkzeug.wrappers import Response
 
 from models import Achievement, Country, Manager, db
 from services.cache_service import cache
@@ -17,8 +35,36 @@ from services.cache_service import cache
 health = Blueprint("health", __name__)
 
 
+# Module-level singleton so repeated ``create_app()`` calls in tests don't
+# try to re-register the same collector with ``prometheus_client.REGISTRY``
+# (``services.metrics_service.reset_metrics`` only cleans
+# ``prometheus_flask_exporter`` collectors, which is the desired behaviour:
+# this histogram lives across app re-creations).
+HEALTH_RESPONSE_SECONDS = Histogram(
+    "health_response_seconds",
+    "Response time of /health endpoint by final status",
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5),
+    labelnames=("status",),
+)
+
+
+def _strict_mode_requested() -> bool:
+    """Return True if the caller opted into strict-mode via query or header.
+
+    Accepts ``?strict=1`` (any truthy value: ``1`` / ``true`` / ``yes``,
+    case-insensitive) **or** ``X-Health-Mode: strict``. Anything else —
+    including the absence of both — keeps the pre-TIK-91 behaviour
+    (``200 + degraded`` for Redis-down).
+    """
+    strict_param = (request.args.get("strict") or "").strip().lower()
+    if strict_param in {"1", "true", "yes"}:
+        return True
+    strict_header = (request.headers.get("X-Health-Mode") or "").strip().lower()
+    return strict_header == "strict"
+
+
 @health.route("/health")
-def health_check() -> dict[str, Any]:
+def health_check() -> Response:
     """Health check endpoint for monitoring with metrics.
 
     Returns comprehensive status including:
@@ -59,6 +105,8 @@ def health_check() -> dict[str, Any]:
         "cache_key_prefix": str(current_app.config.get("CACHE_KEY_PREFIX", "")),
     }
 
+    db_down = False
+
     # Check database
     try:
         with db.session.begin():
@@ -78,9 +126,12 @@ def health_check() -> dict[str, Any]:
                 pass
     except Exception as e:
         current_app.logger.error(f"Database health check failed: {str(e)}")
-        health_status["status"] = "degraded"
+        # TIK-91: DB failure escalates to ``status: down`` (was ``degraded``
+        # pre-TIK-91) so k8s readiness + uptime checkers both see 503.
+        health_status["status"] = "down"
         health_status["database_status"] = "error"
         health_status["database_error"] = str(e)
+        db_down = True
 
     # Check Redis connection using the already-resolved config values
     # instead of re-reading env vars.
@@ -107,12 +158,27 @@ def health_check() -> dict[str, Any]:
             health_status["cache_status"] = "working"
         else:
             health_status["cache_status"] = "error"
-            health_status["status"] = "degraded"
+            if not db_down:
+                health_status["status"] = "degraded"
     except (redis.ConnectionError, redis.TimeoutError, ImportError):
         health_status["redis_status"] = "disconnected"
         health_status["cache_status"] = "fallback"
         health_status["cache_type"] = current_app.config.get("CACHE_TYPE", "unknown")
+        if not db_down:
+            health_status["status"] = "degraded"
 
     health_status["response_time_ms"] = round((time.time() - start_time) * 1000)
 
-    return health_status
+    final_status = health_status["status"]
+    if final_status == "down":
+        http_code = 503
+    elif final_status == "degraded" and _strict_mode_requested():
+        http_code = 503
+    else:
+        http_code = 200
+
+    HEALTH_RESPONSE_SECONDS.labels(status=final_status).observe(time.time() - start_time)
+
+    response = jsonify(health_status)
+    response.status_code = http_code
+    return response

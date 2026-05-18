@@ -36,6 +36,25 @@ do not lower the gate.
   service container; locally you'll see `559 passed, 2 failed`
   without Redis — not a regression. See `verification` skill § 2.
 
+## `/health` strict-mode contract (TIK-91)
+
+`blueprints/health.py` formalises the SLA matrix and instruments
+latency on the `health_response_seconds` Prometheus histogram. Tests
+live in `tests/test_blueprints.py::TestHealthSLAContract` and cover
+all four canonical scenarios plus header-based strict mode:
+
+| Scenario | HTTP | JSON `status` |
+| :--- | :--- | :--- |
+| DB up + Redis up | 200 | `healthy` |
+| DB up + Redis down, **no** `?strict` | 200 | `degraded` |
+| DB up + Redis down, `?strict=1` *or* `X-Health-Mode: strict` | 503 | `degraded` |
+| DB down (any `strict` value) | 503 | `down` |
+
+Latency observation is asserted by reading
+`REGISTRY.get_sample_value("health_response_seconds_count", {"status": <label>})`
+before and after each call; expected delta is `+1.0` per call. The full
+contract reference is in [[Caching]].
+
 ## See also
 
 - [[Operations and CI-CD]] — the GitHub Actions wiring.

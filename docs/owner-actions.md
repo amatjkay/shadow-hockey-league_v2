@@ -100,19 +100,6 @@ threshold the `doc-rotation` skill calls out. Decomposition is mechanical
 *cutover date* needs an owner call. Default candidate: 2026-04-30 (matches
 the last rotation in `docs/archive/2026-Q2.md`).
 
-### `/health` SLA — orthogonal to T01..T14
-
-Not in the catalog (it is an architectural decision, not an owner-action),
-but tracked here for visibility. `blueprints/health.py` currently returns
-`status: degraded` when Redis is disconnected or the DB query fails, but
-there is no documented:
-
-- response-time budget (today: target unknown; observed p50 ≈ 20 ms locally),
-- allowed duration in `degraded` before paging,
-- escalation path on `database_status: error`.
-
-Filing this as a separate Linear ticket once the owner picks numbers.
-
 ---
 
 ## How this file is maintained
