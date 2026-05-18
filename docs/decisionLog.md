@@ -87,6 +87,63 @@
 
 ---
 
+## 2026-05-13: TIK-101 / TIK-102 / TIK-103 — `_is_redis_available()` always defaults to localhost:6379, no short-circuit
+
+**Context**: After TIK-100 mitigated the production "season-tab hang" with
+deploy-time cache pre-warm, 10/10 `/health` probes still reported
+`cache_backend_type=SimpleCache` post-deploy. Three-iteration drill-down
+found the root cause was a short-circuit in `_is_redis_available()` that
+was never reachable in the test/CI environment but always tripped on prod.
+
+**Decision**: Remove the short-circuit. `_is_redis_available()` now
+unconditionally constructs `redis://{REDIS_HOST or localhost}:{REDIS_PORT
+or 6379}/{REDIS_DB or 0}` and probes it through the TIK-101 retry loop.
+This mirrors the defaults the cache_config block 80 lines later already
+uses for `CACHE_REDIS_HOST` / `CACHE_REDIS_PORT` / `CACHE_REDIS_DB`. No
+server-side config change required; the production systemd unit's lack of
+`REDIS_URL` / `REDIS_HOST` / `REDIS_PORT` env vars is now compatible.
+
+**Forward contract (do not regress)**:
+
+- `_is_redis_available()` **must not** add new short-circuits before the
+  retry loop. Specifically, do not re-add the
+  `if not redis_url: return False` early-exit. The retry loop
+  (`REDIS_INIT_RETRIES`, default 5; 1 in TESTING) is the only correct
+  way to declare Redis unavailable.
+- `tests/conftest.py::_FakeRedis` **must** implement every redis-py
+  method that `flask_caching.backends.rediscache.RedisCache` and
+  `services.cache_service.invalidate_leaderboard_cache()` call. Currently
+  this is: `get`, `set`, `setex`, `getset`, `delete`, `mget`, `keys`,
+  `scan_iter`, `ping`, `info`, `expire`, `ttl`, `exists`, `flushdb`,
+  `pipeline`, `execute`. If you exercise a new RedisCache code path,
+  extend the fake or tests will silently mask the bug (TIK-102 added
+  `scan_iter` after CI surfaced this).
+- `/health` endpoint **must** expose `cache_backend_type` and
+  `cache_type_config` so post-deploy validation (`curl /health × 10`)
+  remains a reliable smoke test for cache wiring. Do not remove the
+  TIK-100 instrumentation.
+
+**Diagnostic playbook (for future cache regressions)**:
+
+1. `curl https://shadow-hockey-league.ru/health × 10` and verify
+   `cache_backend_type=RedisCache` on all 10 probes (catches all 4
+   round-robined workers).
+2. If any probe shows `SimpleCache`, check the worker's systemd journal
+   for the INFO log
+   `"REDIS_URL not set; defaulting to redis://localhost:6379/0 ..."` —
+   absence indicates the new fallback branch isn't engaging; presence
+   plus SimpleCache indicates the retry exhausted (Redis genuinely
+   unreachable).
+3. `redis-cli ping` on the host to confirm Redis is up. Never trust
+   `/health.redis_status` for cache wiring — it can read `connected`
+   while workers run SimpleCache (different code path,
+   `CACHE_REDIS_HOST` defaults to localhost).
+
+**Related**: TIK-100 (deploy.sh warmup + /health instrumentation — kept
+as belt-and-suspenders), TIK-86 (`_LEADERBOARD_LOCK`, unrelated to this).
+
+---
+
 ## 2026-05-13: TIK-96 — prefix invalidation for `leaderboard*` keys (replaces `cache.clear()`)
 
 **Context**: `services/cache_service.invalidate_leaderboard_cache()` used to

@@ -12,6 +12,60 @@
 >   2026-05-08 → 2026-05-13, rotated per TIK-92 to hold this file under
 >   ~200 lines per the `doc-rotation` skill / TIK-92 DoD.
 
+## 2026-05-13: TIK-101 / TIK-102 / TIK-103 — Cache-init root cause fixed (RedisCache on all 4 workers)
+
+Three-iteration drill-down on the production cache-init bug that TIK-100
+only mitigated. Each iteration deployed cleanly and the next narrowed in
+on the actual prod env. **Final result:** 10/10 `/health` probes report
+`cache_backend_type=RedisCache`, season-tab TTFB ~0.93s uniformly across
+all 6 seasons (vs 5–30s pre-fix), cache genuinely shared across all 4
+gunicorn workers.
+
+**TIK-101 (PR #119, merged):** added retry-with-backoff in
+`app.py:_is_redis_available()` — probe Redis up to `REDIS_INIT_RETRIES`
+times (default 5, 1 in TESTING), sleeping `REDIS_INIT_RETRY_DELAY_SECONDS`
+(default 1.0) between attempts. 7 unit tests. **Did not solve the bug**
+because the retry loop was never reached (see TIK-102 below). The logic
+is still preserved as belt-and-suspenders for any future genuine
+systemd-ordering race where Redis isn't ready in time.
+
+**TIK-102 (PR #120, merged):** read the GitHub Actions deploy log and
+proved Redis was responsive *before* gunicorn restarted — so not a
+timing race at all. The real failure: `_is_redis_available()` short-
+circuits when `REDIS_URL` is unset, *before* the retry loop. Prod's
+systemd unit doesn't export `REDIS_URL` (only `REDIS_HOST` per the env
+file, we thought). Fix: when `REDIS_URL` is unset but `REDIS_HOST` or
+`REDIS_PORT` is set, construct `redis://{host}:{port}/{db}` and proceed.
+Also added `scan_iter()` to `_FakeRedis` test mock in
+`tests/conftest.py` — once the RedisCache branch was reachable in CI,
+`invalidate_leaderboard_cache()` started calling `client.scan_iter()`
+which the fake didn't implement (32 tests in CI failed; all green after
+the fake grew the method).
+
+**TIK-103 (PR #121, merged):** TIK-102 still didn't fire on prod —
+10/10 probes remained SimpleCache. The prod systemd unit exports
+**none** of the three: no `REDIS_URL`, no `REDIS_HOST`, no `REDIS_PORT`.
+`/health.redis_status=connected` only worked because `CACHE_REDIS_HOST`
+in the cache_config block defaults to `"localhost"` already — but
+`_is_redis_available()` didn't have that default. Removed the
+short-circuit entirely: always probe
+`redis://{REDIS_HOST or localhost}:{REDIS_PORT or 6379}/{REDIS_DB or 0}`.
+The retry loop handles genuine-no-Redis (local dev) correctly by
+exhausting attempts and falling back to SimpleCache.
+
+**Validation (post-TIK-103 deploy):**
+
+- `curl /health` × 10 → all 10 `cache_backend_type=RedisCache`,
+  `cache_type_config=RedisCache`
+- `curl /?season=5` × 5 consecutive → ~0.93s each (consistent, warm cache)
+- `curl /?season=N` for N=1..6 → 0.93–1.30s (all warm)
+
+**TIK-100 (deploy.sh warmup + /health instrumentation, prior cycle)** is
+still active but no longer load-bearing for the bug to stay invisible —
+the cache is now genuinely shared across workers. The `/health`
+instrumentation introduced by TIK-100 was decisive in diagnosing each
+iteration.
+
 ## 2026-05-13: TIK-100 — Prod hotfix: cache pre-warm + backend-type instrumentation
 
 Hotfix for the production "season-tab hang" — `?season=N` tab switches

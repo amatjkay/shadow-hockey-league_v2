@@ -9,12 +9,15 @@
 **Phase:** Maintenance. M2 (synthwave brand refresh + polish v2) and the
 `task-formulation` skill rollout are shipped; Linear backlog is empty.
 
-**Last shipped:** PR #91 (TIK-86) — `_LEADERBOARD_LOCK` in
-`services/rating_service.py` serializes `build_leaderboard()` to dodge a
-SQLAlchemy 2.0 joinedload cython race that surfaced as `IndexError: tuple
-index out of range` under concurrent reads. Sync gunicorn workers in prod
-never contend the lock; it only matters for the threaded test client and
-any future `--threads >1` worker.
+**Last shipped:** PR #121 (TIK-103) — final fix in
+`app.py:_is_redis_available()`: always default to
+`redis://{REDIS_HOST or localhost}:{REDIS_PORT or 6379}/{REDIS_DB or 0}`,
+no short-circuit. Production now reports `cache_backend_type=RedisCache`
+on 10/10 `/health` probes (was 0/10 SimpleCache post-TIK-100 / TIK-101 /
+TIK-102). Season-tab TTFB ~0.93s uniformly across all seasons. Three-PR
+cascade (TIK-101 retry-with-backoff → TIK-102 REDIS_HOST/PORT fallback →
+TIK-103 unconditional localhost default) — see `docs/decisionLog.md` for
+the forward contract.
 
 ---
 
