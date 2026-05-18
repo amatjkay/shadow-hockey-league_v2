@@ -260,21 +260,162 @@ class TestHealthBlueprint(unittest.TestCase):
             self.assertIn(field, data)
             self.assertIsInstance(data[field], str)
 
-    def test_health_endpoint_database_error_marks_degraded(self) -> None:
-        """When the DB session raises, /health reports ``database_status=error``.
+    def test_health_endpoint_database_error_marks_down(self) -> None:
+        """When the DB session raises, /health reports ``status=down`` and 503.
 
-        Targets the previously uncovered DB-error branch in
-        ``blueprints/health.py:67-71``.
+        TIK-91: DB failure escalates to ``status: down`` + HTTP 503 so k8s
+        readiness + uptime checkers both rotate the pod out. Pre-TIK-91 this
+        was ``status: degraded`` + HTTP 200.
         """
         with patch.object(db, "session") as fake_session:
             fake_session.begin.side_effect = RuntimeError("simulated db outage")
             response = self.client.get("/health")
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 503)
         data = response.get_json()
         self.assertEqual(data["database_status"], "error")
-        self.assertEqual(data["status"], "degraded")
+        self.assertEqual(data["status"], "down")
         self.assertIn("database_error", data)
+
+
+class TestHealthSLAContract(unittest.TestCase):
+    """TIK-91: /health strict-mode contract + Prometheus histogram.
+
+    Covers the four canonical scenarios from the DoD:
+
+    - DB up + Redis up                          → 200 healthy
+    - DB up + Redis down (strict=0, default)    → 200 degraded
+    - DB up + Redis down (strict=1)             → 503 degraded
+    - DB down (any strict)                      → 503 down
+
+    Plus: ``health_response_seconds`` histogram observes one sample
+    (labelled with the final status) after every call.
+    """
+
+    def setUp(self) -> None:
+        self.app = create_app("config.TestingConfig")
+        self.client = self.app.test_client()
+
+        with self.app.app_context():
+            db.create_all()
+
+    def tearDown(self) -> None:
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    @staticmethod
+    def _histogram_sample_count(status: str) -> float:
+        """Read the cumulative observation count for ``status`` on the
+        ``health_response_seconds`` histogram from the global Prometheus
+        registry.
+
+        Returns 0.0 when the label has never been observed.
+        """
+        from prometheus_client import REGISTRY
+
+        value = REGISTRY.get_sample_value("health_response_seconds_count", {"status": status})
+        return float(value) if value is not None else 0.0
+
+    def test_db_up_redis_up_returns_200_healthy(self) -> None:
+        """Scenario 1: DB up + Redis up → 200 + status=healthy."""
+        fake_client = MagicMock()
+        fake_client.ping.return_value = True
+        fake_client.info.return_value = {"used_memory": 0}
+        fake_client.set.return_value = True
+        fake_client.get.return_value = "ok"
+
+        before = self._histogram_sample_count("healthy")
+        with patch("redis.Redis", return_value=fake_client):
+            response = self.client.get("/health")
+        after = self._histogram_sample_count("healthy")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["status"], "healthy")
+        self.assertEqual(data["redis_status"], "connected")
+        self.assertEqual(data["database_status"], "connected")
+        self.assertAlmostEqual(after - before, 1.0)
+
+    def test_db_up_redis_down_default_returns_200_degraded(self) -> None:
+        """Scenario 2: DB up + Redis down (no strict) → 200 + status=degraded."""
+        import redis as _redis
+
+        fake_client = MagicMock()
+        fake_client.ping.side_effect = _redis.ConnectionError("simulated outage")
+
+        before = self._histogram_sample_count("degraded")
+        with patch("redis.Redis", return_value=fake_client):
+            response = self.client.get("/health")
+        after = self._histogram_sample_count("degraded")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["status"], "degraded")
+        self.assertEqual(data["redis_status"], "disconnected")
+        self.assertEqual(data["database_status"], "connected")
+        self.assertAlmostEqual(after - before, 1.0)
+
+    def test_db_up_redis_down_strict_query_returns_503(self) -> None:
+        """Scenario 3a: DB up + Redis down + ``?strict=1`` → 503 + degraded."""
+        import redis as _redis
+
+        fake_client = MagicMock()
+        fake_client.ping.side_effect = _redis.ConnectionError("simulated outage")
+
+        before = self._histogram_sample_count("degraded")
+        with patch("redis.Redis", return_value=fake_client):
+            response = self.client.get("/health?strict=1")
+        after = self._histogram_sample_count("degraded")
+
+        self.assertEqual(response.status_code, 503)
+        data = response.get_json()
+        self.assertEqual(data["status"], "degraded")
+        self.assertEqual(data["redis_status"], "disconnected")
+        self.assertAlmostEqual(after - before, 1.0)
+
+    def test_db_up_redis_down_strict_header_returns_503(self) -> None:
+        """Scenario 3b: DB up + Redis down + ``X-Health-Mode: strict`` → 503."""
+        import redis as _redis
+
+        fake_client = MagicMock()
+        fake_client.ping.side_effect = _redis.ConnectionError("simulated outage")
+
+        with patch("redis.Redis", return_value=fake_client):
+            response = self.client.get("/health", headers={"X-Health-Mode": "strict"})
+
+        self.assertEqual(response.status_code, 503)
+        data = response.get_json()
+        self.assertEqual(data["status"], "degraded")
+
+    def test_db_down_returns_503_down_regardless_of_strict(self) -> None:
+        """Scenario 4: DB down → 503 + status=down for any strict value."""
+        before_down = self._histogram_sample_count("down")
+
+        for strict_path in ("/health", "/health?strict=1"):
+            with patch.object(db, "session") as fake_session:
+                fake_session.begin.side_effect = RuntimeError("simulated db outage")
+                response = self.client.get(strict_path)
+            self.assertEqual(response.status_code, 503, f"{strict_path} should return 503")
+            data = response.get_json()
+            self.assertEqual(data["status"], "down")
+            self.assertEqual(data["database_status"], "error")
+
+        after_down = self._histogram_sample_count("down")
+        # Two calls in this test, both labelled ``down``.
+        self.assertAlmostEqual(after_down - before_down, 2.0)
+
+    def test_histogram_uses_required_buckets(self) -> None:
+        """Histogram is configured with the buckets pinned in TIK-91 DoD."""
+        from blueprints.health import HEALTH_RESPONSE_SECONDS
+
+        # ``_upper_bounds`` is the public-but-undocumented attribute
+        # ``prometheus_client`` uses to remember the configured buckets
+        # (``+Inf`` is appended automatically). Tested here so a future
+        # refactor that drops a bucket fails fast.
+        configured = tuple(HEALTH_RESPONSE_SECONDS._upper_bounds)
+        expected = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, float("inf"))
+        self.assertEqual(configured, expected)
 
 
 class TestMainBlueprint(unittest.TestCase):
