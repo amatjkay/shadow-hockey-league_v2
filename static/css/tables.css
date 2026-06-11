@@ -56,12 +56,12 @@
    specificity. */
 :root:not([data-theme="light"]) .table td,
 :root:not([data-theme="light"]) .table th {
-  color: rgba(255, 255, 255, 0.90);
+  color: rgba(255, 255, 255, 0.65);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .table td,
   :root:not([data-theme]) .table th {
-    color: rgba(255, 255, 255, 0.90);
+    color: rgba(255, 255, 255, 0.65);
   }
 }
 
