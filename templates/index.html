@@ -52,21 +52,19 @@
           aria-label="Закрыть"
           data-tooltip-close="points-help"
         >×</button>
+
+        <h5>Как считаются очки</h5>
         <p class="tooltip-intro">
-          <strong>Формула:</strong> база × множитель сезона
+          За каждое достижение менеджер получает очки по формуле:
+        </p>
+        <p class="tooltip-formula">
+          <strong>Итого = База × Множитель сезона</strong>
         </p>
 
-        <h5>📊 Множители сезонов</h5>
-        <ul class="tooltip-list">
-          {% for code, mul in season_multipliers.items() %}
-          <li><strong>s{{ code }}</strong> ×{{ "%.2f"|format(mul) }}</li>
-          {% endfor %}
-        </ul>
-
-        <h5>🏆 Базовые очки</h5>
-        <p class="tooltip-intro" style="margin-bottom: 6px;">
-          Л1 : Л2 = <strong>2 : 1</strong> — каждый тип
-          стоит ровно половину
+        <h5>Базовые очки</h5>
+        <p class="tooltip-intro">
+          Каждое достижение имеет фиксированную стоимость в зависимости от
+          лиги. В Элитной лиге (Л1) очки вдвое выше, чем во Второй (Л2).
         </p>
         <table class="tooltip-table">
           <thead>
@@ -86,6 +84,23 @@
             {% endfor %}
           </tbody>
         </table>
+
+        <h5>Множитель сезона</h5>
+        <p class="tooltip-intro">
+          Чем старше сезон — тем меньше его вес. Текущий сезон ({{ current_season }})
+          считается базовым (×1.00), каждый предыдущий умножается на 0.7.
+        </p>
+        <ul class="tooltip-list">
+          {% for code, mul in season_multipliers.items() %}
+          <li><strong>{{ code }}</strong> — ×{{ "%.2f"|format(mul) }}</li>
+          {% endfor %}
+        </ul>
+
+        <h5>Пример расчёта</h5>
+        <p class="tooltip-intro">
+          Чемпион Элитной лиги в сезоне 23/24:<br>
+          <strong>1000 × 0.49 = 490 очков</strong>
+        </p>
       </div>
     </div>
 

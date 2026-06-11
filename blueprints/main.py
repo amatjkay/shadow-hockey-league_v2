@@ -88,6 +88,7 @@ def index() -> str | tuple[str, int]:
             .order_by(AchievementType.base_points_l1.desc())
             .all()
         )
+        current_season = next((s.code for s in seasons if s.is_active), seasons[0].code if seasons else "25/26")
 
         elapsed_ms = round((time.time() - start_time) * 1000)
 
@@ -103,6 +104,7 @@ def index() -> str | tuple[str, int]:
             selected_season_id=season_id,
             season_multipliers=season_multipliers,
             achievement_types=achievement_types,
+            current_season=current_season,
         )
 
     except Exception as e:
