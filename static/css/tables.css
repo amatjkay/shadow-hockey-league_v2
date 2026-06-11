@@ -58,9 +58,15 @@
 :root:not([data-theme="light"]) .table th {
   color: rgba(255, 255, 255, 0.65);
 }
+:root:not([data-theme="light"]) .rank-cell__pill {
+  color: rgba(255, 255, 255, 0.65);
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .table td,
   :root:not([data-theme]) .table th {
+    color: rgba(255, 255, 255, 0.65);
+  }
+  :root:not([data-theme]) .rank-cell__pill {
     color: rgba(255, 255, 255, 0.65);
   }
 }
