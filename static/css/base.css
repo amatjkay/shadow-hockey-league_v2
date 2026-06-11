@@ -137,13 +137,13 @@
      paired with a soft `backdrop-filter` on `.table` so the bg only
      gently diffuses (not muddies). Light-theme override below keeps
      text contrast ≥ AA against the dark-on-light card content. */
-  --shl-table-glass-bg-flat: rgba(7, 4, 35, 0.25);
+  --shl-table-glass-bg-flat: rgba(15, 10, 50, 0.15);
   --shl-table-glass-bg: linear-gradient(
     180deg,
-    rgba(7, 4, 35, 0.25) 0%,
-    rgba(7, 4, 35, 0.13) 100%
+    rgba(15, 10, 50, 0.15) 0%,
+    rgba(15, 10, 50, 0.08) 100%
   );
-  --shl-table-glass-border: rgba(255, 255, 255, 0.10);
+  --shl-table-glass-border: rgba(255, 255, 255, 0.12);
 
   /* Neon-glow box-shadow recipes — magenta + cyan layered. */
   --shl-neon-glow-magenta:

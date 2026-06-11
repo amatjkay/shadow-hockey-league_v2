@@ -12,78 +12,47 @@ The rating is used to build the leaderboard displayed on the main page.
 
 from __future__ import annotations
 
-import threading
-from typing import Any, cast
+from typing import Any
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Session, joinedload
 
 from models import Achievement, AchievementType, League, Manager, Season
-from services._types import SessionLike
-from services.scoring_service import get_base_points
-
-# Serializes the joinedload-heavy leaderboard query across threads to avoid a
-# SQLAlchemy 2.0 cython result-processor race that produces `IndexError: tuple
-# index out of range` and `None` rows under concurrent reads (TIK-86). Prod runs
-# `gunicorn --workers 4 --sync` so contention is impossible; the lock matters
-# for the threaded test client and any future `--threads >1` worker.
-_LEADERBOARD_LOCK = threading.Lock()
 
 # ==================== Fallback constants (used if reference tables are empty) ====================
 
-# Base points for each league and achievement type combination (TIK-80).
-#
-# Compact-10 scale: TOP1 L1 = 10.0 is the cap, all other values are scaled
-# down proportionally. The scale stays in single-/low-double digits so the
-# leaderboard is easy to read (champion ≈ 20, not 1635).
-#
-# League 2 = ~60 % of League 1 (was 50 %): hard 2× ratio overstated the gap
-# between divisions. Subleagues 2.1 / 2.2 inherit L2 values via
-# ``League.parent_code`` — see ``services/scoring_service.get_base_points``.
-#
-# ``BEST > TOP3`` (was equal): regular-season MVP outranks one playoff bronze
-# series.
-BASE_POINTS: dict[tuple[str, str], float] = {
-    # League 1 - Elite division
-    ("1", "TOP1"): 10.0,
-    ("1", "TOP2"): 5.0,
-    ("1", "TOP3"): 2.5,
-    ("1", "BEST"): 3.0,
-    ("1", "R3"): 1.5,
-    ("1", "R1"): 0.75,
-    # League 2 - Second division (~60 % of L1 values)
-    ("2", "TOP1"): 6.0,
-    ("2", "TOP2"): 3.0,
-    ("2", "TOP3"): 1.5,
-    ("2", "BEST"): 1.8,
-    ("2", "R3"): 0.9,
-    ("2", "R1"): 0.45,
+# Base points for each league and achievement type combination
+# L1:L2 = 2:1 consistently — L2 is exactly half of L1 for every achievement type
+BASE_POINTS: dict[tuple[str, str], int] = {
+    ("1", "TOP1"): 1000,  ("2", "TOP1"): 500,
+    ("1", "TOP2"): 600,   ("2", "TOP2"): 300,
+    ("1", "TOP3"): 400,   ("2", "TOP3"): 200,
+    ("1", "BEST"): 200,   ("2", "BEST"): 100,
+    ("1", "R3"):   150,   ("2", "R3"):   75,
+    ("1", "R1"):   80,    ("2", "R1"):   40,
 }
 
-# Season multipliers — smooth exponential decay ``0.7 ^ years_ago`` (TIK-80).
-# Was uneven: −20 %, −38 %, −40 %, −33 % year-on-year. New curve gives a
-# constant −30 % per year, no cliffs. Future seasons (26/27, …) just need
-# ``is_active=True`` to flip to baseline; older seasons follow the same
-# curve via ``years_ago = active_year - season_year``.
+# Season multipliers - current season is baseline (1.00), older seasons have discount
+# Logic: recent achievements are more valuable than old ones
 SEASON_MULTIPLIER: dict[str, float] = {
-    "25/26": 1.000,  # Baseline (years_ago=0)
-    "24/25": 0.700,  # 0.7^1
-    "23/24": 0.490,  # 0.7^2
-    "22/23": 0.343,  # 0.7^3
-    "21/22": 0.240,  # 0.7^4
+    "25/26": 1.00,  # Current/latest season - baseline
+    "24/25": 0.95,  # Previous season - 5% discount
+    "23/24": 0.90,  # Older season - 10% discount
+    "22/23": 0.85,  # Oldest season - 15% discount
+    "21/22": 0.80,  # Ancient season - 20% discount
 }
 
 # Human-readable labels for achievement kinds
 LABEL_RU: dict[str, str] = {
-    "TOP1": "TOP1",
-    "TOP2": "TOP2",
-    "TOP3": "TOP3",
-    "BEST": "Best regular",
-    "R3": "Round 3",
-    "R1": "Round 1",
+    "TOP1": "Чемпион",
+    "TOP2": "Финалист",
+    "TOP3": "Полуфинал",
+    "BEST": "Регулярка",
+    "R3": "Раунд 3",
+    "R1": "Раунд 1",
 }
 
 
-def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], float]:
+def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
     """Read base points from AchievementType reference table.
 
     Falls back to hardcoded BASE_POINTS if table is empty.
@@ -92,29 +61,26 @@ def _get_base_points_from_db(session: SessionLike) -> dict[tuple[str, str], floa
         session: SQLAlchemy database session
 
     Returns:
-        Dictionary mapping (league_code, type_code) -> base points as float.
-        Floats preserve compact-scale fractional values like ``2.5`` (TOP3 L1)
-        without rounding to ``2`` and collapsing onto ``BEST``.
+        Dictionary mapping (league_code, type_code) -> base points
     """
     types = session.query(AchievementType).all()
     if not types:
         return BASE_POINTS  # Fallback to hardcoded
 
-    leagues = session.query(League).all()
+    leagues = {l.code: l.code for l in session.query(League).all()}
     if not leagues:
         return BASE_POINTS
 
-    result: dict[tuple[str, str], float] = {}
+    result: dict[tuple[str, str], int] = {}
     for ach_type in types:
-        for league in leagues:
-            # get_base_points honours League.parent_code so subleagues like 2.1
-            # correctly inherit base_points_l2 from their parent.
-            result[(league.code, ach_type.code)] = float(get_base_points(ach_type, league))
+        for league_code in leagues:
+            points = ach_type.base_points_l1 if league_code == "1" else ach_type.base_points_l2
+            result[(league_code, ach_type.code)] = points
 
     return result
 
 
-def _get_season_multiplier_from_db(session: SessionLike) -> dict[str, float]:
+def _get_season_multiplier_from_db(session: Session) -> dict[str, float]:
     """Read season multipliers from Season reference table.
 
     Falls back to hardcoded SEASON_MULTIPLIER if table is empty.
@@ -143,7 +109,7 @@ def get_achievement_kind(achievement: Achievement) -> str:
     """
     # Use the relationship to get the type code
     type_code = achievement.type.code if achievement.type else achievement.title.split()[0]
-
+    
     if type_code.startswith("TOP"):
         return type_code
     if "Best regular" in achievement.title:
@@ -157,7 +123,7 @@ def get_achievement_kind(achievement: Achievement) -> str:
 
 def calculate_achievement_points(
     achievement: Achievement,
-    base_points: dict[tuple[str, str], float] | None = None,
+    base_points: dict[tuple[str, str], int] | None = None,
     season_multiplier: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Calculate points for a single achievement.
@@ -168,13 +134,7 @@ def calculate_achievement_points(
         season_multiplier: Optional pre-loaded season multiplier dict (for batch operations)
 
     Returns:
-        Dictionary with points calculation details. ``points`` is rounded to
-        2 decimals so the compact scale (``TOP1 L1 = 10.0``) keeps meaningful
-        precision (e.g. ``10.0 × 0.49 = 4.9`` instead of being truncated to
-        ``5``). ``points_exact`` is the un-rounded ``base × mul`` — callers
-        that aggregate across achievements (e.g. the leaderboard total)
-        must sum ``points_exact`` to avoid phantom ties where two managers
-        with different careers round to the same 2-decimal total.
+        Dictionary with points calculation details
     """
     kind = get_achievement_kind(achievement)
 
@@ -183,24 +143,18 @@ def calculate_achievement_points(
     sm = season_multiplier if season_multiplier is not None else SEASON_MULTIPLIER
 
     # Get codes from relationships
-    league_code = (
-        achievement.league.code
-        if achievement.league
-        else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
-    )
+    league_code = achievement.league.code if achievement.league else achievement.title.split()[1] if len(achievement.title.split()) > 1 else "1"
     season_code = achievement.season.code if achievement.season else "24/25"
 
     # Calculate points: base × multiplier
-    base = bp.get((league_code, kind), 0.0)
+    base = bp.get((league_code, kind), 0)
     mul = sm.get(season_code, 1.0)
-    points_exact = base * mul
-    points = round(points_exact, 2)
+    points = round(base * mul)
     label = LABEL_RU.get(kind, kind)
     mul_display = f"{mul:.2f}".replace(".", ",")
 
     return {
         "points": points,
-        "points_exact": points_exact,
         "base": base,
         "mul": mul,
         "mul_display": mul_display,
@@ -212,7 +166,7 @@ def calculate_achievement_points(
     }
 
 
-def build_leaderboard(session: SessionLike, season_id: int | None = None) -> list[dict[str, Any]]:
+def build_leaderboard(session: Session) -> list[dict[str, Any]]:
     """Build the leaderboard with all managers and their ratings.
 
     Uses eager loading (joinedload) to prevent N+1 query problem:
@@ -220,36 +174,11 @@ def build_leaderboard(session: SessionLike, season_id: int | None = None) -> lis
     - Loads country data for each manager in the same query
     - Loads base points and season multipliers from reference tables (1 query each)
 
-    Serialized through ``_LEADERBOARD_LOCK`` (TIK-86) to dodge a SQLAlchemy
-    cython result-processor race under concurrent threaded reads. The lock
-    is a no-op in production (sync gunicorn workers never contend it) and
-    only fires on cold-cache fan-out in the test client.
-
     Args:
-        session: SQLAlchemy database session.
-        season_id: Optional ``Season.id``. When provided, only achievements
-            tied to that season contribute to the leaderboard rows — totals,
-            ranks, and the per-manager achievement list are all computed as
-            if no other seasons existed. Managers without any achievement
-            in the requested season are still returned (with ``total=0``)
-            so the dropdown does not silently hide active managers.
-            ``None`` means lifetime aggregate (all seasons).
+        session: SQLAlchemy database session
 
     Returns:
         List of manager rating dictionaries, sorted by total points descending
-    """
-    with _LEADERBOARD_LOCK:
-        return _build_leaderboard_impl(session, season_id=season_id)
-
-
-def _build_leaderboard_impl(
-    session: SessionLike, season_id: int | None = None
-) -> list[dict[str, Any]]:
-    """Inner implementation of :func:`build_leaderboard` (TIK-86).
-
-    Kept separate so :func:`build_leaderboard` is just the lock wrapper —
-    callers and unit tests that need to bypass the lock (e.g. for a
-    targeted micro-benchmark) can import this directly.
     """
     # Load reference data from DB (with fallback to hardcoded)
     base_points = _get_base_points_from_db(session)
@@ -263,7 +192,7 @@ def _build_leaderboard_impl(
             joinedload(Manager.achievements).joinedload(Achievement.type),
             joinedload(Manager.achievements).joinedload(Achievement.league),
             joinedload(Manager.achievements).joinedload(Achievement.season),
-            joinedload(Manager.country),
+            joinedload(Manager.country)
         )
         .order_by(Manager.name)
         .all()
@@ -273,27 +202,16 @@ def _build_leaderboard_impl(
 
     for manager in managers:
         achievements_data: list[dict[str, Any]] = []
-        total_points: float = 0.0
+        total_points = 0
 
         # Safely handle country (BUG FIX: manager.country might be None in some tests)
-        country_flag = manager.country.flag_display_url if manager.country else ""
+        country_flag = manager.country.flag_path if manager.country else ""
         country_code = manager.country.code if manager.country else "???"
 
-        for achievement in cast(list[Achievement], manager.achievements):
-            # Season filter: when the caller asked for one specific season,
-            # skip every achievement that does not belong to it. Passing
-            # season_id=None preserves the lifetime aggregate behaviour.
-            if season_id is not None and achievement.season_id != season_id:
-                continue
-
+        for achievement in manager.achievements:
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)
-
-            # Sum the un-rounded value so two careers like ``6.00 + 1.80``
-            # and ``6.00 + 1.26 + 0.22 + 0.32`` (= 7.7955 exactly) do not
-            # collapse to an identical 7.80 total just because each
-            # achievement was rounded to 2dp before summing.
-            total_points += parsed["points_exact"]
+            total_points += parsed["points"]
 
         rows.append(
             {
@@ -308,15 +226,13 @@ def _build_leaderboard_impl(
             }
         )
 
-    # Sort by exact total points descending, then by name ascending.
+    # Sort by total points descending, then by name ascending
     rows.sort(key=lambda r: (-r["total"], r["name"]))
 
-    # Assign ranks — strict float equality is correct here because two rows
-    # only tie when their sums of ``base × mul`` are bit-for-bit identical
-    # (i.e. the careers truly produce the same number).
+    # Assign ranks (same points = same rank)
     result: list[dict[str, Any]] = []
     rank = 0
-    prev_total: float | None = None
+    prev_total: int | None = None
 
     for i, row in enumerate(rows, start=1):
         if row["total"] != prev_total:
@@ -330,40 +246,7 @@ def _build_leaderboard_impl(
             }
         )
 
-    _assign_total_display(result)
     return result
-
-
-def _assign_total_display(result: list[dict[str, Any]]) -> None:
-    """Add a ``total_display`` string to every row.
-
-    Default precision is 2 decimals to keep the compact-10 leaderboard short.
-    For top-10 rows where two distinct ranks would otherwise render the same
-    2-decimal value (e.g. exact totals ``7.8000`` and ``7.7955`` both display
-    as ``"7.80"`` but get different ranks), all rows in that visual-collision
-    group are bumped to 3 decimals so users can see why the ranks differ.
-
-    True ties (identical exact totals → identical rank) keep 2 decimals; the
-    shared rank pill already conveys the tie, so the third decimal would add
-    a trailing ``0`` with no extra information.
-    """
-    top10 = result[:10]
-    by_2dp: dict[str, list[int]] = {}
-    for idx, row in enumerate(top10):
-        key = f"{row['total']:.2f}"
-        by_2dp.setdefault(key, []).append(idx)
-
-    needs_3dp: set[int] = set()
-    for indices in by_2dp.values():
-        ranks = {top10[i]["rank"] for i in indices}
-        if len(ranks) > 1:
-            needs_3dp.update(indices)
-
-    for i, row in enumerate(result):
-        if i in needs_3dp:
-            row["total_display"] = f"{row['total']:.3f}"
-        else:
-            row["total_display"] = f"{row['total']:.2f}"
 
 
 # ==================== Auto-Recalculation Triggers (FR-005) ====================
@@ -406,26 +289,26 @@ def setup_rating_triggers() -> None:
                 season = session.get(Season, target.season_id)
 
         if ach_type and league and season:
-            ach_type_resolved = cast(AchievementType, ach_type)
-            league_resolved = cast(League, league)
-            season_resolved = cast(Season, season)
-            target.base_points = get_base_points(ach_type_resolved, league_resolved)
-            target.multiplier = float(season_resolved.multiplier)
+            target.base_points = float(
+                ach_type.base_points_l1 if league.code == '1'
+                else ach_type.base_points_l2
+            )
+            target.multiplier = float(season.multiplier)
             target.final_points = round(target.base_points * target.multiplier, 2)
 
-    @event.listens_for(Achievement, "before_insert")
-    def achievement_before_insert(_mapper: Any, _connection: Any, target: Achievement) -> None:
+    @event.listens_for(Achievement, 'before_insert')
+    def achievement_before_insert(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before insert."""
         _recalculate_points(target)
 
-    @event.listens_for(Achievement, "before_update")
-    def achievement_before_update(_mapper: Any, _connection: Any, target: Achievement) -> None:
+    @event.listens_for(Achievement, 'before_update')
+    def achievement_before_update(mapper: Any, connection: Any, target: Achievement) -> None:
         """Auto-calculate points before update if relevant fields changed."""
         _recalculate_points(target)
 
-    @event.listens_for(Achievement, "after_delete")
-    def achievement_after_delete(_mapper: Any, _connection: Any, target: Achievement) -> None:
+    @event.listens_for(Achievement, 'after_delete')
+    def achievement_after_delete(mapper: Any, connection: Any, target: Achievement) -> None:
         """Invalidate leaderboard cache after achievement deletion."""
         from services.cache_service import invalidate_leaderboard_cache
-
         invalidate_leaderboard_cache()
+

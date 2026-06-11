@@ -55,8 +55,8 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_seasons_code"), "seasons", ["code"], unique=False)
 
-    # Seed reference data
-    # Achievement types with base points matching the hardcoded values
+    # Seed reference data — ADR-006: consistent L1:L2 = 2:1
+    # See migration d4e5f6a7b8c9 for full rationale
     op.bulk_insert(
         sa.table(
             "achievement_types",
@@ -66,12 +66,12 @@ def upgrade() -> None:
             sa.column("base_points_l2", sa.Integer),
         ),
         [
-            {"code": "TOP1", "name": "TOP1", "base_points_l1": 800, "base_points_l2": 300},
-            {"code": "TOP2", "name": "TOP2", "base_points_l1": 550, "base_points_l2": 200},
-            {"code": "TOP3", "name": "TOP3", "base_points_l1": 450, "base_points_l2": 100},
-            {"code": "BEST", "name": "Best regular", "base_points_l1": 50, "base_points_l2": 40},
-            {"code": "R3", "name": "Round 3", "base_points_l1": 30, "base_points_l2": 20},
-            {"code": "R1", "name": "Round 1", "base_points_l1": 10, "base_points_l2": 5},
+            {"code": "TOP1", "name": "Чемпион", "base_points_l1": 1000, "base_points_l2": 500},
+            {"code": "TOP2", "name": "Финалист", "base_points_l1": 600, "base_points_l2": 300},
+            {"code": "TOP3", "name": "Полуфинал", "base_points_l1": 400, "base_points_l2": 200},
+            {"code": "BEST", "name": "Лучший регулярый", "base_points_l1": 200, "base_points_l2": 100},
+            {"code": "R3", "name": "Раунд 3", "base_points_l1": 150, "base_points_l2": 75},
+            {"code": "R1", "name": "Раунд 1", "base_points_l1": 80, "base_points_l2": 40},
         ],
     )
 
