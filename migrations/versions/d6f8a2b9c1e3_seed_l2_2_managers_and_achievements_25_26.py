@@ -87,6 +87,14 @@ def _esc(value: str) -> str:
     return value.replace("'", "''")
 
 
+def _has_legacy_achievement_columns() -> bool:
+    """Return True if achievements still has pre-FK text columns."""
+
+    bind = op.get_bind()
+    columns = {row[1] for row in bind.exec_driver_sql("PRAGMA table_info(achievements)")}
+    return {"achievement_type", "league", "season"}.issubset(columns)
+
+
 def upgrade() -> None:
     # 1. Insert 14 new managers (idempotent: skip rows already present by name).
     #    country_id resolved through subquery; if RUS is missing the INSERT
@@ -108,18 +116,20 @@ def upgrade() -> None:
     #    base_points / multiplier / final_points pre-computed (see module
     #    docstring); SQLAlchemy event listeners do not fire on raw SQL.
     #    created_at / updated_at fall back to their server_default = now().
+    has_legacy_columns = _has_legacy_achievement_columns()
     for manager_name, type_code, base_points, title, icon in NEW_ACHIEVEMENTS_L2_2_25_26:
-        icon_path = f"/static/img/cups/{icon}"
+        legacy_columns = ", achievement_type, league, season" if has_legacy_columns else ""
+        legacy_values = f", '{_esc(type_code)}', '2.2', '25/26'" if has_legacy_columns else ""
         op.execute(f"""
             INSERT INTO achievements (
-                manager_id, type_id, league_id, season_id,
+                manager_id, type_id, league_id, season_id{legacy_columns},
                 base_points, multiplier, final_points,
                 title, icon_path
             )
             SELECT
-                m.id, t.id, l.id, s.id,
+                m.id, t.id, l.id, s.id{legacy_values},
                 {base_points}, 1.0, {base_points},
-                '{_esc(title)}', '{_esc(icon_path)}'
+                '{_esc(title)}', '/static/img/cups/{_esc(icon)}'
             FROM managers m, achievement_types t, leagues l, seasons s
             WHERE m.name = '{_esc(manager_name)}'
               AND t.code = '{type_code}'
