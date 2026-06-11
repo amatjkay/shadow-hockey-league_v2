@@ -48,6 +48,23 @@
   border-bottom: 0;
 }
 
+/* Dark theme: table text must be light against the dark glass card.
+   Default --shl-ink (#282828) is invisible on the translucent deep-violet
+   table background. Top-10 rows get their own rainbow-gradient color via
+   background-clip, so this only affects rows 11+ and header. Top-3 pill
+   colors (gold/silver/bronze) keep their own `color` and win by
+   specificity. */
+:root:not([data-theme="light"]) .table td,
+:root:not([data-theme="light"]) .table th {
+  color: rgba(255, 255, 255, 0.90);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .table td,
+  :root:not([data-theme]) .table th {
+    color: rgba(255, 255, 255, 0.90);
+  }
+}
+
 .table-header {
   text-transform: none;
   width: auto;
