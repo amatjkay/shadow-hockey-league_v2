@@ -152,6 +152,11 @@ upstream issues are now handled natively by the pinned versions:
    no-op against the current pin.
 2. **`Field.__init__`** — Flask-Admin no longer forwards `allow_blank` to
    WTForms **3.2.x** base fields, so stripping the kwarg is unnecessary.
+3. **ModelView session input** — project views may be constructed with either
+   `db.session` or the Flask-SQLAlchemy extension `db`; `SHLModelView.__init__`
+   normalizes extension input to `db.session` before calling Flask-Admin. This
+   avoids misleading `cls=self` fallback errors triggered by internal
+   `self.session.query(...)` failures.
 
 If a future bump re-introduces either incompatibility, restore a small
 `utils/patches.py` and call `apply_patches()` from `create_app()` **before**

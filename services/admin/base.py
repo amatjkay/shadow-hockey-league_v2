@@ -15,6 +15,11 @@ admin_logger = logging.getLogger("shleague.admin")
 class SHLModelView(ModelView):
     """Base model view with common security and logging."""
 
+    def __init__(self, model: Any, session: Any, **kwargs: Any) -> None:
+        """Initialize with either a SQLAlchemy session or Flask-SQLAlchemy extension."""
+        real_session = getattr(session, "session", session)
+        super().__init__(model, real_session, **kwargs)
+
     # UI Customization
     list_template = "admin/model/list.html"
     create_template = "admin/model/create.html"
