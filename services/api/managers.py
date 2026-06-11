@@ -28,7 +28,7 @@ def get_managers() -> tuple[Any, int]:
     # Eager-load country and achievements to avoid N+1.
     query = (
         db.session.query(Manager)
-        .options(joinedload(Manager.country), selectinload(Manager.achievements))
+        .options(joinedload(Manager.country), selectinload(Manager.achievements))  # type: ignore[arg-type]
         .join(Country)
     )
 
@@ -112,9 +112,9 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
         db.session.query(Manager)
         .options(
             joinedload(Manager.country),
-            selectinload(Manager.achievements).joinedload(Achievement.type),
-            selectinload(Manager.achievements).joinedload(Achievement.league),
-            selectinload(Manager.achievements).joinedload(Achievement.season),
+            selectinload(Manager.achievements).joinedload(Achievement.type),  # type: ignore[arg-type]
+            selectinload(Manager.achievements).joinedload(Achievement.league),  # type: ignore[arg-type]
+            selectinload(Manager.achievements).joinedload(Achievement.season),  # type: ignore[arg-type]
         )
         .filter_by(id=manager_id)
         .first()
@@ -144,7 +144,7 @@ def get_manager(manager_id: int) -> tuple[Any, int]:
                         "title": a.title,
                         "icon_path": a.icon_path,
                     }
-                    for a in manager.achievements
+                    for a in manager.achievements  # type: ignore[attr-defined]
                 ],
             }
         ),

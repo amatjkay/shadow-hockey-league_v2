@@ -130,9 +130,9 @@ class TestBulkLoadPerformance(IntegrationTestCase):
                         manager_id=manager_id,
                     )
                     # Assign relationships directly so event listener skips lookups
-                    achievement.type = type_objs[type_list[j]]
-                    achievement.league = league_obj
-                    achievement.season = season_obj
+                    achievement.type = type_objs[type_list[j]]  # type: ignore[assignment]
+                    achievement.league = league_obj  # type: ignore[assignment]
+                    achievement.season = season_obj  # type: ignore[assignment]
                     db.session.add(achievement)
             db.session.commit()
 

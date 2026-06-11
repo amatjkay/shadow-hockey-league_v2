@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, scoped_session
 
 from models import Achievement, AchievementType, League, Manager, Season
 
@@ -58,7 +58,7 @@ LABEL_RU: dict[str, str] = {
 }
 
 
-def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
+def _get_base_points_from_db(session: Session | scoped_session) -> dict[tuple[str, str], int]:
     """Read base points from AchievementType reference table.
 
     Falls back to hardcoded BASE_POINTS if table is empty.
@@ -86,7 +86,7 @@ def _get_base_points_from_db(session: Session) -> dict[tuple[str, str], int]:
     return result
 
 
-def _get_season_multiplier_from_db(session: Session) -> dict[str, float]:
+def _get_season_multiplier_from_db(session: Session | scoped_session) -> dict[str, float]:
     """Read season multipliers from Season reference table.
 
     Falls back to hardcoded SEASON_MULTIPLIER if table is empty.
@@ -176,7 +176,9 @@ def calculate_achievement_points(
     }
 
 
-def build_leaderboard(session: Session, season_id: int | None = None) -> list[dict[str, Any]]:
+def build_leaderboard(
+    session: Session | scoped_session, season_id: int | None = None
+) -> list[dict[str, Any]]:
     """Build the leaderboard with all managers and their ratings.
 
     Uses eager loading (joinedload) to prevent N+1 query problem:
@@ -200,9 +202,9 @@ def build_leaderboard(session: Session, season_id: int | None = None) -> list[di
     managers = (
         session.query(Manager)
         .options(
-            joinedload(Manager.achievements).joinedload(Achievement.type),
-            joinedload(Manager.achievements).joinedload(Achievement.league),
-            joinedload(Manager.achievements).joinedload(Achievement.season),
+            joinedload(Manager.achievements).joinedload(Achievement.type),  # type: ignore[arg-type]
+            joinedload(Manager.achievements).joinedload(Achievement.league),  # type: ignore[arg-type]
+            joinedload(Manager.achievements).joinedload(Achievement.season),  # type: ignore[arg-type]
             joinedload(Manager.country),
         )
         .order_by(Manager.name)
@@ -219,9 +221,8 @@ def build_leaderboard(session: Session, season_id: int | None = None) -> list[di
         country_flag = manager.country.flag_path if manager.country else ""
         country_code = manager.country.code if manager.country else "???"
 
-        filtered = (
-            a for a in manager.achievements if season_id is None or a.season_id == season_id
-        )
+        achievements_list: list[Achievement] = list(manager.achievements)
+        filtered = (a for a in achievements_list if season_id is None or a.season_id == season_id)
         for achievement in filtered:
             parsed = calculate_achievement_points(achievement, base_points, season_mult)
             achievements_data.append(parsed)

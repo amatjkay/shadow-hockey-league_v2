@@ -30,9 +30,9 @@ def get_achievements() -> tuple[Any, int]:
     """Get all achievements with optional filtering and pagination."""
     # Eager-load every relationship serialised below to avoid N+1.
     query = db.session.query(Achievement).options(
-        joinedload(Achievement.type),
-        joinedload(Achievement.league),
-        joinedload(Achievement.season),
+        joinedload(Achievement.type),  # type: ignore[arg-type]
+        joinedload(Achievement.league),  # type: ignore[arg-type]
+        joinedload(Achievement.season),  # type: ignore[arg-type]
         joinedload(Achievement.manager),
     )
 

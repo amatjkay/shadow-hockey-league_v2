@@ -148,9 +148,9 @@ def health_check() -> Response:
         health_status["redis_status"] = "connected"
 
         redis_info = redis_client.info("memory")
-        health_status["redis_used_memory_bytes"] = redis_info.get("used_memory", 0)
+        health_status["redis_used_memory_bytes"] = redis_info.get("used_memory", 0)  # type: ignore[union-attr]
         health_status["redis_used_memory_mb"] = round(
-            redis_info.get("used_memory", 0) / 1024 / 1024, 2
+            redis_info.get("used_memory", 0) / 1024 / 1024, 2  # type: ignore[union-attr]
         )
 
         cache.set("_health_check", "ok", timeout=5)

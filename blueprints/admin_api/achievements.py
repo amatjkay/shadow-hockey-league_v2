@@ -256,9 +256,9 @@ def get_manager_achievements(manager_id: int) -> Any:
         achievements = (
             db.session.query(Achievement)
             .options(
-                joinedload(Achievement.type),
-                joinedload(Achievement.league),
-                joinedload(Achievement.season),
+                joinedload(Achievement.type),  # type: ignore[arg-type]
+                joinedload(Achievement.league),  # type: ignore[arg-type]
+                joinedload(Achievement.season),  # type: ignore[arg-type]
             )
             .filter_by(manager_id=manager_id)
             .all()

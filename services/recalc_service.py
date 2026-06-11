@@ -32,11 +32,11 @@ def _recalc_single_achievement(achievement: Achievement) -> None:
     """
     # Ensure relationships are loaded if we only have IDs
     if not achievement.type and achievement.type_id:
-        achievement.type = db.session.get(AchievementType, achievement.type_id)
+        achievement.type = db.session.get(AchievementType, achievement.type_id)  # type: ignore[assignment]
     if not achievement.league and achievement.league_id:
-        achievement.league = db.session.get(League, achievement.league_id)
+        achievement.league = db.session.get(League, achievement.league_id)  # type: ignore[assignment]
     if not achievement.season and achievement.season_id:
-        achievement.season = db.session.get(Season, achievement.season_id)
+        achievement.season = db.session.get(Season, achievement.season_id)  # type: ignore[assignment]
 
     if not all([achievement.type, achievement.league, achievement.season]):
         logger.warning(

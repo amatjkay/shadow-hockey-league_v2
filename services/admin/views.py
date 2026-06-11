@@ -228,11 +228,11 @@ class AchievementModelView(SHLModelView):
         if not model.type or not model.league or not model.season:
             # Re-fetch if they are just IDs
             if model.type_id:
-                model.type = db.session.get(AchievementType, model.type_id)
+                model.type = db.session.get(AchievementType, model.type_id)  # type: ignore[assignment]
             if model.league_id:
-                model.league = db.session.get(League, model.league_id)
+                model.league = db.session.get(League, model.league_id)  # type: ignore[assignment]
             if model.season_id:
-                model.season = db.session.get(Season, model.season_id)
+                model.season = db.session.get(Season, model.season_id)  # type: ignore[assignment]
 
         if model.type and model.league and model.season:
             type_resolved = cast(AchievementType, model.type)

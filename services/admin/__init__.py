@@ -167,7 +167,7 @@ class SHLAdminIndexView(AdminIndexView):
             password = request.form.get("password")
 
             user = db.session.query(AdminUser).filter_by(username=username).first()
-            if user and user.check_password(password):
+            if user and user.check_password(password):  # type: ignore[arg-type]
                 login_user(user)
                 admin_logger.info(f"Admin login: {username}")
                 return redirect(url_for(".index"))

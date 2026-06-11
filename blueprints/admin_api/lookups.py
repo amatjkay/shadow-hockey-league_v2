@@ -337,7 +337,7 @@ def get_achievement_types() -> Any:
                 db.or_(AchievementType.name.ilike(f"%{q}%"), AchievementType.code.ilike(f"%{q}%"))
             )
 
-        types = types.order_by(AchievementType.name).all()
+        types = types.order_by(AchievementType.name).all()  # type: ignore[assignment]
 
         return jsonify(
             {
