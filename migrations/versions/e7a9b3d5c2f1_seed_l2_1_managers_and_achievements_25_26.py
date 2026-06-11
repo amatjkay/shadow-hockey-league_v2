@@ -56,6 +56,7 @@ Create Date: 2026-05-05 09:00:00.000000
 from typing import Sequence, Union
 
 from alembic import op
+from sqlalchemy import inspect
 
 revision: str = "e7a9b3d5c2f1"
 down_revision: Union[str, None] = "d6f8a2b9c1e3"
@@ -105,7 +106,7 @@ def _has_legacy_achievement_columns() -> bool:
     """Return True if achievements still has pre-FK text columns."""
 
     bind = op.get_bind()
-    columns = {row[1] for row in bind.exec_driver_sql("PRAGMA table_info(achievements)")}
+    columns = {column["name"] for column in inspect(bind).get_columns("achievements")}
     return {"achievement_type", "league", "season"}.issubset(columns)
 
 

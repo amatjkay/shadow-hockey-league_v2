@@ -23,6 +23,7 @@ SQLite ``dev.db`` via the table copy in ``8a3279741758``).
 from typing import Sequence, Union
 
 from alembic import op
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision: str = "3f6f9ed6c154"
@@ -34,8 +35,11 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # batch_alter_table works on both Postgres (direct ``DROP INDEX``) and
     # SQLite (no table copy is needed for a pure index drop).
-    with op.batch_alter_table("leagues", schema=None) as batch_op:
-        batch_op.drop_index("ix_leagues_code")
+    bind = op.get_bind()
+    indexes = {index["name"] for index in inspect(bind).get_indexes("leagues")}
+    if "ix_leagues_code" in indexes:
+        with op.batch_alter_table("leagues", schema=None) as batch_op:
+            batch_op.drop_index("ix_leagues_code")
 
 
 def downgrade() -> None:
