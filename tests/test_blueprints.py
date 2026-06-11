@@ -32,14 +32,14 @@ def _seed_reference_data():
         db.session.add(s)
         seasons[code] = s
 
-    # Compact-10 scale (TIK-80) — keeps ``BEST > TOP3`` and ``L2 ≈ 60 % L1``.
-    type_points: dict[str, tuple[float, float]] = {
-        "TOP1": (10.0, 6.0),
-        "TOP2": (5.0, 3.0),
-        "TOP3": (2.5, 1.5),
-        "BEST": (3.0, 1.8),
-        "R3": (1.5, 0.9),
-        "R1": (0.75, 0.45),
+    # ADR-006 scale — consistent 2:1 L1:L2
+    type_points: dict[str, tuple[int, int]] = {
+        "TOP1": (1000, 500),
+        "TOP2": (600, 300),
+        "TOP3": (400, 200),
+        "BEST": (200, 100),
+        "R3": (150, 75),
+        "R1": (80, 40),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():

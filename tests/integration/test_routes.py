@@ -400,8 +400,8 @@ class TestRatingCalculationIntegration(IntegrationTestCase):
             leaderboard = build_leaderboard(db.session)
 
         test_entry = next(e for e in leaderboard if e["name"] == "Rating Test")
-        # Total = 10.0 (TOP1 L1 s25/26 @ 1.000) + 3.5 (TOP2 L1 s24/25 @ 0.700) = 13.5.
-        self.assertEqual(test_entry["total"], 13.5)
+        # points = round(base × mul): round(10.0 × 1.000) = 10, round(5.0 × 0.700) = 4, total = 14
+        self.assertEqual(test_entry["total"], 14)
 
 
 class TestCascadeDelete(IntegrationTestCase):

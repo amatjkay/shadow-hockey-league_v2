@@ -41,13 +41,13 @@ def _seed_reference_data():
         db.session.add(s)
         seasons[code] = s
 
-    type_points: dict[str, tuple[float, float]] = {
-        "TOP1": (10.0, 6.0),
-        "TOP2": (5.0, 3.0),
-        "TOP3": (2.5, 1.5),
-        "BEST": (3.0, 1.8),
-        "R3": (1.5, 0.9),
-        "R1": (0.75, 0.45),
+    type_points: dict[str, tuple[int, int]] = {
+        "TOP1": (1000, 500),
+        "TOP2": (600, 300),
+        "TOP3": (400, 200),
+        "BEST": (200, 100),
+        "R3": (150, 75),
+        "R1": (80, 40),
     }
     types = {}
     for code, (bp_l1, bp_l2) in type_points.items():
@@ -125,40 +125,40 @@ class TestRatingServiceHelpers(unittest.TestCase):
         self.assertEqual(get_achievement_kind(ach), "R1")
 
     def test_calculate_points_top1_s23_24(self) -> None:
-        """TOP1 L1 s23/24: 10.0 × 0.490 = 4.9 (compact-10, TIK-80)."""
+        """TOP1 L1 s23/24: 1000 × 0.490 = 490 (TIK-80 exponential decay)."""
         ach = self._create_achievement("TOP1", "1", "23/24", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 10.0)
+        self.assertEqual(result["base"], 1000)
         self.assertEqual(result["mul"], 0.490)
-        self.assertEqual(result["points"], 4.9)
+        self.assertEqual(result["points"], 490)
 
     def test_calculate_points_top2_s21_22(self) -> None:
-        """TOP2 L1 s21/22: 5.0 × 0.240 = 1.2 (compact-10, TIK-80)."""
+        """TOP2 L1 s21/22: 600 × 0.240 = 144 (TIK-80 exponential decay)."""
         ach = self._create_achievement("TOP2", "1", "21/22", "TOP2")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 5.0)
+        self.assertEqual(result["base"], 600)
         self.assertEqual(result["mul"], 0.240)
-        self.assertEqual(result["points"], 1.2)
+        self.assertEqual(result["points"], 144)
 
     def test_calculate_points_league2(self) -> None:
-        """TOP1 L2 s22/23: 6.0 × 0.343 = 2.06 (rounded to 2dp)."""
+        """TOP1 L2 s22/23: 500 × 0.343 = 172 (TIK-80 exponential decay)."""
         ach = self._create_achievement("TOP1", "2", "22/23", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 6.0)
+        self.assertEqual(result["base"], 500)
         self.assertEqual(result["mul"], 0.343)
-        self.assertEqual(result["points"], 2.06)
+        self.assertEqual(result["points"], 172)
 
     def test_calculate_points_s25_26(self) -> None:
-        """TOP1 L2 s25/26: 6.0 × 1.000 = 6.0 (baseline season)."""
+        """TOP1 L2 s25/26: 500 × 1.00 = 500 (baseline season)."""
         ach = self._create_achievement("TOP1", "2", "25/26", "TOP1")
         result = calculate_achievement_points(ach)
 
-        self.assertEqual(result["base"], 6.0)
-        self.assertEqual(result["mul"], 1.000)
-        self.assertEqual(result["points"], 6.0)
+        self.assertEqual(result["base"], 500)
+        self.assertEqual(result["mul"], 1.0)
+        self.assertEqual(result["points"], 500)
 
     def test_season_multiplier_s25_26_exists(self) -> None:
         """Test that season 25/26 multiplier is defined as baseline."""
@@ -408,39 +408,36 @@ class TestRatingCalculation(unittest.TestCase):
             self.assertIn(combo, BASE_POINTS, f"Missing base points for {combo}")
 
     def test_base_points_values(self) -> None:
-        """Compact-10 scale (TIK-80): BEST > TOP3, L2 ≈ 60 % L1."""
+        """ADR-006 scale (2:1 L1:L2)."""
         # League 1
-        self.assertEqual(BASE_POINTS[("1", "TOP1")], 10.0)
-        self.assertEqual(BASE_POINTS[("1", "TOP2")], 5.0)
-        self.assertEqual(BASE_POINTS[("1", "TOP3")], 2.5)
-        self.assertEqual(BASE_POINTS[("1", "BEST")], 3.0)
-        self.assertEqual(BASE_POINTS[("1", "R3")], 1.5)
-        self.assertEqual(BASE_POINTS[("1", "R1")], 0.75)
+        self.assertEqual(BASE_POINTS[("1", "TOP1")], 1000)
+        self.assertEqual(BASE_POINTS[("1", "TOP2")], 600)
+        self.assertEqual(BASE_POINTS[("1", "TOP3")], 400)
+        self.assertEqual(BASE_POINTS[("1", "BEST")], 200)
+        self.assertEqual(BASE_POINTS[("1", "R3")], 150)
+        self.assertEqual(BASE_POINTS[("1", "R1")], 80)
 
-        # BEST regular > TOP3 (full-season MVP > one bronze series).
-        self.assertGreater(BASE_POINTS[("1", "BEST")], BASE_POINTS[("1", "TOP3")])
-        self.assertGreater(BASE_POINTS[("2", "BEST")], BASE_POINTS[("2", "TOP3")])
+        # ADR-006: BEST < TOP3 (regular-season prize is lower than playoff bronze).
 
-        # League 2 — softened ratio (~1.67×) instead of hard 2× of L1.
-        self.assertEqual(BASE_POINTS[("2", "TOP1")], 6.0)
-        self.assertEqual(BASE_POINTS[("2", "TOP2")], 3.0)
-        self.assertEqual(BASE_POINTS[("2", "TOP3")], 1.5)
-        self.assertEqual(BASE_POINTS[("2", "BEST")], 1.8)
-        self.assertEqual(BASE_POINTS[("2", "R3")], 0.9)
-        self.assertEqual(BASE_POINTS[("2", "R1")], 0.45)
+        # League 2 — strict 2:1 ratio (ADR-006).
+        self.assertEqual(BASE_POINTS[("2", "TOP1")], 500)
+        self.assertEqual(BASE_POINTS[("2", "TOP2")], 300)
+        self.assertEqual(BASE_POINTS[("2", "TOP3")], 200)
+        self.assertEqual(BASE_POINTS[("2", "BEST")], 100)
+        self.assertEqual(BASE_POINTS[("2", "R3")], 75)
+        self.assertEqual(BASE_POINTS[("2", "R1")], 40)
 
     def test_season_multipliers(self) -> None:
-        """Smooth ``0.7 ^ years_ago`` decay (TIK-80)."""
+        """TIK-80 exponential decay: 0.7 ^ years_ago."""
         expected_seasons = ["25/26", "24/25", "23/24", "22/23", "21/22"]
         for season in expected_seasons:
             self.assertIn(season, SEASON_MULTIPLIER, f"Missing multiplier for season {season}")
 
-        # ``years_ago = active_year - season_year``; consistent −30 %/year.
-        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.000)  # 0.7^0 baseline
-        self.assertEqual(SEASON_MULTIPLIER["24/25"], 0.700)  # 0.7^1
-        self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.490)  # 0.7^2
-        self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.343)  # 0.7^3
-        self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.240)  # 0.7^4 (rounded)
+        self.assertEqual(SEASON_MULTIPLIER["25/26"], 1.000)
+        self.assertEqual(SEASON_MULTIPLIER["24/25"], 0.700)
+        self.assertEqual(SEASON_MULTIPLIER["23/24"], 0.490)
+        self.assertEqual(SEASON_MULTIPLIER["22/23"], 0.343)
+        self.assertEqual(SEASON_MULTIPLIER["21/22"], 0.240)
 
 
 class TestLeaderboardPrecisionAndTies(unittest.TestCase):
@@ -496,58 +493,30 @@ class TestLeaderboardPrecisionAndTies(unittest.TestCase):
         db.session.flush()
         return ach
 
-    def test_phantom_tie_resolved_by_full_precision_sum(self) -> None:
-        """Aliaksandr/Юрий scenario: same 2dp display, different exact totals.
-
-        - Manager A:  TOP1 L2 25/26 (6.0) + BEST L2 25/26 (1.8)
-            = 7.8000 exact
-        - Manager B:  TOP1 L2 25/26 (6.0) + BEST L2 24/25 (1.8×0.7)
-                      + R1 L2 23/24 (0.45×0.49) + R1 L2 24/25 (0.45×0.7)
-            = 7.7955 exact
-
-        Both rounded to 2dp → "7.80", but exact totals differ → ranks
-        must separate.
-        """
+    def test_points_with_different_value_produces_different_rank(self) -> None:
+        """Managers with different totals get different ranks."""
         a = self._add_manager("Manager A")
         b = self._add_manager("Manager B")
-        self._add_achievement(a, "TOP1", "2", "25/26")
-        self._add_achievement(a, "BEST", "2", "25/26")
-        self._add_achievement(b, "TOP1", "2", "25/26")
-        self._add_achievement(b, "BEST", "2", "24/25")
-        self._add_achievement(b, "R1", "2", "23/24")
-        self._add_achievement(b, "R1", "2", "24/25")
+        self._add_achievement(a, "TOP1", "1", "25/26")  # 1000
+        self._add_achievement(b, "TOP2", "1", "25/26")  # 600
         db.session.commit()
 
         result = build_leaderboard(db.session)
         row_a = next(r for r in result if r["name"] == "Manager A")
         row_b = next(r for r in result if r["name"] == "Manager B")
 
-        # Exact totals: A > B by 0.0045.
-        self.assertAlmostEqual(row_a["total"], 7.8, places=6)
-        self.assertAlmostEqual(row_b["total"], 7.7955, places=6)
         self.assertGreater(row_a["total"], row_b["total"])
-
-        # Ranks separate — no more "two 2nd places".
         self.assertNotEqual(row_a["rank"], row_b["rank"])
         self.assertEqual(row_a["rank"], 1)
         self.assertEqual(row_b["rank"], 2)
 
-        # Both rows are in top-10 with colliding 2dp displays → 3dp bump.
-        self.assertEqual(row_a["total_display"], "7.800")
-        self.assertEqual(row_b["total_display"], "7.796")
-
-    def test_true_tie_keeps_two_decimals_and_shared_rank(self) -> None:
-        """Identical careers → identical totals → shared rank, 2dp display.
-
-        The third decimal would be a trailing zero (``7.800`` / ``7.800``)
-        that adds no information; the shared rank pill already conveys the
-        tie.
-        """
+    def test_true_tie_keeps_shared_rank(self) -> None:
+        """Identical careers → identical totals → shared rank."""
         a = self._add_manager("Twin A")
         b = self._add_manager("Twin B")
         for m in (a, b):
-            self._add_achievement(m, "TOP1", "2", "25/26")  # 6.0 each
-            self._add_achievement(m, "BEST", "2", "25/26")  # 1.8 each
+            self._add_achievement(m, "TOP1", "2", "25/26")  # 500 each
+            self._add_achievement(m, "BEST", "2", "25/26")  # 100 each
         db.session.commit()
 
         result = build_leaderboard(db.session)
@@ -556,36 +525,30 @@ class TestLeaderboardPrecisionAndTies(unittest.TestCase):
 
         self.assertEqual(row_a["total"], row_b["total"])
         self.assertEqual(row_a["rank"], row_b["rank"])
-        # Shared rank → no precision bump, both render with 2 decimals.
-        self.assertEqual(row_a["total_display"], "7.80")
-        self.assertEqual(row_b["total_display"], "7.80")
 
-    def test_non_colliding_rows_keep_two_decimals(self) -> None:
-        """Rows whose 2dp displays don't collide with anyone keep 2dp."""
+    def test_different_totals_produce_correct_ranking(self) -> None:
+        """Rows with different totals rank correctly."""
         a = self._add_manager("Solo A")
         b = self._add_manager("Solo B")
-        self._add_achievement(a, "TOP1", "1", "25/26")  # 10.00
-        self._add_achievement(b, "TOP3", "1", "25/26")  # 2.50
+        self._add_achievement(a, "TOP1", "1", "25/26")  # 1000
+        self._add_achievement(b, "TOP3", "1", "25/26")  # 400
         db.session.commit()
 
         result = build_leaderboard(db.session)
         row_a = next(r for r in result if r["name"] == "Solo A")
         row_b = next(r for r in result if r["name"] == "Solo B")
 
-        self.assertEqual(row_a["total_display"], "10.00")
-        self.assertEqual(row_b["total_display"], "2.50")
+        self.assertGreater(row_a["total"], row_b["total"])
+        self.assertEqual(row_a["rank"], 1)
+        self.assertEqual(row_b["rank"], 2)
 
-    def test_points_exact_exposed_for_callers(self) -> None:
-        """``calculate_achievement_points`` must expose un-rounded ``points_exact``.
-
-        ``0.45 × 0.49 = 0.2205`` — ``points`` rounds to ``0.22``, but
-        ``points_exact`` must keep the un-rounded value so callers that
-        aggregate (e.g. ``build_leaderboard``) can avoid phantom ties.
-        """
+    def test_points_is_rounded_int(self) -> None:
+        """``calculate_achievement_points`` returns int ``points`` (round base × mul)."""
         m = self._add_manager("Exact Test")
         ach = self._add_achievement(m, "R1", "2", "23/24")
         db.session.commit()
 
         parsed = calculate_achievement_points(ach)
-        self.assertEqual(parsed["points"], 0.22)
-        self.assertAlmostEqual(parsed["points_exact"], 0.2205, places=6)
+        # R1 L2 = 40 (BASE_POINTS), 23/24 = 0.490 (TIK-80)
+        # round(40 * 0.490) = 20
+        self.assertEqual(parsed["points"], 20)

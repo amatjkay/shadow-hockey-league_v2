@@ -277,3 +277,65 @@ covering phantom tie (different totals same 2dp), true tie (shared
 rank stays at 2 dp), non-colliding rows stay at 2 dp, and
 `points_exact` exposure.
 
+---
+
+## ADR-006: Rebalanced Achievement Points — Consistent 2:1 L1:L2
+
+**Date:** 2026-06-11
+**Status:** Active
+
+### Context
+
+The original point values (ADR-004 era) had several design inconsistencies:
+
+1. **L1:L2 ratio varied wildly** — from 1.25× (BEST: 50/40) to 4.5× (TOP3:
+   450/100) with no logical rationale for which achievement deserved a wider
+   gap.
+2. **TOP1:R1 gap was 80:1** (800 vs 10) — a manager could participate in
+   every playoff for 20 years and accumulate only 200 points, a quarter of
+   one championship. Career consistency was nearly meaningless.
+3. **BEST (50) severely under-valued** — winning the regular season was worth
+   only 1.6× a single playoff-round win (R3: 30).
+4. **R3 (30) vs R1 (10) gave only 3×** for advancing two rounds, yet R3 vs
+   TOP3 (450) was a 15× chasm — progression curve deeply uneven.
+
+### Decision
+
+Redesign the point system around three principles:
+
+**Principle 1 — Consistent 2:1 L1:L2.** Every achievement type in League 2
+is worth exactly half of League 1. No exceptions.
+
+**Principle 2 — Playoff progression ≈ 2× per round won.** Each successive
+playoff round approximately doubles in value.
+
+**Principle 3 — Regular season ≈ semifinal.** BEST (regular-season champion)
+is pegged to 200 — comparable to R3 (150) but clearly above it.
+
+| Code | L1 | L2 | L1:L2 | Rationale |
+|:-----|:--:|:--:|:-----:|:----------|
+| TOP1 | 1000 | 500 | 2:1 | Champion — crown achievement |
+| TOP2 | 600 | 300 | 2:1 | Finalist — 60 % of champion |
+| TOP3 | 400 | 200 | 2:1 | Semifinalist — 2.67× R3 |
+| BEST | 200 | 100 | 2:1 | Regular-season champion |
+| R3 | 150 | 75 | 2:1 | Quarterfinal winner — 2× R1 |
+| R1 | 80 | 40 | 2:1 | Playoff participant |
+
+Key ratios in the new system:
+- **TOP1 : R1 = 12.5:1** (was 80:1) — ≈13 seasons of playoff presence
+  equals one championship; realistic career curve.
+- **TOP1 : BEST = 5:1** (was 16:1) — regular season is meaningful but
+  a title is clearly superior.
+- **TOP1 : TOP3 = 2.5:1** — champion worth 2.5× a semifinalist.
+- **R3 : R1 ≈ 1.9:1** — consistent progression.
+
+### Consequences
+
+- All existing achievements need recalculation (handled by migration
+  `d4e5f6a7b8c9`).
+- Tooltip and points-info strip reflect the new values.
+- Seed migration `b2c3d4e5f6a7` updated with new defaults for fresh
+  installs.
+- L2 values are now exactly half of L1; separate `base_points_l1` /
+  `base_points_l2` columns are retained for future flexibility.
+

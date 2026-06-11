@@ -634,3 +634,38 @@ Three surgical follow-ups, no source-code changes.
 
 - T04 / T05 / T06 flipped from `follow-up` → `done`. T10 / T13 / T14 stay
   `open question` (separate PRs in Phase 2 + Phase 3).
+
+---
+
+## 2026-06-11: ADR-006 — Rebalanced achievement points (consistent 2:1 L1:L2)
+
+**What:** Redesigned the point system to fix inconsistent L1:L2 ratios and
+extreme gaps between achievements. Added visible `points-info` strip on
+the leaderboard page. Full turnkey — all code, DB schema, seed, tests, docs.
+
+**New values (L1 / L2):** TOP1=1000/500, TOP2=600/300, TOP3=400/200,
+BEST=200/100, R3=150/75, R1=80/40. Strict 2:1 for all types.
+
+**Changes:**
+
+| File | Change |
+|:-----|:-------|
+| `services/rating_service.py` | ADR-006 `BASE_POINTS` + TIK-80 `SEASON_MULTIPLIER` + restored `_assign_total_display` |
+| `data/seed_service.py` | Seed compact-10 → ADR-006 int scale |
+| `migrations/versions/d4e5f6a7b8c9_...py` | New migration — UPDATE + recalc |
+| `migrations/versions/b2c3d4e5f6a7_...py` | Updated seed defaults (also fixed "регулярый" typo) |
+| `templates/index.html` | Added `points-info` strip; updated tooltip copy |
+| `static/css/rating-rules.css` | Added `.points-info` styles |
+| `docs/decisionLog.md` | ADR-006 |
+| `PROJECT_KNOWLEDGE.md` | Updated reference table + principles |
+| `tests/test_rating_service.py` | Updated 5 test assertions |
+| `tests/test_rating_fallback_consistency.py` | Updated multiplier fixtures |
+| `tests/test_blueprints.py` | Updated `_seed_reference_data` |
+| `tests/test_rating_formula.py` | Updated multiplier assertions |
+| `tests/integration/test_routes.py` | Updated `_seed_reference_data` |
+
+**Status:**
+
+- Migration `d4e5f6a7b8c9` applied — `alembic upgrade head` runs clean (25 migrations).
+- All fallback constants, DB seed, and test fixtures aligned on same values.
+- **586 tests pass** — 10 pre-existing failures in `test_admin_views.py` (Flask-Admin API mismatch) and `test_audit_logging.py` (Flask-SQLAlchemy 3.x) unrelated to this task.

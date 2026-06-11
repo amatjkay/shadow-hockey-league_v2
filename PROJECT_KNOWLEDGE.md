@@ -11,21 +11,22 @@
 - **Multiplier**: Defined in the `Season` model.
 - **Auto-calculation**: Achievements MUST be auto-calculated on the server-side via `on_model_change` to ensure database integrity.
 
-### Reference Data Baselines (compact-10 scale, TIK-80)
+### Reference Data Baselines (ADR-006, 2026-06-11 — consistent 2:1 L1:L2)
 
-> Source of truth: `achievement_types`/`seasons` rows in `dev.db` (seed: `data/seed/achievements.json` + `seed_db.py`). Verify with `SELECT code, base_points_l1, base_points_l2 FROM achievement_types` before changing.
+> Source of truth: `achievement_types` rows in `dev.db` (migration `d4e5f6a7b8c9`). Verify with `SELECT code, base_points_l1, base_points_l2 FROM achievement_types` before changing.
 
-| Code | Name | L1 (Elite) | L2 |
-| :--- | :--- | ---: | ---: |
-| `TOP1` | Top 1 | 10.00 | 6.00 |
-| `TOP2` | Top 2 | 5.00 | 3.00 |
-| `TOP3` | Top 3 | 2.50 | 1.50 |
-| `BEST` | Best Regular | 3.00 | 1.80 |
-| `R3` | Round 3 (semifinal exit) | 1.50 | 0.90 |
-| `R1` | Round 1 (quarterfinal exit) | 0.75 | 0.45 |
+| Code | Name | L1 | L2 | L1:L2 |
+| :--- | :--- | ---: | ---: | :---: |
+| `TOP1` | Чемпион | 1000 | 500 | 2:1 |
+| `TOP2` | Финалист | 600 | 300 | 2:1 |
+| `TOP3` | Полуфинал | 400 | 200 | 2:1 |
+| `BEST` | Лучший регулярный | 200 | 100 | 2:1 |
+| `R3` | Раунд 3 | 150 | 75 | 2:1 |
+| `R1` | Раунд 1 | 80 | 40 | 2:1 |
 
 - **Baseline Season**: 25/26 (Multiplier = 1.0).
-- **Historical Multipliers** (decay `0.7 ^ years_ago`): 24/25 = 0.7000, 23/24 = 0.4900, 22/23 = 0.3430, 21/22 = 0.2400.
+- **Historical Multipliers** (TIK-80, exponential `0.7 ^ years_ago`): 24/25 = 0.700, 23/24 = 0.490, 22/23 = 0.343, 21/22 = 0.240.
+- **Design principles (ADR-006):** L1:L2 strictly 2:1; playoff progression ≈2× per round; regular season (BEST) comparable to R3.
 
 ### Leaderboard Summation Precision
 
@@ -70,4 +71,4 @@ already conveys the tie.
 - **Cache key partitioning**: any `@cache.cached` view that varies by query-string MUST use a callable `key_prefix` (see `blueprints/main.py::index`); a static prefix shares the bucket across `?season=` variants.
 
 ---
-_Last updated: 2026-05-12 — post-TIK-86 (`_LEADERBOARD_LOCK`) + docs cleanup; compact-10 (TIK-80) values reflected._
+_Last updated: 2026-06-11 — ADR-006 int scale (1000/500 etc.) + TIK-80 exponential decay (0.7^years_ago); SeedService and all fallback constants aligned._

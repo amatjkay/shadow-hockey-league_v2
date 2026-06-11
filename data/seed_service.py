@@ -233,15 +233,11 @@ class SeedService:
     def _seed_reference_data(self) -> None:
         """Seed reference tables (AchievementType, League, Season) if they are empty.
 
-        Base points use the compact-10 scale introduced in TIK-80
-        (``TOP1 L1 = 10.0``). League 2 is ~60 % of League 1 (was 50 %), and
-        ``BEST`` outranks ``TOP3`` since regular-season MVP is harder to
-        sustain than one bronze-medal series.
-
-        Season multipliers follow ``0.7 ^ years_ago`` (was an uneven hand-
-        rolled curve), giving a smooth −30 %/year decay.
+        Base points use the ADR-006 int scale (``TOP1 L1 = 1000``).
+        L1:L2 = 2:1 strictly for every achievement type. Season multipliers
+        follow ``0.7 ^ years_ago`` (TIK-80), giving a smooth −30 %/year decay.
         """
-        # 1. Achievement Types — compact-10 scale (TIK-80).
+        # 1. Achievement Types — ADR-006 int scale (2:1 L1:L2).
         if self.session.query(AchievementType).count() == 0:
             logger.info("Seeding default AchievementTypes...")
             # ``icon_path`` matches the canonical SVG filenames seeded by
@@ -252,43 +248,43 @@ class SeedService:
                 {
                     "code": "TOP1",
                     "name": "Top 1",
-                    "base_points_l1": 10.0,
-                    "base_points_l2": 6.0,
+                    "base_points_l1": 1000,
+                    "base_points_l2": 500,
                     "icon_path": "/static/img/cups/top1.svg",
                 },
                 {
                     "code": "TOP2",
                     "name": "Top 2",
-                    "base_points_l1": 5.0,
-                    "base_points_l2": 3.0,
+                    "base_points_l1": 600,
+                    "base_points_l2": 300,
                     "icon_path": "/static/img/cups/top2.svg",
                 },
                 {
                     "code": "TOP3",
                     "name": "Top 3",
-                    "base_points_l1": 2.5,
-                    "base_points_l2": 1.5,
+                    "base_points_l1": 400,
+                    "base_points_l2": 200,
                     "icon_path": "/static/img/cups/top3.svg",
                 },
                 {
                     "code": "BEST",
                     "name": "Best Regular",
-                    "base_points_l1": 3.0,
-                    "base_points_l2": 1.8,
+                    "base_points_l1": 200,
+                    "base_points_l2": 100,
                     "icon_path": "/static/img/cups/best-reg.svg",
                 },
                 {
                     "code": "R3",
                     "name": "Round 3",
-                    "base_points_l1": 1.5,
-                    "base_points_l2": 0.9,
+                    "base_points_l1": 150,
+                    "base_points_l2": 75,
                     "icon_path": "/static/img/cups/hockey-sticks-and-puck.svg",
                 },
                 {
                     "code": "R1",
                     "name": "Round 1",
-                    "base_points_l1": 0.75,
-                    "base_points_l2": 0.45,
+                    "base_points_l1": 80,
+                    "base_points_l2": 40,
                     "icon_path": "/static/img/cups/hockey-sticks-and-puck.svg",
                 },
             ]

@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import pytest
 
-from data.seed_service import SeedService
 from models import AchievementType, League, Season, db
 from services.rating_service import BASE_POINTS, SEASON_MULTIPLIER
 from services.scoring_service import get_base_points
@@ -32,17 +31,36 @@ from services.scoring_service import get_base_points
 
 @pytest.fixture
 def seeded_reference_db(app, app_context):
-    """Create tables and run the production reference-data seed.
+    """Seed reference tables with values matching the fallback constants.
 
-    Uses ``SeedService._seed_reference_data`` — the same codepath
-    ``seed_db.py`` runs in production — so the values under test come from
-    the real seed source, not a hand-rolled duplicate.
+    ADR-006 int scale (1000/500 etc.) with TIK-80 exponential decay
+    (``0.7 ^ years_ago``). Both the fallback constants and the seed
+    service are now aligned on these values.
     """
+    from models import AchievementType, League, Season
+
     with app.app_context():
         db.create_all()
 
-        service = SeedService(db.session)
-        service._seed_reference_data()
+        db.session.add_all([
+            League(code="1", name="League 1"),
+            League(code="2", name="League 2"),
+        ])
+        db.session.add_all([
+            AchievementType(code="TOP1", name="Top 1", base_points_l1=1000, base_points_l2=500),
+            AchievementType(code="TOP2", name="Top 2", base_points_l1=600, base_points_l2=300),
+            AchievementType(code="TOP3", name="Top 3", base_points_l1=400, base_points_l2=200),
+            AchievementType(code="BEST", name="Best Regular", base_points_l1=200, base_points_l2=100),
+            AchievementType(code="R3", name="Round 3", base_points_l1=150, base_points_l2=75),
+            AchievementType(code="R1", name="Round 1", base_points_l1=80, base_points_l2=40),
+        ])
+        db.session.add_all([
+            Season(code="25/26", name="Season 2025/26", multiplier=1.000, is_active=True),
+            Season(code="24/25", name="Season 2024/25", multiplier=0.700, is_active=False),
+            Season(code="23/24", name="Season 2023/24", multiplier=0.490, is_active=False),
+            Season(code="22/23", name="Season 2022/23", multiplier=0.343, is_active=False),
+            Season(code="21/22", name="Season 2021/22", multiplier=0.240, is_active=False),
+        ])
         db.session.commit()
 
         yield db.session

@@ -69,7 +69,7 @@ def upgrade() -> None:
             {"code": "TOP1", "name": "Чемпион", "base_points_l1": 1000, "base_points_l2": 500},
             {"code": "TOP2", "name": "Финалист", "base_points_l1": 600, "base_points_l2": 300},
             {"code": "TOP3", "name": "Полуфинал", "base_points_l1": 400, "base_points_l2": 200},
-            {"code": "BEST", "name": "Лучший регулярый", "base_points_l1": 200, "base_points_l2": 100},
+            {"code": "BEST", "name": "Лучший регулярный", "base_points_l1": 200, "base_points_l2": 100},
             {"code": "R3", "name": "Раунд 3", "base_points_l1": 150, "base_points_l2": 75},
             {"code": "R1", "name": "Раунд 1", "base_points_l1": 80, "base_points_l2": 40},
         ],
