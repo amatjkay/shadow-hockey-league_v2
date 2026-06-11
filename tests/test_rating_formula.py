@@ -182,7 +182,9 @@ class TestBasePointsFromDB(unittest.TestCase):
                 AchievementType(code="TOP1", name="TOP1", base_points_l1=1000, base_points_l2=500),
                 AchievementType(code="TOP2", name="TOP2", base_points_l1=600, base_points_l2=300),
                 AchievementType(code="TOP3", name="TOP3", base_points_l1=400, base_points_l2=200),
-                AchievementType(code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100),
+                AchievementType(
+                    code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100
+                ),
                 AchievementType(code="R3", name="Round 3", base_points_l1=150, base_points_l2=75),
                 AchievementType(code="R1", name="Round 1", base_points_l1=80, base_points_l2=40),
             ]
@@ -205,7 +207,9 @@ class TestBasePointsFromDB(unittest.TestCase):
                 AchievementType(code="TOP1", name="TOP1", base_points_l1=1000, base_points_l2=500),
                 AchievementType(code="TOP2", name="TOP2", base_points_l1=600, base_points_l2=300),
                 AchievementType(code="TOP3", name="TOP3", base_points_l1=400, base_points_l2=200),
-                AchievementType(code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100),
+                AchievementType(
+                    code="BEST", name="Best regular", base_points_l1=200, base_points_l2=100
+                ),
                 AchievementType(code="R3", name="Round 3", base_points_l1=150, base_points_l2=75),
                 AchievementType(code="R1", name="Round 1", base_points_l1=80, base_points_l2=40),
             ]

@@ -42,25 +42,33 @@ def seeded_reference_db(app, app_context):
     with app.app_context():
         db.create_all()
 
-        db.session.add_all([
-            League(code="1", name="League 1"),
-            League(code="2", name="League 2"),
-        ])
-        db.session.add_all([
-            AchievementType(code="TOP1", name="Top 1", base_points_l1=1000, base_points_l2=500),
-            AchievementType(code="TOP2", name="Top 2", base_points_l1=600, base_points_l2=300),
-            AchievementType(code="TOP3", name="Top 3", base_points_l1=400, base_points_l2=200),
-            AchievementType(code="BEST", name="Best Regular", base_points_l1=200, base_points_l2=100),
-            AchievementType(code="R3", name="Round 3", base_points_l1=150, base_points_l2=75),
-            AchievementType(code="R1", name="Round 1", base_points_l1=80, base_points_l2=40),
-        ])
-        db.session.add_all([
-            Season(code="25/26", name="Season 2025/26", multiplier=1.000, is_active=True),
-            Season(code="24/25", name="Season 2024/25", multiplier=0.700, is_active=False),
-            Season(code="23/24", name="Season 2023/24", multiplier=0.490, is_active=False),
-            Season(code="22/23", name="Season 2022/23", multiplier=0.343, is_active=False),
-            Season(code="21/22", name="Season 2021/22", multiplier=0.240, is_active=False),
-        ])
+        db.session.add_all(
+            [
+                League(code="1", name="League 1"),
+                League(code="2", name="League 2"),
+            ]
+        )
+        db.session.add_all(
+            [
+                AchievementType(code="TOP1", name="Top 1", base_points_l1=1000, base_points_l2=500),
+                AchievementType(code="TOP2", name="Top 2", base_points_l1=600, base_points_l2=300),
+                AchievementType(code="TOP3", name="Top 3", base_points_l1=400, base_points_l2=200),
+                AchievementType(
+                    code="BEST", name="Best Regular", base_points_l1=200, base_points_l2=100
+                ),
+                AchievementType(code="R3", name="Round 3", base_points_l1=150, base_points_l2=75),
+                AchievementType(code="R1", name="Round 1", base_points_l1=80, base_points_l2=40),
+            ]
+        )
+        db.session.add_all(
+            [
+                Season(code="25/26", name="Season 2025/26", multiplier=1.000, is_active=True),
+                Season(code="24/25", name="Season 2024/25", multiplier=0.700, is_active=False),
+                Season(code="23/24", name="Season 2023/24", multiplier=0.490, is_active=False),
+                Season(code="22/23", name="Season 2022/23", multiplier=0.343, is_active=False),
+                Season(code="21/22", name="Season 2021/22", multiplier=0.240, is_active=False),
+            ]
+        )
         db.session.commit()
 
         yield db.session
