@@ -1,35 +1,3 @@
-/* Points-info strip — visible badge above the leaderboard table. */
-.points-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: 720px;
-  margin: 0 auto 1.25rem;
-  padding: 8px 14px;
-  background: var(--shl-surface-35);
-  border: 1px solid var(--shl-cyan-200);
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--shl-ink-soft);
-}
-
-.points-info__badge {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
-  color: var(--shl-cyan-700);
-  background: var(--shl-cyan-tint-15);
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.points-info__text strong {
-  color: var(--shl-cyan-700);
-}
-
 /* Rating rules and points tables. */
 .rating-rules {
   max-width: 720px;
